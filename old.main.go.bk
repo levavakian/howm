@@ -1,0 +1,245 @@
+package main
+
+import (
+ "github.com/BurntSushi/xgb"
+ "github.com/BurntSushi/xgb/xproto"
+ "github.com/BurntSushi/xgb/xinerama"
+ "howm/keysym"
+ "errors"
+ "log"
+ "sync"
+ "os/exec"
+)
+
+var xc *xgb.Conn
+var xroot xproto.ScreenInfo
+var QuitSignal error = errors.New("Quit")
+var keymap [256][]xproto.Keysym
+var attachedScreens []xinerama.ScreenInfo
+
+func main() {
+  log.Println("\n\n\n\n\nInitialized")
+  // Connect to X
+  xcon, err := xgb.NewConn()
+  if err != nil {
+    log.Fatal("X connect err: " + err.Error())
+  }
+  xc = xcon
+  defer xc.Close()
+
+  // Get setup info
+  setup := xproto.Setup(xc)
+  if setup == nil || len(setup.Roots) < 1 {
+    log.Fatal("Could not parse SetupInfo.")
+  }
+
+  // Init Xinerama
+  if err := xinerama.Init(xc); err != nil {
+    log.Fatal("Xinerama err: " + err.Error())
+  }
+
+  // Get screens
+  if r, err := xinerama.QueryScreens(xc).Reply(); err != nil {
+    log.Fatal(err)
+  } else {
+    if len(r.ScreenInfo) == 0 {
+      attachedScreens = []xinerama.ScreenInfo{
+        xinerama.ScreenInfo{
+          Width:  setup.Roots[0].WidthInPixels,
+          Height: setup.Roots[0].HeightInPixels,
+        },
+      }
+  
+    } else {
+      attachedScreens = r.ScreenInfo
+    }
+  }
+  log.Println(attachedScreens)
+
+  // Set xroot to root win
+  coninfo := setup
+  if coninfo == nil {
+    log.Fatal("Could not parse X connection info")
+  }
+
+  if len(coninfo.Roots) != 1 {
+    log.Fatal("Too many roots (too many roots!)")
+  }
+  xroot = coninfo.Roots[0]
+
+  // Take WM ownership
+  if err := TakeWMOwnership(); err != nil {
+    if _, ok := err.(xproto.AccessError); ok {
+      log.Fatal("Could not become the WM: " + err.Error())
+    }
+    log.Fatal("WM ownership err: " + err.Error())
+  }
+
+  // Load key mapping
+  const (
+    loKey = 8
+    hiKey = 255
+  )
+  
+  m := xproto.GetKeyboardMapping(xc, loKey, hiKey-loKey+1)
+  reply, err := m.Reply()
+  if err != nil {
+    log.Fatal(err)
+  }
+  if reply == nil {
+    log.Fatal("Could not load keyboard map")	
+  }
+  
+  for i := 0; i < hiKey-loKey+1; i++ {
+    keymap[loKey + i] = reply.Keysyms[i*int(reply.KeysymsPerKeycode):(i+1)*int(reply.KeysymsPerKeycode)]
+  }
+
+  // Grab Keys
+  for i, syms := range keymap {
+    backspacekeycode := xproto.Keycode(0)
+    ekeycode := xproto.Keycode(0)
+    // Go through all the SymsPerKeycode looking for keysym.XK_BackSpace,
+    // and XK_t.
+    // Grab them all.
+  
+    for _, sym := range syms {
+      switch sym {
+      case keysym.XK_BackSpace:
+        backspacekeycode = xproto.Keycode(i)
+      case keysym.XK_e:
+        ekeycode = xproto.Keycode(i)
+      }
+    }
+  
+    if backspacekeycode != 0 {
+      if err := xproto.GrabKeyChecked(
+        xc,
+        false,
+        xroot.Root,
+        xproto.ModMaskControl|xproto.ModMask1,
+        backspacekeycode,
+        xproto.GrabModeAsync,
+        xproto.GrabModeAsync,
+      ).Check(); err != nil {
+        log.Print(err)
+      }
+    }
+    if ekeycode != 0 {
+      if err := xproto.GrabKeyChecked(
+        xc,
+        false,
+        xroot.Root,
+        xproto.ModMask1,
+        ekeycode,
+        xproto.GrabModeAsync,
+        xproto.GrabModeAsync,
+      ).Check(); err != nil {
+        log.Print(err)
+      }
+    }
+  }
+
+  // Populate windows
+  tree, err := xproto.QueryTree(xc, xroot.Root).Reply()
+  log.Println(tree)
+  if err != nil {
+    log.Fatal(err)
+  }
+  if tree != nil {
+    workspaces = make(map[string]*Workspace)
+    defaultw := &Workspace{mu: &sync.Mutex{}}
+    for _, c := range tree.Children {
+      if err := defaultw.Add(c); err != nil {
+        log.Println(err)
+      }
+
+    }
+
+    if len(attachedScreens) > 0 {
+      defaultw.Screen = &attachedScreens[0]
+    }
+
+    workspaces["default"] = defaultw
+
+    if err := defaultw.TileWindows(); err != nil {
+      log.Println(err)
+    }
+  }
+
+  // X11 event loop
+  eventloop:
+  for {
+    xev, err := xc.WaitForEvent()
+    if err != nil {
+      log.Println("Wait for event error: " + err.Error())
+      continue
+    }
+    switch e := xev.(type) {
+    case xproto.KeyPressEvent:
+      if err := HandleKeyPressEvent(e); err != nil {
+        break eventloop
+      }
+    case xproto.DestroyNotifyEvent:
+      for _, w := range workspaces {
+        go func(w *Workspace) {
+          if err := w.RemoveWindow(e.Window); err == nil {
+            w.TileWindows()
+          }
+        }(w)
+      }
+    case xproto.ConfigureRequestEvent:
+      ev := xproto.ConfigureNotifyEvent{
+        Event:            e.Window,
+        Window:           e.Window,
+        AboveSibling:     0,
+        X:                e.X,
+        Y:                e.Y,
+        Width:            e.Width,
+        Height:           e.Height,
+        BorderWidth:      0,
+        OverrideRedirect: false,
+      }
+      xproto.SendEventChecked(xc, false, e.Window, xproto.EventMaskStructureNotify, string(ev.Bytes()))
+    case xproto.MapRequestEvent:
+      w := workspaces["default"]
+      xproto.MapWindowChecked(xc, e.Window)
+      w.Add(e.Window)
+      w.TileWindows()
+    default:
+      log.Println(xev)
+    }
+  }
+}
+
+func TakeWMOwnership() error {
+  return xproto.ChangeWindowAttributesChecked(
+    xc,
+    xroot.Root,
+    xproto.CwEventMask,
+    []uint32{
+      xproto.EventMaskKeyPress |
+      xproto.EventMaskKeyRelease |
+      xproto.EventMaskButtonPress |
+      xproto.EventMaskButtonRelease |
+      xproto.EventMaskStructureNotify |
+      xproto.EventMaskSubstructureRedirect,
+    }).Check()
+}
+
+func HandleKeyPressEvent(key xproto.KeyPressEvent) error {
+  switch keymap[key.Detail][0] {
+  case keysym.XK_BackSpace:
+    if (key.State & xproto.ModMaskControl != 0) && (key.State & xproto.ModMask1 != 0) {
+      return QuitSignal
+    }
+    return nil
+  case keysym.XK_e:
+    if (key.State & xproto.ModMask1 != 0) {
+      cmd := exec.Command("x-terminal-emulator")
+      return cmd.Start()
+    }
+    return nil
+  default:
+    return nil
+  }
+}
