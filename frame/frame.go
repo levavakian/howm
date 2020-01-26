@@ -321,6 +321,7 @@ func (ctx *Context) MinShape() Rect {
 }
 
 func NewContainer(ctx *Context, ev xevent.MapRequestEvent) *Container {
+	log.Println(ctx.AttachPoint)
 	window := ev.Window
 	if existing := ctx.Get(window); existing != nil {
 		log.Println("NewContainer:", window, "already tracked")

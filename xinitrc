@@ -18,9 +18,6 @@
 
 # xinitrc file for testing our window manager.
 
-# 1. Start some programs to play with.
-# sleep 2 && x-terminal-emulator &
-
 # 2. Start our window manager.
 export GLOG_logtostderr=1
 xsetroot -cursor_name arrow
