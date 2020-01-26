@@ -6,6 +6,7 @@ package main
 import (
   "log"
   "os/exec"
+  // "time"
 
 	"github.com/BurntSushi/xgbutil"
 	"github.com/BurntSushi/xgbutil/xevent"
@@ -16,6 +17,7 @@ import (
   // "github.com/BurntSushi/xgbutil/xgraphics"
   "github.com/BurntSushi/xgb/xinerama"
   "howm/frame"
+  // "github.com/BurntSushi/wingo/prompt"
 )
 
 var (
@@ -75,7 +77,7 @@ func ConfigRoot(X *xgbutil.XUtil) error {
     log.Println(err)
   }
 
-  err = frame.InitializeCursors(X)
+  c, err := frame.NewContext(X)
   if err != nil {
     log.Println(err)
   }
@@ -106,30 +108,77 @@ func ConfigRoot(X *xgbutil.XUtil) error {
     log.Println(err)
   }
 
-  err = keybind.KeyPressFun(
-		func(X *xgbutil.XUtil, e xevent.KeyPressEvent) {
-      cmd := exec.Command("firefox")
-      err := cmd.Start()
-      if err != nil {
-        log.Println(err)
-      }
-      go func() {
-        cmd.Wait()
-      }()
-    }).Connect(X, X.RootWin(), "Mod4-w", true)
-  if err != nil {
-    log.Println(err)
-  }
+  // err = keybind.KeyPressFun(
+	// 	func(X *xgbutil.XUtil, e xevent.KeyPressEvent) {
+  //     focus, err := xproto.GetInputFocus(X.Conn()).Reply()
+  //     if err != nil {
+  //       log.Println(err)
+  //       return
+  //     }
+
+  //     attachFrame, ok := frame.TrackedFrames[focus.Focus]
+  //     if !ok {
+  //       parent, err := xwindow.New(X, focus.Focus).Parent()
+  //       if err == nil {
+  //         attachFrame, ok = frame.TrackedFrames[parent.Id]
+  //       }
+  //       if !ok || err != nil {
+  //         msgPrompt := prompt.NewMessage(X,
+  //           prompt.DefaultMessageTheme, prompt.DefaultMessageConfig)
+  //         timeout := 2 * time.Second
+  //         msgPrompt.Show(xwindow.RootGeometry(X), "Cannot split when not focused on a window", timeout, func(msg *prompt.Message){})
+  //         return
+  //       }
+  //     }
+
+  //     inpPrompt := prompt.NewInput(X,
+  //       prompt.DefaultInputTheme, prompt.DefaultInputConfig)
+
+  //     canc := func (inp *prompt.Input) {
+  //       log.Println("canceled")
+  //     }
+
+  //     resp := func (inp *prompt.Input, text string) {
+  //       cmd := exec.Command(text)
+  //       err = cmd.Start()
+  //       if err != nil {
+  //         log.Println(err)
+  //       }
+  //       go func() {
+  //         cmd.Wait()
+  //       }()
+  //       inpPrompt.Destroy()
+  //     }
+      
+  //     inpPrompt.Show(xwindow.RootGeometry(X),
+  //       "Command:", resp, canc)
+      
+  //     frame.NextFrameAttachHorizontal = attachFrame
+  //   }).Connect(X, X.RootWin(), "Mod4-e", true)
+  // if err != nil {
+  //   log.Println(err)
+  // }
+
+  // xevent.MapRequestFun(
+	// 	func(X *xgbutil.XUtil, ev xevent.MapRequestEvent) {
+  //     if frame.NextFrameAttachHorizontal != nil {
+  //       frame.NewHorizontal(X, frame.NextFrameAttachHorizontal, ev)
+  //       frame.NextFrameAttachHorizontal = nil
+  //       frame.NextFrameAttachVertical = nil
+  //     } else if frame.NextFrameAttachVertical != nil {
+  //       frame.NewVertical(X, frame.NextFrameAttachVertical, ev)
+  //       frame.NextFrameAttachHorizontal = nil
+  //       frame.NextFrameAttachVertical = nil
+  //     } else {
+  //       frame.New(X, ev)
+  //     }
+  //   }).Connect(X, X.RootWin())
 
   xevent.MapRequestFun(
 		func(X *xgbutil.XUtil, ev xevent.MapRequestEvent) {
-      frame.New(X, ev.Window)
+      log.Println(ev)
+      frame.NewContainer(c, ev)
     }).Connect(X, X.RootWin())
-    
-  // xevent.ConfigureRequestFun(
-  //   func(X *xgbutil.XUtil, ev xevent.ConfigureRequestEvent) {
-  //     log.Println(ev)
-  //   }).Connect(X, X.RootWin())
 
   return err
 }

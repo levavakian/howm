@@ -1,0 +1,348 @@
+package frame
+
+import (
+	// "github.com/BurntSushi/xgb"
+	"github.com/BurntSushi/xgb/xproto"
+	"github.com/BurntSushi/xgbutil"
+	"github.com/BurntSushi/xgbutil/xcursor"
+	"github.com/BurntSushi/xgbutil/xwindow"
+	"github.com/BurntSushi/xgbutil/mousebind"
+	"github.com/BurntSushi/xgbutil/xevent"
+	"github.com/BurntSushi/xgbutil/xprop"
+	"log"
+	"howm/basics"
+)
+
+const (
+	ElemSize = 10
+)
+
+type Frame struct {
+	X      int
+	Y      int
+	W      int
+	H      int
+	Window *xwindow.Window
+	Close, TL, TR, BL, BR, T, L, B, R *xwindow.Window
+	Parent, ChildA, ChildB *Frame
+	OX, OY, RX, RY int
+	VerticalPartition bool
+}
+
+var NextFrameAttachHorizontal *Frame
+var NextFrameAttachVertical *Frame
+var TrackedFrames = make(map[xproto.Window]*Frame)
+var Cursors = make(map[int]xproto.Cursor)
+
+func Get(w xproto.Window) *Frame {
+	f, _ := TrackedFrames[w]
+	return f
+}
+
+func InitializeCursors(X *xgbutil.XUtil) error {
+	for i := xcursor.XCursor; i <= xcursor.XTerm; i++ {
+		curs, err := xcursor.CreateCursor(X, uint16(i))
+		if err != nil {
+			return err
+		}
+		Cursors[i] = curs
+	}
+	return nil
+}
+
+func MapChecked(w *xwindow.Window) error {
+	if w == nil {
+		return nil
+	}
+	return xproto.MapWindowChecked(w.X.Conn(), w.Id).Check()
+}
+
+func (f *Frame) MoveResize(X* xgbutil.XUtil, x, y, w, h int) {
+	f.X = x
+	f.Y = y
+	f.W = w
+	f.H = h
+	if f.Parent == nil {
+		x = x + ElemSize
+		y = y + ElemSize
+		w = w - ElemSize
+		h = h - ElemSize
+		f.Close.MoveResize(f.X + f.W - ElemSize, f.Y, ElemSize, ElemSize)
+		f.BR.MoveResize(f.X + f.W, f.Y + f.H, ElemSize, ElemSize)
+		f.T.MoveResize(f.X + ElemSize, f.Y, f.W - 2*ElemSize, ElemSize)
+	}
+
+	if f.ChildA == nil && f.ChildB == nil {
+		f.Window.MoveResize(x, y, w, h)
+	}
+
+	if f.ChildA != nil {
+		if f.VerticalPartition {
+			f.ChildA.MoveResize(X, x, y, w, h / 2)
+		} else {
+			f.ChildA.MoveResize(X, x, y, w / 2, h)
+		}
+	}
+
+	if f.ChildB != nil {
+		if f.VerticalPartition {
+			f.ChildA.MoveResize(X, x, y + h / 2 + 1, w, h / 2 - 1)
+		} else {
+			f.ChildA.MoveResize(X, x + w / 2 + 1, y, w / 2 - 1, h)
+		}
+	}
+}
+
+func (f *Frame) Unmap() {
+	f.Window.Unmap()
+	f.Close.Unmap()
+	f.T.Unmap()
+	f.BR.Unmap()
+}
+
+func (f *Frame) Map() {
+	f.Window.Map()
+	f.Close.Map()
+	f.T.Map()
+	f.BR.Map()
+}
+
+func (f *Frame) Remap() {
+	f.Unmap()
+	f.Map()
+}
+
+func (f *Frame) Traverse(fun func(*Frame)) {
+	fun(f)
+	if f.ChildA != nil {
+		f.ChildA.Traverse(fun)
+	}
+	if f.ChildB != nil {
+		f.ChildB.Traverse(fun)
+	}
+}
+
+func (f *Frame) Root() *Frame {
+	z := f
+	for {
+		if z.Parent != nil {
+			z = z.Parent
+		} else {
+			return z
+		}
+	}
+}
+
+func (f *Frame) ToTop() {
+	f.Root().Traverse(func(fr *Frame){
+		fr.Close.Stack(xproto.StackModeAbove)
+		fr.T.Stack(xproto.StackModeAbove)
+		fr.BR.Stack(xproto.StackModeAbove)
+		fr.Window.Stack(xproto.StackModeAbove)
+	})
+	f.Window.Focus()
+}
+
+func NewHorizontal(X *xgbutil.XUtil, f *Frame, ev xevent.MapRequestEvent) *Frame {
+	log.Println("Horizontal", f)
+	nw := ev.Window
+	if existing, ok := TrackedFrames[nw]; ok {
+		log.Println("Already created frame for", nw)
+		return existing
+	}
+	if f.ChildA == nil && f.ChildB == nil {
+		// Make child and gift him our window
+		f.ChildA = &Frame{
+			X: f.X + ElemSize,
+			Y: f.Y + ElemSize,
+			W: f.W / 2 - ElemSize,
+			H: f.H / 2 - ElemSize,
+			Parent: f,
+			Window: f.Window,
+		}
+
+		// Make the horizontal partition
+
+		// Make the new child
+		w := xwindow.New(X, nw)
+		if err := MapChecked(f.Window); err != nil {
+			log.Fatal(err)
+		}
+		f.ChildB = &Frame{
+			X: f.X + ElemSize + f.W / 2,
+			Y: f.Y + ElemSize,
+			W: f.W / 2,
+			H: f.H,
+			Parent: f,
+			Window: w,
+		}
+
+		f.MoveResize(X, f.X, f.Y, f.W, f.H)
+	}
+	return f.ChildB
+}
+
+func NewVertical(X *xgbutil.XUtil, f *Frame, ev xevent.MapRequestEvent) *Frame  {
+	log.Println("Vertical", f)
+	return nil
+}
+
+func New(X *xgbutil.XUtil, ev xevent.MapRequestEvent) *Frame {
+	nw := ev.Window
+	log.Println(ev)
+	if existing, ok := TrackedFrames[nw]; ok {
+		log.Println("Already created frame for", nw)
+		return existing
+	}
+
+	f := &Frame{
+		X: 200,
+		Y: 200,
+		W: 800,
+		H: 200,
+	}
+
+	f.Window = xwindow.New(X, nw)
+	if err := MapChecked(f.Window); err != nil {
+		log.Fatal(err)
+	}
+	f.Window.MoveResize(f.X + ElemSize, f.Y + ElemSize, f.W - ElemSize, f.H - ElemSize)
+	wId := f.Window.Id
+
+	// Close button
+	closew, err := xwindow.Generate(X)
+    if err != nil {
+		log.Fatal(err)
+	}
+	closew.CreateChecked(X.RootWin(), f.X, f.Y, f.W, f.H, xproto.CwBackPixel | xproto.CwCursor, 0xff0000, uint32(Cursors[xcursor.Dot]))
+	f.Close = closew
+
+	// Move Bar
+	t, err := xwindow.Generate(X)
+	if err != nil {
+		log.Fatal(err)
+	}
+	t.CreateChecked(X.RootWin(), f.X, f.Y, f.W, f.H, xproto.CwBackPixel, 0x777777)
+	f.T = t
+
+	xevent.DestroyNotifyFun(
+		func(X *xgbutil.XUtil, ev xevent.DestroyNotifyEvent) {
+			f := Get(wId)
+			log.Println("Destroy", ev)
+			f.Close.Destroy()
+			f.BR.Destroy()
+			f.T.Destroy()
+			f.Window.Destroy()
+			delete(TrackedFrames, f.Window.Id)
+		}).Connect(X, f.Window.Id)
+
+	xevent.UnmapNotifyFun(
+		func(X *xgbutil.XUtil, ev xevent.UnmapNotifyEvent) {
+			f := Get(wId)
+			log.Println("Unmap", ev)
+			f.Close.Unmap()
+			f.BR.Unmap()
+			f.T.Unmap()
+			f.Window.Unmap()
+		}).Connect(X, f.Window.Id)
+	
+	xevent.ConfigureRequestFun(
+		func(X *xgbutil.XUtil, ev xevent.ConfigureRequestEvent) {
+			f := Get(wId)
+			log.Println("Id:", f.Window.Id, ev)
+			if f.Parent == nil {
+				f.MoveResize(X, int(ev.X), int(ev.Y), int(ev.Width), int(ev.Height))
+			}
+		}).Connect(X, f.Window.Id)
+	
+	err = mousebind.ButtonPressFun(
+		func(X *xgbutil.XUtil, ev xevent.ButtonPressEvent) {
+			log.Println("Clicked!", f.Close.Id)
+			wm_protocols, err := xprop.Atm(X, "WM_PROTOCOLS")
+			if err != nil {
+				log.Println("xprop wm protocols failed:", err)
+				return
+			}
+			wm_del_win, err := xprop.Atm(X, "WM_DELETE_WINDOW")
+			if err != nil {
+				log.Println("xprop delte win failed:", err)
+				return
+			}
+			cm, err := xevent.NewClientMessage(32, f.Window.Id, wm_protocols, int(wm_del_win))
+			if err != nil {
+				log.Println("new client message failed", err)
+				return
+			}
+			err = xproto.SendEventChecked(X.Conn(), false, f.Window.Id, 0, string(cm.Bytes())).Check()
+			if err != nil {
+				log.Println("Could not send WM_DELETE_WINDOW ClientMessage because:", err)
+			}
+		}).Connect(X, closew.Id, "1", false, true)
+	if err != nil {
+		log.Println(err)
+	}
+
+	err = mousebind.ButtonPressFun(
+		func(X *xgbutil.XUtil, ev xevent.ButtonPressEvent) {
+			f := Get(wId)
+			log.Println("Focusing window!", f.Window.Id)
+			f.ToTop()
+			xproto.AllowEvents(X.Conn(), xproto.AllowReplayPointer, 0)
+		}).Connect(X, f.Window.Id, "1", true, true)
+	if err != nil {
+		log.Println(err)
+	}
+
+	mousebind.Drag(
+		X, f.T.Id, f.T.Id, "1", true,
+		func(X *xgbutil.XUtil, rX, rY, eX, eY int) (bool, xproto.Cursor) {
+			log.Println("Drag T")
+			f.OX = f.X
+			f.OY = f.Y
+			f.RX = rX
+			f.RY = rY
+			f.ToTop()
+			return true, Cursors[xcursor.Circle]
+		},
+		func(X *xgbutil.XUtil, rX, rY, eX, eY int) {
+			dX := rX - f.RX
+			dY := rY - f.RY
+			f.MoveResize(X, f.OX + dX, f.OY + dY, f.W, f.H)
+		},
+		func(X *xgbutil.XUtil, rX, rY, eX, eY int) {
+		},
+	)
+
+	// BR Resize
+	br, err := xwindow.Generate(X)
+	if err != nil {
+		log.Fatal(err)
+	}
+	br.CreateChecked(X.RootWin(), f.X, f.Y, f.W, f.H, xproto.CwBackPixel, 0x00ff00)
+	f.BR = br
+
+	mousebind.Drag(
+		X, f.BR.Id, f.BR.Id, "1", true,
+		func(X *xgbutil.XUtil, rX, rY, eX, eY int) (bool, xproto.Cursor) {
+			f.OX = f.X
+			f.OY = f.Y
+			f.RX = rX
+			f.RY = rY
+			f.ToTop()
+			return true, Cursors[xcursor.Circle]
+		},
+		func(X *xgbutil.XUtil, rX, rY, eX, eY int) {
+			w := basics.IMax(rX - f.X, ElemSize)
+			h := basics.IMax(rY - f.Y, ElemSize)
+			f.MoveResize(X, f.X, f.Y, w, h)
+		},
+		func(X *xgbutil.XUtil, rX, rY, eX, eY int) {
+		},
+	)
+
+	f.MoveResize(X, f.X, f.Y, f.W, f.H)
+
+	TrackedFrames[nw] = f
+	defer f.Map()
+	return f
+}
