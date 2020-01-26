@@ -10,7 +10,7 @@ import (
 	"github.com/BurntSushi/xgbutil/xwindow"
 	"github.com/BurntSushi/xgbutil/mousebind"
 	"github.com/BurntSushi/xgbutil/xevent"
-	// "github.com/BurntSushi/xgbutil/xprop"
+	"github.com/BurntSushi/xgbutil/xprop"
 )
 
 type PartitionType int
@@ -73,6 +73,7 @@ type AttachTarget struct {
 type Config struct {
 	ButtonClose string
 	ButtonDrag string
+	ButtonClick string
 	ElemSize int
 	CloseCursor int
 	DefaultShape Rect
@@ -96,6 +97,22 @@ func (f *Frame) Traverse(fun func(*Frame)) {
 	}
 }
 
+func (f *Frame) Find(fun func(*Frame)bool) *Frame {
+	if f == nil || fun(f) {
+		return f
+	}
+
+	if fA := f.ChildA.Find(fun); fA != nil {
+		return fA
+	}
+
+	if fB := f.ChildB.Find(fun); fB != nil {
+		return fB
+	}
+	
+	return nil
+}
+
 func (f *Frame) Root() *Frame {
 	z := f
 	for {
@@ -112,6 +129,13 @@ func (cd *ContainerDecorations) ForEach(f func(*Decoration)) {
 	f(&cd.Grab)
 	f(&cd.Top)
 	f(&cd.BottomRight)
+}
+
+func (cd *ContainerDecorations) Destroy(ctx *Context) {
+	cd.ForEach(func(d *Decoration){
+		d.Window.Unmap()
+		d.Window.Destroy()
+	})
 }
 
 func (d *Decoration) MoveResize(r Rect) {
@@ -139,12 +163,64 @@ func (f *Frame) Map() {
 	)
 }
 
+func (f *Frame) Close(ctx *Context) {
+	wm_protocols, err := xprop.Atm(ctx.X, "WM_PROTOCOLS")
+	if err != nil {
+		log.Println("xprop wm protocols failed:", err)
+		return
+	}
+
+	wm_del_win, err := xprop.Atm(ctx.X, "WM_DELETE_WINDOW")
+	if err != nil {
+		log.Println("xprop delte win failed:", err)
+		return
+	}
+
+	f.Traverse(func(ft *Frame){
+		if ft.IsLeaf() {
+			cm, err := xevent.NewClientMessage(32, f.Window.Id, wm_protocols, int(wm_del_win))
+			if err != nil {
+				log.Println("new client message failed", err)
+				return
+			}
+			err = xproto.SendEventChecked(ctx.X.Conn(), false, f.Window.Id, 0, string(cm.Bytes())).Check()
+			if err != nil {
+				log.Println("Could not send WM_DELETE_WINDOW ClientMessage because:", err)
+			}
+		}
+	})
+}
+
 func (f *Frame) IsLeaf() bool {
 	return f.ChildA == nil && f.ChildB == nil
 }
 
 func (f *Frame) IsRoot() bool {
 	return f.Parent == nil
+}
+
+func (f *Frame) Unmap(ctx *Context) {
+	f.Window.Unmap()
+}
+
+func (f *Frame) Destroy(ctx *Context) {
+	f.Window.Destroy()
+	if f.IsRoot() && f.IsLeaf() {
+		f.Container.Destroy(ctx)
+	}
+}
+
+func (f *Frame) Raise(ctx *Context) {
+	f.Window.Stack(xproto.StackModeAbove)
+}
+
+func (f *Frame) Focus(ctx *Context) {
+	ext.Focus(f.Window)
+}
+
+func (f *Frame) FocusRaise(ctx *Context) {
+	f.Container.Raise(ctx)
+	f.Focus(ctx)
 }
 
 func (f *Frame) MoveResize(ctx *Context) {
@@ -156,9 +232,40 @@ func (f *Frame) MoveResize(ctx *Context) {
 	})
 }
 
+func (c *Container) Raise(ctx *Context){
+	c.Decorations.ForEach(func(d *Decoration){
+		d.Window.Stack(xproto.StackModeAbove)
+	})
+	c.Root.Traverse(func(f *Frame){
+		f.Raise(ctx)
+	})
+}
+
+func (c *Container) RaiseFindFocus(ctx *Context){
+	c.Raise(ctx)
+	focus, err := xproto.GetInputFocus(ctx.X.Conn()).Reply()
+	if err == nil && ctx.Get(focus.Focus) != nil && ctx.Get(focus.Focus).Container == c {
+		return
+	}
+
+    focusFrame := c.Root.Find(func(ff *Frame)bool{
+		return ff.IsLeaf()
+	})
+	if focusFrame == nil {
+		log.Println("RaiseFindFocus: could not find leaf frame")
+		return
+	}
+
+	focusFrame.Focus(ctx)
+}
+
+func (c *Container) Destroy(ctx *Context) {
+	c.Decorations.Destroy(ctx)
+}
+
 func (c *Container) Map() {
-	c.Root.Map()
 	c.Decorations.Map()
+	c.Root.Map()
 }
 
 func (c *Container) MoveResize(ctx *Context, x, y, w, h int) {
@@ -176,6 +283,7 @@ func NewContext(x *xgbutil.XUtil) (*Context, error) {
 	conf := Config{
 		ButtonClose: "1",
 		ButtonDrag: "1",
+		ButtonClick: "1",
 		ElemSize: 10,
 		CloseCursor: xcursor.Dot,
 		DefaultShape: Rect {
@@ -266,7 +374,7 @@ func NewContainer(ctx *Context, ev xevent.MapRequestEvent) *Container {
 	err = c.AddCloseHook(ctx)
 	c.AddBottomRightHook(ctx)
 	c.AddGrabHook(ctx)
-	AddWindowHook(ctx, window)
+	err = AddWindowHook(ctx, window)
 
 	if err != nil {
 		log.Println("NewContainer: failed to create a decoration", err)
@@ -377,10 +485,9 @@ func CloseShape(context *Context, cShape Rect) Rect {
 	}
 }
 
-func AddWindowHook(ctx *Context, window xproto.Window) {
+func AddWindowHook(ctx *Context, window xproto.Window) error {
 	xevent.ConfigureRequestFun(
 		func(X *xgbutil.XUtil, ev xevent.ConfigureRequestEvent) {
-			log.Println(ev)
 			f := ctx.Get(window)
 			if f != nil && f.IsRoot() && f.IsLeaf() {
 				fShape := f.Shape
@@ -400,6 +507,30 @@ func AddWindowHook(ctx *Context, window xproto.Window) {
 				f.Container.MoveResize(ctx, cShape.X, cShape.Y, cShape.W, cShape.H)
 			}
 	}).Connect(ctx.X, window)
+
+	xevent.DestroyNotifyFun(
+		func(X *xgbutil.XUtil, ev xevent.DestroyNotifyEvent) {
+			f := ctx.Get(window)
+			f.Destroy(ctx)
+			delete(ctx.Tracked, window)
+		}).Connect(ctx.X, window)
+
+	xevent.UnmapNotifyFun(
+		func(X *xgbutil.XUtil, ev xevent.UnmapNotifyEvent) {
+			f := ctx.Get(window)
+			f.Unmap(ctx)
+		}).Connect(ctx.X, window)
+	
+	err := mousebind.ButtonPressFun(
+		func(X *xgbutil.XUtil, ev xevent.ButtonPressEvent) {
+			f := ctx.Get(window)
+			f.FocusRaise(ctx)
+			xproto.AllowEvents(ctx.X.Conn(), xproto.AllowReplayPointer, 0)
+		}).Connect(ctx.X, window, ctx.Config.ButtonClick, true, true)
+	if err != nil {
+		log.Println(err)
+	}
+	return err
 }
 
 func (c *Container) AddGrabHook(ctx *Context) {
@@ -410,7 +541,7 @@ func (c *Container) AddGrabHook(ctx *Context) {
 			c.DragContext.ContainerY = c.Shape.Y
 			c.DragContext.MouseX = rX
 			c.DragContext.MouseY = rY
-			// f.ToTop()
+			c.RaiseFindFocus(ctx)
 			return true, ctx.Cursors[xcursor.Circle]
 		},
 		func(X *xgbutil.XUtil, rX, rY, eX, eY int) {
@@ -423,11 +554,11 @@ func (c *Container) AddGrabHook(ctx *Context) {
 	)
 }
 
-func (ct *Container) AddCloseHook(c *Context) error {
+func (c *Container) AddCloseHook(ctx *Context) error {
 	return mousebind.ButtonPressFun(
 		func(X *xgbutil.XUtil, ev xevent.ButtonPressEvent) {
-			log.Println("Close hook called")
-		}).Connect(c.X, ct.Decorations.Close.Window.Id, c.Config.ButtonClose, false, true)
+			c.Root.Close(ctx)
+		}).Connect(ctx.X, c.Decorations.Close.Window.Id, ctx.Config.ButtonClose, false, true)
 }
 
 func (c *Container) AddBottomRightHook(ctx *Context) {
@@ -438,6 +569,7 @@ func (c *Container) AddBottomRightHook(ctx *Context) {
 			c.DragContext.ContainerY = c.Shape.Y
 			c.DragContext.MouseX = rX
 			c.DragContext.MouseY = rY
+			c.RaiseFindFocus(ctx)
 			return true, ctx.Cursors[xcursor.Circle]
 		},
 		func(X *xgbutil.XUtil, rX, rY, eX, eY int) {
@@ -477,295 +609,3 @@ func (c *Context) Get(w xproto.Window) *Frame {
 	f, _ := c.Tracked[w]
 	return f
 }
-
-// OLD..........................................
-
-// func (f *Frame) MoveResize(X* xgbutil.XUtil, x, y, w, h int) {
-// 	f.X = x
-// 	f.Y = y
-// 	f.W = w
-// 	f.H = h
-// 	if f.Parent == nil {
-// 		x = x + ElemSize
-// 		y = y + ElemSize
-// 		w = w - ElemSize
-// 		h = h - ElemSize
-// 		f.Close.MoveResize(f.X + f.W - ElemSize, f.Y, ElemSize, ElemSize)
-// 		f.BR.MoveResize(f.X + f.W, f.Y + f.H, ElemSize, ElemSize)
-// 		f.T.MoveResize(f.X + ElemSize, f.Y, f.W - 2*ElemSize, ElemSize)
-// 	}
-
-// 	if f.ChildA == nil && f.ChildB == nil {
-// 		f.Window.MoveResize(x, y, w, h)
-// 	}
-
-// 	if f.ChildA != nil {
-// 		if f.VerticalPartition {
-// 			f.ChildA.MoveResize(X, x, y, w, h / 2)
-// 		} else {
-// 			f.ChildA.MoveResize(X, x, y, w / 2, h)
-// 		}
-// 	}
-
-// 	if f.ChildB != nil {
-// 		if f.VerticalPartition {
-// 			f.ChildA.MoveResize(X, x, y + h / 2 + 1, w, h / 2 - 1)
-// 		} else {
-// 			f.ChildA.MoveResize(X, x + w / 2 + 1, y, w / 2 - 1, h)
-// 		}
-// 	}
-// }
-
-// func (f *Frame) Unmap() {
-// 	f.Window.Unmap()
-// 	f.Close.Unmap()
-// 	f.T.Unmap()
-// 	f.BR.Unmap()
-// }
-
-// func (f *Frame) Map() {
-// 	f.Window.Map()
-// 	f.Close.Map()
-// 	f.T.Map()
-// 	f.BR.Map()
-// }
-
-// func (f *Frame) Remap() {
-// 	f.Unmap()
-// 	f.Map()
-// }
-
-// func (f *Frame) Traverse(fun func(*Frame)) {
-// 	fun(f)
-// 	if f.ChildA != nil {
-// 		f.ChildA.Traverse(fun)
-// 	}
-// 	if f.ChildB != nil {
-// 		f.ChildB.Traverse(fun)
-// 	}
-// }
-
-// func (f *Frame) Root() *Frame {
-// 	z := f
-// 	for {
-// 		if z.Parent != nil {
-// 			z = z.Parent
-// 		} else {
-// 			return z
-// 		}
-// 	}
-// }
-
-// func (f *Frame) ToTop() {
-// 	f.Root().Traverse(func(fr *Frame){
-// 		fr.Close.Stack(xproto.StackModeAbove)
-// 		fr.T.Stack(xproto.StackModeAbove)
-// 		fr.BR.Stack(xproto.StackModeAbove)
-// 		fr.Window.Stack(xproto.StackModeAbove)
-// 	})
-// 	f.Window.Focus()
-// }
-
-// func NewHorizontal(X *xgbutil.XUtil, f *Frame, ev xevent.MapRequestEvent) *Frame {
-// 	log.Println("Horizontal", f)
-// 	nw := ev.Window
-// 	if existing, ok := TrackedFrames[nw]; ok {
-// 		log.Println("Already created frame for", nw)
-// 		return existing
-// 	}
-// 	if f.ChildA == nil && f.ChildB == nil {
-// 		// Make child and gift him our window
-// 		f.ChildA = &Frame{
-// 			X: f.X + ElemSize,
-// 			Y: f.Y + ElemSize,
-// 			W: f.W / 2 - ElemSize,
-// 			H: f.H / 2 - ElemSize,
-// 			Parent: f,
-// 			Window: f.Window,
-// 		}
-
-// 		// Make the horizontal partition
-
-// 		// Make the new child
-// 		w := xwindow.New(X, nw)
-// 		if err := ext.MapChecked(f.Window); err != nil {
-// 			log.Fatal(err)
-// 		}
-// 		f.ChildB = &Frame{
-// 			X: f.X + ElemSize + f.W / 2,
-// 			Y: f.Y + ElemSize,
-// 			W: f.W / 2,
-// 			H: f.H,
-// 			Parent: f,
-// 			Window: w,
-// 		}
-
-// 		f.MoveResize(X, f.X, f.Y, f.W, f.H)
-// 	}
-// 	return f.ChildB
-// }
-
-// func NewVertical(X *xgbutil.XUtil, f *Frame, ev xevent.MapRequestEvent) *Frame  {
-// 	log.Println("Vertical", f)
-// 	return nil
-// }
-
-// func New(X *xgbutil.XUtil, ev xevent.MapRequestEvent) *Frame {
-// 	nw := ev.Window
-// 	log.Println(ev)
-// 	if existing, ok := TrackedFrames[nw]; ok {
-// 		log.Println("Already created frame for", nw)
-// 		return existing
-// 	}
-
-// 	f := &Frame{
-// 		X: 200,
-// 		Y: 200,
-// 		W: 800,
-// 		H: 200,
-// 	}
-
-// 	f.Window = xwindow.New(X, nw)
-// 	if err := ext.MapChecked(f.Window); err != nil {
-// 		log.Fatal(err)
-// 	}
-// 	f.Window.MoveResize(f.X + ElemSize, f.Y + ElemSize, f.W - ElemSize, f.H - ElemSize)
-// 	wId := f.Window.Id
-
-// 	// Close button
-// 	closew, err := xwindow.Generate(X)
-//     if err != nil {
-// 		log.Fatal(err)
-// 	}
-// 	closew.CreateChecked(X.RootWin(), f.X, f.Y, f.W, f.H, xproto.CwBackPixel | xproto.CwCursor, 0xff0000, uint32(Cursors[xcursor.Dot]))
-// 	f.Close = closew
-
-// 	// Move Bar
-// 	t, err := xwindow.Generate(X)
-// 	if err != nil {
-// 		log.Fatal(err)
-// 	}
-// 	t.CreateChecked(X.RootWin(), f.X, f.Y, f.W, f.H, xproto.CwBackPixel, 0x777777)
-// 	f.T = t
-
-// 	xevent.DestroyNotifyFun(
-// 		func(X *xgbutil.XUtil, ev xevent.DestroyNotifyEvent) {
-// 			f := Get(wId)
-// 			log.Println("Destroy", ev)
-// 			f.Close.Destroy()
-// 			f.BR.Destroy()
-// 			f.T.Destroy()
-// 			f.Window.Destroy()
-// 			delete(TrackedFrames, f.Window.Id)
-// 		}).Connect(X, f.Window.Id)
-
-// 	xevent.UnmapNotifyFun(
-// 		func(X *xgbutil.XUtil, ev xevent.UnmapNotifyEvent) {
-// 			f := Get(wId)
-// 			log.Println("Unmap", ev)
-// 			f.Close.Unmap()
-// 			f.BR.Unmap()
-// 			f.T.Unmap()
-// 			f.Window.Unmap()
-// 		}).Connect(X, f.Window.Id)
-	
-// 	xevent.ConfigureRequestFun(
-// 		func(X *xgbutil.XUtil, ev xevent.ConfigureRequestEvent) {
-// 			f := Get(wId)
-// 			log.Println("Id:", f.Window.Id, ev)
-// 			if f.Parent == nil {
-// 				f.MoveResize(X, int(ev.X), int(ev.Y), int(ev.Width), int(ev.Height))
-// 			}
-// 		}).Connect(X, f.Window.Id)
-	
-// 	err = mousebind.ButtonPressFun(
-// 		func(X *xgbutil.XUtil, ev xevent.ButtonPressEvent) {
-// 			log.Println("Clicked!", f.Close.Id)
-// 			wm_protocols, err := xprop.Atm(X, "WM_PROTOCOLS")
-// 			if err != nil {
-// 				log.Println("xprop wm protocols failed:", err)
-// 				return
-// 			}
-// 			wm_del_win, err := xprop.Atm(X, "WM_DELETE_WINDOW")
-// 			if err != nil {
-// 				log.Println("xprop delte win failed:", err)
-// 				return
-// 			}
-// 			cm, err := xevent.NewClientMessage(32, f.Window.Id, wm_protocols, int(wm_del_win))
-// 			if err != nil {
-// 				log.Println("new client message failed", err)
-// 				return
-// 			}
-// 			err = xproto.SendEventChecked(X.Conn(), false, f.Window.Id, 0, string(cm.Bytes())).Check()
-// 			if err != nil {
-// 				log.Println("Could not send WM_DELETE_WINDOW ClientMessage because:", err)
-// 			}
-// 		}).Connect(X, closew.Id, "1", false, true)
-// 	if err != nil {
-// 		log.Println(err)
-// 	}
-
-// 	err = mousebind.ButtonPressFun(
-// 		func(X *xgbutil.XUtil, ev xevent.ButtonPressEvent) {
-// 			f := Get(wId)
-// 			log.Println("Focusing window!", f.Window.Id)
-// 			f.ToTop()
-// 			xproto.AllowEvents(X.Conn(), xproto.AllowReplayPointer, 0)
-// 		}).Connect(X, f.Window.Id, "1", true, true)
-// 	if err != nil {
-// 		log.Println(err)
-// 	}
-
-// 	mousebind.Drag(
-// 		X, f.T.Id, f.T.Id, "1", true,
-// 		func(X *xgbutil.XUtil, rX, rY, eX, eY int) (bool, xproto.Cursor) {
-// 			log.Println("Drag T")
-// 			f.OX = f.X
-// 			f.OY = f.Y
-// 			f.RX = rX
-// 			f.RY = rY
-// 			f.ToTop()
-// 			return true, Cursors[xcursor.Circle]
-// 		},
-// 		func(X *xgbutil.XUtil, rX, rY, eX, eY int) {
-// 			dX := rX - f.RX
-// 			dY := rY - f.RY
-// 			f.MoveResize(X, f.OX + dX, f.OY + dY, f.W, f.H)
-// 		},
-// 		func(X *xgbutil.XUtil, rX, rY, eX, eY int) {
-// 		},
-// 	)
-
-// 	// BR Resize
-// 	br, err := xwindow.Generate(X)
-// 	if err != nil {
-// 		log.Fatal(err)
-// 	}
-// 	br.CreateChecked(X.RootWin(), f.X, f.Y, f.W, f.H, xproto.CwBackPixel, 0x00ff00)
-// 	f.BR = br
-
-// 	mousebind.Drag(
-// 		X, f.BR.Id, f.BR.Id, "1", true,
-// 		func(X *xgbutil.XUtil, rX, rY, eX, eY int) (bool, xproto.Cursor) {
-// 			f.OX = f.X
-// 			f.OY = f.Y
-// 			f.RX = rX
-// 			f.RY = rY
-// 			f.ToTop()
-// 			return true, Cursors[xcursor.Circle]
-// 		},
-// 		func(X *xgbutil.XUtil, rX, rY, eX, eY int) {
-// 			w := ext.IMax(rX - f.X, ElemSize)
-// 			h := ext.IMax(rY - f.Y, ElemSize)
-// 			f.MoveResize(X, f.X, f.Y, w, h)
-// 		},
-// 		func(X *xgbutil.XUtil, rX, rY, eX, eY int) {
-// 		},
-// 	)
-
-// 	f.MoveResize(X, f.X, f.Y, f.W, f.H)
-
-// 	TrackedFrames[nw] = f
-// 	defer f.Map()
-// 	return f
-// }

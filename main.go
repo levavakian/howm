@@ -17,6 +17,7 @@ import (
   // "github.com/BurntSushi/xgbutil/xgraphics"
   "github.com/BurntSushi/xgb/xinerama"
   "howm/frame"
+  "howm/ext"
   // "github.com/BurntSushi/wingo/prompt"
 )
 
@@ -174,9 +175,14 @@ func ConfigRoot(X *xgbutil.XUtil) error {
   //     }
   //   }).Connect(X, X.RootWin())
 
+  err = mousebind.ButtonPressFun(
+		func(X *xgbutil.XUtil, ev xevent.ButtonPressEvent) {
+      ext.Focus(xwindow.New(X, X.RootWin()))
+			xproto.AllowEvents(X.Conn(), xproto.AllowReplayPointer, 0)
+		}).Connect(X, X.RootWin(), c.Config.ButtonClick, true, true)
+
   xevent.MapRequestFun(
 		func(X *xgbutil.XUtil, ev xevent.MapRequestEvent) {
-      log.Println(ev)
       frame.NewContainer(c, ev)
     }).Connect(X, X.RootWin())
 
