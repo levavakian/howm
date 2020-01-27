@@ -65,6 +65,7 @@ type Frame struct {
 	Container *Container
 	Parent, ChildA, ChildB *Frame
 	Separator Partition
+	Mapped bool
 }
 
 type AttachTarget struct {
@@ -92,6 +93,7 @@ type Config struct {
 	GrabColor uint32
 	CloseColor uint32
 	ResizeColor uint32
+	InternalPadding int
 }
 
 func DefaultConfig() Config {
@@ -112,6 +114,7 @@ func DefaultConfig() Config {
 		GrabColor: 0x339999,
 		CloseColor: 0xff0000,
 		ResizeColor: 0x00ff00,
+		InternalPadding: 0,
 	}
 }
 
@@ -190,6 +193,7 @@ func (f *Frame) Map() {
 				return
 			}
 			f.Window.Map()
+			f.Mapped = true
 		},
 	)
 }
@@ -238,6 +242,8 @@ func (f *Frame) Unmap(ctx *Context) {
 	if f.Separator.Decoration.Window != nil {
 		f.Separator.Decoration.Window.Unmap()
 	}
+
+	f.Mapped = false
 }
 
 func (f *Frame) Destroy(ctx *Context) {
@@ -284,7 +290,9 @@ func (f *Frame) Raise(ctx *Context) {
 	if f.Window != nil {
 		f.Window.Stack(xproto.StackModeAbove)
 	}
+}
 
+func (f *Frame) RaiseDecoration(ctx *Context) {
 	if f.Separator.Decoration.Window != nil {
 		f.Separator.Decoration.Window.Stack(xproto.StackModeAbove)
 	}
@@ -302,6 +310,16 @@ func (f *Frame) FocusRaise(ctx *Context) {
 func (f *Frame) MoveResize(ctx *Context) {
 	f.Traverse(func(ft *Frame){
 		ft.Shape = ft.CalcShape(ctx)
+		if (ft.Shape.W == 0 || ft.Shape.H == 0) {
+			if ft.Mapped {
+				ft.Unmap(ctx)
+			}
+		} else {
+			if !ft.Mapped{
+				ft.Map()
+			}
+		}
+
 		if ft.IsLeaf() {
 			ft.Window.MoveResize(ft.Shape.X, ft.Shape.Y, ft.Shape.W, ft.Shape.H)
 		}
@@ -363,6 +381,10 @@ func (c *Container) Raise(ctx *Context){
 	})
 	c.Root.Traverse(func(f *Frame){
 		f.Raise(ctx)
+	})
+	// Raise decorations separately so we can do overpadding
+	c.Root.Traverse(func(f *Frame){
+		f.RaiseDecoration(ctx)
 	})
 }
 
@@ -578,12 +600,19 @@ func (f *Frame) CalcShape(ctx *Context) Rect {
 
 	isChildA := (f.Parent.ChildA == f)
 
+	WidthA := func()int{
+		return ext.IMax(int(float64(f.Parent.Shape.W) * f.Parent.Separator.Ratio), ctx.Config.ElemSize) - ctx.Config.ElemSize
+	}
+	HeightA := func()int{
+		return ext.IMax(int(float64(f.Parent.Shape.H) * f.Parent.Separator.Ratio), ctx.Config.ElemSize) - ctx.Config.ElemSize
+	}
+
 	if isChildA {
 		if f.Parent.Separator.Type == HORIZONTAL {
 			return Rect{
 				X: f.Parent.Shape.X,
 				Y: f.Parent.Shape.Y,
-				W: ext.IMax(int(float64(f.Parent.Shape.W) * f.Parent.Separator.Ratio) - ctx.Config.ElemSize, ctx.Config.ElemSize),
+				W: WidthA(),
 				H: f.Parent.Shape.H,
 			}
 		} else {
@@ -591,44 +620,48 @@ func (f *Frame) CalcShape(ctx *Context) Rect {
 				X: f.Parent.Shape.X,
 				Y: f.Parent.Shape.Y,
 				W: f.Parent.Shape.W,
-				H: ext.IMax(int(float64(f.Parent.Shape.H) * f.Parent.Separator.Ratio) - ctx.Config.ElemSize, ctx.Config.ElemSize),
+				H: HeightA(),
 			}
 		}
 	} else {
 		if f.Parent.Separator.Type == HORIZONTAL {
-			wr := ext.IMax(int(float64(f.Parent.Shape.W) * f.Parent.Separator.Ratio), ctx.Config.ElemSize)
 			return Rect{
-				X: f.Parent.Shape.X + wr,
+				X: f.Parent.Shape.X + WidthA() + ctx.Config.ElemSize,
 				Y: f.Parent.Shape.Y,
-				W: f.Parent.Shape.W - wr,
+				W: f.Parent.Shape.W - WidthA() - ctx.Config.ElemSize,
 				H: f.Parent.Shape.H,
 			}
 		} else {
-			hr := ext.IMax(int(float64(f.Parent.Shape.H) * f.Parent.Separator.Ratio), ctx.Config.ElemSize)
 			return Rect{
 				X: f.Parent.Shape.X,
-				Y: f.Parent.Shape.Y + hr,
+				Y: f.Parent.Shape.Y + HeightA() + ctx.Config.ElemSize,
 				W: f.Parent.Shape.W,
-				H: f.Parent.Shape.H - hr,
+				H: f.Parent.Shape.H - HeightA() - ctx.Config.ElemSize,
 			}
 		}
 	}
 }
 
 func (f *Frame) SeparatorShape(ctx *Context) Rect {
+	WidthA := func()int{
+		return ext.IMax(int(float64(f.Shape.W) * f.Separator.Ratio), ctx.Config.ElemSize) - ctx.Config.ElemSize
+	}
+	HeightA := func()int{
+		return ext.IMax(int(float64(f.Shape.H) * f.Separator.Ratio), ctx.Config.ElemSize) - ctx.Config.ElemSize
+	}
 	if f.Separator.Type == HORIZONTAL {
 		return Rect{
-			X: ext.IMax(f.Shape.X + int(float64(f.Shape.W) * f.Separator.Ratio) - ctx.Config.ElemSize, f.Shape.X + ctx.Config.ElemSize),
-			Y: f.Shape.Y,
-			W: ctx.Config.ElemSize,
-			H: f.Shape.H,
+			X: f.Shape.X + WidthA() - ctx.Config.InternalPadding,
+			Y: f.Shape.Y - ctx.Config.InternalPadding,
+			W: ctx.Config.ElemSize +ctx.Config.InternalPadding,
+			H: f.Shape.H  + ctx.Config.InternalPadding,
 		}
 	} else {
 		return Rect{
-			X: f.Shape.X,
-			Y: ext.IMax(f.Shape.Y + int(float64(f.Shape.H) * f.Separator.Ratio) - ctx.Config.ElemSize, f.Shape.Y + ctx.Config.ElemSize),
-			W: f.Shape.W,
-			H: ctx.Config.ElemSize,
+			X: f.Shape.X - ctx.Config.InternalPadding,
+			Y: f.Shape.Y + HeightA() - ctx.Config.InternalPadding,
+			W: f.Shape.W + ctx.Config.InternalPadding,
+			H: ctx.Config.ElemSize + ctx.Config.InternalPadding,
 		}	
 	}
 }
