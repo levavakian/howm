@@ -201,6 +201,33 @@ func ConfigRoot(X *xgbutil.XUtil) error {
     log.Println(err)
   }
 
+  err = keybind.KeyPressFun(func(X *xgbutil.XUtil, e xevent.KeyPressEvent){
+    inpPrompt := prompt.NewInput(X,
+      prompt.DefaultInputTheme, prompt.DefaultInputConfig)
+
+    canc := func (inp *prompt.Input) {
+      log.Println("canceled")
+    }
+
+    resp := func (inp *prompt.Input, text string) {
+      cmd := exec.Command(text)
+      err = cmd.Start()
+      if err != nil {
+        log.Println(err)
+      }
+      go func() {
+        cmd.Wait()
+      }()
+      inpPrompt.Destroy()
+    }
+    
+    inpPrompt.Show(xwindow.RootGeometry(X),
+      "Command:", resp, canc)
+  }).Connect(X, X.RootWin(), "Mod4-c", true)
+  if err != nil {
+    log.Println(err)
+  }
+
   err = mousebind.ButtonPressFun(
 		func(X *xgbutil.XUtil, ev xevent.ButtonPressEvent) {
       ext.Focus(xwindow.New(X, X.RootWin()))

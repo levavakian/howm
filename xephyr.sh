@@ -1,1 +1,1 @@
-Xephyr -ac -screen 800x600 -reset :1
+Xephyr -ac -screen 1536x864 -reset :1

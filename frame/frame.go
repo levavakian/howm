@@ -38,10 +38,8 @@ type ContainerDecorations struct {
 }
 
 type DragOrigin struct {
-	ContainerX int
-	ContainerY int
-	FrameX int
-	FrameY int
+	Container Rect
+	Frame Rect
 	MouseX int
 	MouseY int
 }
@@ -159,7 +157,13 @@ func (cd *ContainerDecorations) ForEach(f func(*Decoration)) {
 	f(&cd.Close)
 	f(&cd.Grab)
 	f(&cd.Top)
+	f(&cd.Bottom)
+	f(&cd.Left)
+	f(&cd.Right)
 	f(&cd.BottomRight)
+	f(&cd.BottomLeft)
+	f(&cd.TopRight)
+	f(&cd.TopLeft)
 }
 
 func (cd *ContainerDecorations) Destroy(ctx *Context) {
@@ -177,7 +181,13 @@ func (cd *ContainerDecorations) MoveResize(ctx *Context, cShape Rect) {
 	cd.Close.MoveResize(CloseShape(ctx, cShape))
 	cd.Grab.MoveResize(GrabShape(ctx, cShape))
 	cd.Top.MoveResize(TopShape(ctx, cShape))
+	cd.Bottom.MoveResize(BottomShape(ctx, cShape))
+	cd.Left.MoveResize(LeftShape(ctx, cShape))
+	cd.Right.MoveResize(RightShape(ctx, cShape))
 	cd.BottomRight.MoveResize(BottomRightShape(ctx, cShape))
+	cd.BottomLeft.MoveResize(BottomLeftShape(ctx, cShape))
+	cd.TopRight.MoveResize(TopRightShape(ctx, cShape))
+	cd.TopLeft.MoveResize(TopLeftShape(ctx, cShape))
 }
 
 func (cd *ContainerDecorations) Map() {
@@ -331,9 +341,9 @@ func (f *Frame) MoveResize(ctx *Context) {
 
 func (f *Frame) CreateSeparatorDecoration(ctx *Context) {
 	s := f.SeparatorShape(ctx)
-	cursor := ctx.Cursors[xcursor.LeftSide]
+	cursor := ctx.Cursors[xcursor.SBHDoubleArrow]
 	if f.Separator.Type == VERTICAL {
-		cursor = ctx.Cursors[xcursor.TopSide]
+		cursor = ctx.Cursors[xcursor.SBVDoubleArrow]
 	}
 
 	var err error
@@ -353,12 +363,7 @@ func (f *Frame) CreateSeparatorDecoration(ctx *Context) {
 	mousebind.Drag(
 		ctx.X, f.Separator.Decoration.Window.Id, f.Separator.Decoration.Window.Id, ctx.Config.ButtonDrag, true,
 		func(X *xgbutil.XUtil, rX, rY, eX, eY int) (bool, xproto.Cursor) {
-			f.Container.DragContext.ContainerX = f.Container.Shape.X
-			f.Container.DragContext.ContainerY = f.Container.Shape.Y
-			f.Container.DragContext.FrameX = f.Shape.X
-			f.Container.DragContext.FrameY = f.Shape.Y
-			f.Container.DragContext.MouseX = rX
-			f.Container.DragContext.MouseY = rY
+			f.Container.DragContext = GenerateDragContext(ctx, f.Container, f, rX, rY)
 			f.Container.RaiseFindFocus(ctx)
 			return true, ctx.Cursors[xcursor.Circle]
 		},
@@ -549,18 +554,61 @@ func NewWindow(ctx *Context, ev xevent.MapRequestEvent) *Frame {
 		ctx,
 		TopShape(ctx, c.Shape),
 		ctx.Config.SeparatorColor,
-		0,
+		uint32(ctx.Cursors[xcursor.TopSide]),
+	)
+	c.Decorations.Bottom, err = CreateDecoration(
+		ctx,
+		BottomShape(ctx, c.Shape),
+		ctx.Config.SeparatorColor,
+		uint32(ctx.Cursors[xcursor.BottomSide]),
+	)
+	c.Decorations.Left, err = CreateDecoration(
+		ctx,
+		LeftShape(ctx, c.Shape),
+		ctx.Config.SeparatorColor,
+		uint32(ctx.Cursors[xcursor.LeftSide]),
+	)
+	c.Decorations.Right, err = CreateDecoration(
+		ctx,
+		RightShape(ctx, c.Shape),
+		ctx.Config.SeparatorColor,
+		uint32(ctx.Cursors[xcursor.RightSide]),
 	)
 	c.Decorations.BottomRight, err = CreateDecoration(
 		ctx,
 		BottomRightShape(ctx, c.Shape),
 		ctx.Config.ResizeColor,
-		0,
+		uint32(ctx.Cursors[xcursor.BottomRightCorner]),
+	)
+	c.Decorations.BottomLeft, err = CreateDecoration(
+		ctx,
+		BottomLeftShape(ctx, c.Shape),
+		ctx.Config.ResizeColor,
+		uint32(ctx.Cursors[xcursor.BottomLeftCorner]),
+	)
+	c.Decorations.TopRight, err = CreateDecoration(
+		ctx,
+		TopRightShape(ctx, c.Shape),
+		ctx.Config.ResizeColor,
+		uint32(ctx.Cursors[xcursor.TopRightCorner]),
+	)
+	c.Decorations.TopLeft, err = CreateDecoration(
+		ctx,
+		TopLeftShape(ctx, c.Shape),
+		ctx.Config.ResizeColor,
+		uint32(ctx.Cursors[xcursor.TopLeftCorner]),
 	)
 
 	// Add hooks
 	err = c.AddCloseHook(ctx)
+	c.AddTopHook(ctx)
+	c.AddBottomHook(ctx)
+	c.AddLeftHook(ctx)
+	c.AddRightHook(ctx)
 	c.AddBottomRightHook(ctx)
+	c.AddBottomLeftHook(ctx)
+	c.AddTopRightHook(ctx)
+	c.AddTopLeftHook(ctx)
 	c.AddGrabHook(ctx)
 	err = AddWindowHook(ctx, window)
 
@@ -666,6 +714,24 @@ func (f *Frame) SeparatorShape(ctx *Context) Rect {
 	}
 }
 
+func TopRightShape(context *Context, cShape Rect) Rect {
+	return Rect{
+		X: cShape.X + cShape.W - context.Config.ElemSize,
+		Y: cShape.Y + context.Config.ElemSize,
+		W: context.Config.ElemSize,
+		H: context.Config.ElemSize,
+	}
+}
+
+func TopLeftShape(context *Context, cShape Rect) Rect {
+	return Rect{
+		X: cShape.X,
+		Y: cShape.Y + context.Config.ElemSize,
+		W: context.Config.ElemSize,
+		H: context.Config.ElemSize,
+	}
+}
+
 func BottomRightShape(context *Context, cShape Rect) Rect {
 	return Rect{
 		X: cShape.X + cShape.W - context.Config.ElemSize,
@@ -675,11 +741,11 @@ func BottomRightShape(context *Context, cShape Rect) Rect {
 	}
 }
 
-func GrabShape(context *Context, cShape Rect) Rect {
+func BottomLeftShape(context *Context, cShape Rect) Rect {
 	return Rect{
 		X: cShape.X,
-		Y: cShape.Y + context.Config.ElemSize,
-		W: cShape.W - context.Config.ElemSize,
+		Y: cShape.Y + cShape.H - context.Config.ElemSize,
+		W: context.Config.ElemSize,
 		H: context.Config.ElemSize,
 	}
 }
@@ -687,8 +753,44 @@ func GrabShape(context *Context, cShape Rect) Rect {
 func TopShape(context *Context, cShape Rect) Rect {
 	return Rect{
 		X: cShape.X + context.Config.ElemSize,
-		Y: cShape.Y,
+		Y: cShape.Y + context.Config.ElemSize,
 		W: cShape.W - 2*context.Config.ElemSize,
+		H: context.Config.ElemSize,
+	}
+}
+
+func BottomShape(context *Context, cShape Rect) Rect {
+	return Rect{
+		X: cShape.X + context.Config.ElemSize,
+		Y: cShape.Y + cShape.H - context.Config.ElemSize,
+		W: cShape.W - 2*context.Config.ElemSize,
+		H: context.Config.ElemSize,
+	}
+}
+
+func LeftShape(context *Context, cShape Rect) Rect {
+	return Rect{
+		X: cShape.X,
+		Y: cShape.Y + 2*context.Config.ElemSize,
+		W: context.Config.ElemSize,
+		H: cShape.H - 3*context.Config.ElemSize,
+	}
+}
+
+func RightShape(context *Context, cShape Rect) Rect {
+	return Rect{
+		X: cShape.X + cShape.W - context.Config.ElemSize,
+		Y: cShape.Y + 2*context.Config.ElemSize,
+		W: context.Config.ElemSize,
+		H: cShape.H - 3*context.Config.ElemSize,
+	}
+}
+
+func GrabShape(context *Context, cShape Rect) Rect {
+	return Rect{
+		X: cShape.X,
+		Y: cShape.Y,
+		W: cShape.W - context.Config.ElemSize,
 		H: context.Config.ElemSize,
 	}
 }
@@ -696,7 +798,7 @@ func TopShape(context *Context, cShape Rect) Rect {
 func CloseShape(context *Context, cShape Rect) Rect {
 	return Rect{
 		X: cShape.X + cShape.W - context.Config.ElemSize,
-		Y: cShape.Y + context.Config.ElemSize,
+		Y: cShape.Y,
 		W: context.Config.ElemSize,
 		H: context.Config.ElemSize,
 	}
@@ -766,19 +868,14 @@ func (c *Container) AddGrabHook(ctx *Context) {
 	mousebind.Drag(
 		ctx.X, c.Decorations.Grab.Window.Id, c.Decorations.Grab.Window.Id, ctx.Config.ButtonDrag, true,
 		func(X *xgbutil.XUtil, rX, rY, eX, eY int) (bool, xproto.Cursor) {
-			c.DragContext.ContainerX = c.Shape.X
-			c.DragContext.ContainerY = c.Shape.Y
-			c.DragContext.FrameX = 0
-			c.DragContext.FrameY = 0
-			c.DragContext.MouseX = rX
-			c.DragContext.MouseY = rY
+			c.DragContext = GenerateDragContext(ctx, c, nil, rX, rY)
 			c.RaiseFindFocus(ctx)
 			return true, ctx.Cursors[xcursor.Circle]
 		},
 		func(X *xgbutil.XUtil, rX, rY, eX, eY int) {
 			dX := rX - c.DragContext.MouseX
 			dY := rY - c.DragContext.MouseY
-			c.MoveResize(ctx, c.DragContext.ContainerX + dX, c.DragContext.ContainerY + dY, c.Shape.W, c.Shape.H)
+			c.MoveResize(ctx, c.DragContext.Container.X + dX, c.DragContext.Container.Y + dY, c.Shape.W, c.Shape.H)
 		},
 		func(X *xgbutil.XUtil, rX, rY, eX, eY int) {
 		},
@@ -792,27 +889,169 @@ func (c *Container) AddCloseHook(ctx *Context) error {
 		}).Connect(ctx.X, c.Decorations.Close.Window.Id, ctx.Config.ButtonClose, false, true)
 }
 
-func (c *Container) AddBottomRightHook(ctx *Context) {
+func (c *Container) AddTopHook(ctx *Context) {
 	mousebind.Drag(
-		ctx.X, c.Decorations.BottomRight.Window.Id, c.Decorations.BottomRight.Window.Id, ctx.Config.ButtonDrag, true,
+		ctx.X, c.Decorations.Top.Window.Id, c.Decorations.Top.Window.Id, ctx.Config.ButtonDrag, true,
 		func(X *xgbutil.XUtil, rX, rY, eX, eY int) (bool, xproto.Cursor) {
-			c.DragContext.ContainerX = c.Shape.X
-			c.DragContext.ContainerY = c.Shape.Y
-			c.DragContext.FrameX = 0
-			c.DragContext.FrameY = 0
-			c.DragContext.MouseX = rX
-			c.DragContext.MouseY = rY
+			c.DragContext = GenerateDragContext(ctx, c, nil, rX, rY)
 			c.RaiseFindFocus(ctx)
 			return true, ctx.Cursors[xcursor.Circle]
 		},
 		func(X *xgbutil.XUtil, rX, rY, eX, eY int) {
-			w := ext.IMax(rX - c.DragContext.ContainerX, ctx.MinShape().W)
-			h := ext.IMax(rY - c.DragContext.ContainerY, ctx.MinShape().H)
-			c.MoveResize(ctx, c.DragContext.ContainerX, c.DragContext.ContainerY, w, h)
+			origYEnd := c.DragContext.Container.Y + c.DragContext.Container.H
+			h := ext.IMax(origYEnd - rY, ctx.MinShape().H)
+			y := origYEnd - h
+			c.MoveResize(ctx, c.DragContext.Container.X, y, c.DragContext.Container.W, h)
 		},
 		func(X *xgbutil.XUtil, rX, rY, eX, eY int) {
 		},
 	)
+}
+
+func (c *Container) AddBottomHook(ctx *Context) {
+	mousebind.Drag(
+		ctx.X, c.Decorations.Bottom.Window.Id, c.Decorations.Bottom.Window.Id, ctx.Config.ButtonDrag, true,
+		func(X *xgbutil.XUtil, rX, rY, eX, eY int) (bool, xproto.Cursor) {
+			c.DragContext = GenerateDragContext(ctx, c, nil, rX, rY)
+			c.RaiseFindFocus(ctx)
+			return true, ctx.Cursors[xcursor.Circle]
+		},
+		func(X *xgbutil.XUtil, rX, rY, eX, eY int) {
+			h := ext.IMax(rY - c.DragContext.Container.Y, ctx.MinShape().H)
+			c.MoveResize(ctx, c.DragContext.Container.X, c.DragContext.Container.Y, c.DragContext.Container.W, h)
+		},
+		func(X *xgbutil.XUtil, rX, rY, eX, eY int) {
+		},
+	)
+}
+
+func (c *Container) AddRightHook(ctx *Context) {
+	mousebind.Drag(
+		ctx.X, c.Decorations.Right.Window.Id, c.Decorations.Right.Window.Id, ctx.Config.ButtonDrag, true,
+		func(X *xgbutil.XUtil, rX, rY, eX, eY int) (bool, xproto.Cursor) {
+			c.DragContext = GenerateDragContext(ctx, c, nil, rX, rY)
+			c.RaiseFindFocus(ctx)
+			return true, ctx.Cursors[xcursor.Circle]
+		},
+		func(X *xgbutil.XUtil, rX, rY, eX, eY int) {
+			w := ext.IMax(rX - c.DragContext.Container.X, ctx.MinShape().W)
+			c.MoveResize(ctx, c.DragContext.Container.X, c.DragContext.Container.Y, w, c.DragContext.Container.H)
+		},
+		func(X *xgbutil.XUtil, rX, rY, eX, eY int) {
+		},
+	)
+}
+
+func (c *Container) AddLeftHook(ctx *Context) {
+	mousebind.Drag(
+		ctx.X, c.Decorations.Left.Window.Id, c.Decorations.Left.Window.Id, ctx.Config.ButtonDrag, true,
+		func(X *xgbutil.XUtil, rX, rY, eX, eY int) (bool, xproto.Cursor) {
+			c.DragContext = GenerateDragContext(ctx, c, nil, rX, rY)
+			c.RaiseFindFocus(ctx)
+			return true, ctx.Cursors[xcursor.Circle]
+		},
+		func(X *xgbutil.XUtil, rX, rY, eX, eY int) {
+			origXEnd := c.DragContext.Container.X + c.DragContext.Container.W
+			w := ext.IMax(origXEnd - rX, ctx.MinShape().W)
+			x := origXEnd - w
+			c.MoveResize(ctx, x, c.DragContext.Container.Y, w, c.DragContext.Container.H)
+		},
+		func(X *xgbutil.XUtil, rX, rY, eX, eY int) {
+		},
+	)
+}
+
+func (c *Container) AddBottomRightHook(ctx *Context) {
+	mousebind.Drag(
+		ctx.X, c.Decorations.BottomRight.Window.Id, c.Decorations.BottomRight.Window.Id, ctx.Config.ButtonDrag, true,
+		func(X *xgbutil.XUtil, rX, rY, eX, eY int) (bool, xproto.Cursor) {
+			c.DragContext = GenerateDragContext(ctx, c, nil, rX, rY)
+			c.RaiseFindFocus(ctx)
+			return true, ctx.Cursors[xcursor.Circle]
+		},
+		func(X *xgbutil.XUtil, rX, rY, eX, eY int) {
+			w := ext.IMax(rX - c.DragContext.Container.X, ctx.MinShape().W)
+			h := ext.IMax(rY - c.DragContext.Container.Y, ctx.MinShape().H)
+			c.MoveResize(ctx, c.DragContext.Container.X, c.DragContext.Container.Y, w, h)
+		},
+		func(X *xgbutil.XUtil, rX, rY, eX, eY int) {
+		},
+	)
+}
+
+func (c *Container) AddBottomLeftHook(ctx *Context) {
+	mousebind.Drag(
+		ctx.X, c.Decorations.BottomLeft.Window.Id, c.Decorations.BottomLeft.Window.Id, ctx.Config.ButtonDrag, true,
+		func(X *xgbutil.XUtil, rX, rY, eX, eY int) (bool, xproto.Cursor) {
+			c.DragContext = GenerateDragContext(ctx, c, nil, rX, rY)
+			c.RaiseFindFocus(ctx)
+			return true, ctx.Cursors[xcursor.Circle]
+		},
+		func(X *xgbutil.XUtil, rX, rY, eX, eY int) {
+			origXEnd := c.DragContext.Container.X + c.DragContext.Container.W
+			w := ext.IMax(origXEnd - rX, ctx.MinShape().W)
+			x := origXEnd - w
+			h := ext.IMax(rY - c.DragContext.Container.Y, ctx.MinShape().H)
+			c.MoveResize(ctx, x, c.DragContext.Container.Y, w, h)
+		},
+		func(X *xgbutil.XUtil, rX, rY, eX, eY int) {
+		},
+	)
+}
+
+func (c *Container) AddTopRightHook(ctx *Context) {
+	mousebind.Drag(
+		ctx.X, c.Decorations.TopRight.Window.Id, c.Decorations.TopRight.Window.Id, ctx.Config.ButtonDrag, true,
+		func(X *xgbutil.XUtil, rX, rY, eX, eY int) (bool, xproto.Cursor) {
+			c.DragContext = GenerateDragContext(ctx, c, nil, rX, rY)
+			c.RaiseFindFocus(ctx)
+			return true, ctx.Cursors[xcursor.Circle]
+		},
+		func(X *xgbutil.XUtil, rX, rY, eX, eY int) {
+			origYEnd := c.DragContext.Container.Y + c.DragContext.Container.H
+			w := ext.IMax(rX - c.DragContext.Container.X, ctx.MinShape().W)
+			h := ext.IMax(origYEnd - rY, ctx.MinShape().H)
+			y := origYEnd - h
+			c.MoveResize(ctx, c.DragContext.Container.X, y, w, h)
+		},
+		func(X *xgbutil.XUtil, rX, rY, eX, eY int) {
+		},
+	)
+}
+
+func (c *Container) AddTopLeftHook(ctx *Context) {
+	mousebind.Drag(
+		ctx.X, c.Decorations.TopLeft.Window.Id, c.Decorations.TopLeft.Window.Id, ctx.Config.ButtonDrag, true,
+		func(X *xgbutil.XUtil, rX, rY, eX, eY int) (bool, xproto.Cursor) {
+			c.DragContext = GenerateDragContext(ctx, c, nil, rX, rY)
+			c.RaiseFindFocus(ctx)
+			return true, ctx.Cursors[xcursor.Circle]
+		},
+		func(X *xgbutil.XUtil, rX, rY, eX, eY int) {
+			origYEnd := c.DragContext.Container.Y + c.DragContext.Container.H
+			origXEnd := c.DragContext.Container.X + c.DragContext.Container.W
+			w := ext.IMax(origXEnd - rX, ctx.MinShape().W)
+			h := ext.IMax(origYEnd - rY, ctx.MinShape().H)
+			y := origYEnd - h
+			x := origXEnd - w
+			c.MoveResize(ctx, x, y, w, h)
+		},
+		func(X *xgbutil.XUtil, rX, rY, eX, eY int) {
+		},
+	)
+}
+
+func GenerateDragContext(ctx *Context, c *Container, f *Frame, mouseX, mouseY int) DragOrigin {
+	dc := DragOrigin{}
+	if c != nil {
+		dc.Container = c.Shape
+	}
+	if f != nil {
+		dc.Frame = f.Shape
+	}
+	dc.MouseX = mouseX
+	dc.MouseY = mouseY
+	return dc
 }
 
 func CreateDecoration(c *Context, shape Rect, color uint32, cursor uint32) (Decoration, error) {
