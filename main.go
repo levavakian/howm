@@ -205,11 +205,14 @@ func ConfigRoot(X *xgbutil.XUtil) error {
 		func(X *xgbutil.XUtil, ev xevent.ButtonPressEvent) {
       ext.Focus(xwindow.New(X, X.RootWin()))
 			xproto.AllowEvents(X.Conn(), xproto.AllowReplayPointer, 0)
-		}).Connect(X, X.RootWin(), c.Config.ButtonClick, true, true)
+    }).Connect(X, X.RootWin(), c.Config.ButtonClick, true, true)
+    if err != nil {
+      log.Println(err)
+    }
 
   xevent.MapRequestFun(
 		func(X *xgbutil.XUtil, ev xevent.MapRequestEvent) {
-      frame.NewContainer(c, ev)
+      frame.NewWindow(c, ev)
     }).Connect(X, X.RootWin())
 
   return err

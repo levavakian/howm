@@ -9,6 +9,7 @@ import (
 	"github.com/BurntSushi/xgbutil/xcursor"
 	"github.com/BurntSushi/xgbutil/xwindow"
 	"github.com/BurntSushi/xgbutil/mousebind"
+	"github.com/BurntSushi/xgbutil/keybind"
 	"github.com/BurntSushi/xgbutil/xevent"
 	"github.com/BurntSushi/xgbutil/xprop"
 )
@@ -74,6 +75,7 @@ type Config struct {
 	ButtonClose string
 	ButtonDrag string
 	ButtonClick string
+	CloseFrame string
 	ElemSize int
 	CloseCursor int
 	DefaultShape Rect
@@ -158,6 +160,9 @@ func (cd *ContainerDecorations) Map() {
 func (f *Frame) Map() {
 	f.Traverse(
 		func(f *Frame){
+			if f.Window == nil {
+				return
+			}
 			f.Window.Map()
 		},
 	)
@@ -178,12 +183,12 @@ func (f *Frame) Close(ctx *Context) {
 
 	f.Traverse(func(ft *Frame){
 		if ft.IsLeaf() {
-			cm, err := xevent.NewClientMessage(32, f.Window.Id, wm_protocols, int(wm_del_win))
+			cm, err := xevent.NewClientMessage(32, ft.Window.Id, wm_protocols, int(wm_del_win))
 			if err != nil {
 				log.Println("new client message failed", err)
 				return
 			}
-			err = xproto.SendEventChecked(ctx.X.Conn(), false, f.Window.Id, 0, string(cm.Bytes())).Check()
+			err = xproto.SendEventChecked(ctx.X.Conn(), false, ft.Window.Id, 0, string(cm.Bytes())).Check()
 			if err != nil {
 				log.Println("Could not send WM_DELETE_WINDOW ClientMessage because:", err)
 			}
@@ -200,17 +205,51 @@ func (f *Frame) IsRoot() bool {
 }
 
 func (f *Frame) Unmap(ctx *Context) {
+	if f.Window == nil {
+		return
+	}
 	f.Window.Unmap()
 }
 
 func (f *Frame) Destroy(ctx *Context) {
-	f.Window.Destroy()
+	delete(ctx.Tracked, f.Window.Id)
+	if f.Window != nil {
+		f.Window.Destroy()
+	}
+
 	if f.IsRoot() && f.IsLeaf() {
 		f.Container.Destroy(ctx)
+		return
+	}
+
+	if f.IsLeaf() {
+		oc := func()*Frame{
+			if f.Parent.ChildA == f {
+				return f.Parent.ChildB
+			} else {
+				return f.Parent.ChildA
+			}
+		}()
+
+		par := oc.Parent
+		oc.Parent = par.Parent
+		if oc.Parent != nil {
+			if oc.Parent.ChildA == par {
+				oc.Parent.ChildA = oc
+			}
+			if oc.Parent.ChildB == par {
+				oc.Parent.ChildB = oc
+			}
+		}
+
+		oc.MoveResize(ctx)
 	}
 }
 
 func (f *Frame) Raise(ctx *Context) {
+	if f.Window == nil {
+		return
+	}
 	f.Window.Stack(xproto.StackModeAbove)
 }
 
@@ -225,7 +264,7 @@ func (f *Frame) FocusRaise(ctx *Context) {
 
 func (f *Frame) MoveResize(ctx *Context) {
 	f.Traverse(func(ft *Frame){
-		f.Shape = f.CalcShape(ctx)
+		ft.Shape = ft.CalcShape(ctx)
 		if ft.IsLeaf() {
 			ft.Window.MoveResize(ft.Shape.X, ft.Shape.Y, ft.Shape.W, ft.Shape.H)
 		}
@@ -284,6 +323,7 @@ func NewContext(x *xgbutil.XUtil) (*Context, error) {
 		ButtonClose: "1",
 		ButtonDrag: "1",
 		ButtonClick: "1",
+		CloseFrame: "Mod4-f",
 		ElemSize: 10,
 		CloseCursor: xcursor.Dot,
 		DefaultShape: Rect {
@@ -320,12 +360,63 @@ func (ctx *Context) MinShape() Rect {
 	}
 }
 
-func NewContainer(ctx *Context, ev xevent.MapRequestEvent) *Container {
-	log.Println(ctx.AttachPoint)
+func AttachWindow(ctx *Context, ev xevent.MapRequestEvent) *Frame {
+	defer func(){ ctx.AttachPoint = nil }()
+	window := ev.Window
+
+	if !ctx.AttachPoint.Target.IsLeaf() {
+		log.Println("attach point is not leaf")
+		return nil
+	}
+
+	ap := ctx.AttachPoint.Target
+	ap.Separator.Type = ctx.AttachPoint.Type
+	ap.Separator.Ratio = .5
+
+	// Move current window to child A
+	ca := &Frame{
+		Window: ap.Window,
+		Parent: ap,
+		Container: ap.Container,
+	}
+	ap.ChildA = ca
+	ap.Window = nil
+	ca.Shape = ca.CalcShape(ctx)
+	ctx.Tracked[ca.Window.Id] = ca
+
+	// Add new window as child B
+	cb := &Frame{
+		Window: xwindow.New(ctx.X, window),
+		Parent: ap,
+		Container: ap.Container,
+	}
+	ap.ChildB = cb
+	cb.Shape = cb.CalcShape(ctx)
+	ctx.Tracked[window] = cb
+
+	if err := ext.MapChecked(cb.Window); err != nil {
+		log.Println("NewContainer:", window, "could not be mapped")
+		return nil
+	}
+	err := AddWindowHook(ctx, window)
+	if err != nil {
+		log.Println("failed to add window hooks", err)
+	}
+
+	ap.MoveResize(ctx)
+
+	return cb
+}
+
+func NewWindow(ctx *Context, ev xevent.MapRequestEvent) *Frame {
 	window := ev.Window
 	if existing := ctx.Get(window); existing != nil {
 		log.Println("NewContainer:", window, "already tracked")
-		return existing.Container
+		return existing
+	}
+
+	if ctx.AttachPoint != nil {
+		return AttachWindow(ctx, ev)
 	}
 
 	root := &Frame{
@@ -385,7 +476,7 @@ func NewContainer(ctx *Context, ev xevent.MapRequestEvent) *Container {
 	// Yay
 	c.Map()
 	ctx.Tracked[window] = c.Root
-	return c
+	return c.Root
 }
 
 func RootShape(context *Context, cShape Rect) Rect {
@@ -433,7 +524,7 @@ func (f *Frame) CalcShape(ctx *Context) Rect {
 		if f.Parent.Separator.Type == HORIZONTAL {
 			wr := int(float64(f.Parent.Shape.W) * f.Parent.Separator.Ratio)
 			return Rect{
-				X: wr,
+				X: f.Parent.Shape.X + wr,
 				Y: f.Parent.Shape.Y,
 				W: f.Parent.Shape.W - wr,
 				H: f.Parent.Shape.H,
@@ -442,7 +533,7 @@ func (f *Frame) CalcShape(ctx *Context) Rect {
 			hr := int(float64(f.Parent.Shape.H) * f.Parent.Separator.Ratio)
 			return Rect{
 				X: f.Parent.Shape.X,
-				Y: hr,
+				Y: f.Parent.Shape.Y + hr,
 				W: f.Parent.Shape.W,
 				H: f.Parent.Shape.H - hr,
 			}
@@ -531,6 +622,18 @@ func AddWindowHook(ctx *Context, window xproto.Window) error {
 	if err != nil {
 		log.Println(err)
 	}
+
+	err = keybind.KeyPressFun(
+		func(X *xgbutil.XUtil, e xevent.KeyPressEvent){
+			f := ctx.Get(window)
+			if f.IsLeaf() {
+				f.Close(ctx)
+			}
+	  }).Connect(ctx.X, window, ctx.Config.CloseFrame, true)
+	if err != nil {
+		log.Println(err)
+	}
+
 	return err
 }
 
