@@ -11,5 +11,8 @@ xinit ./xinitrc -- \
     "$XEPHYR" \
         :100 \
         -ac \
-        -screen 1536x864 \
-        -host-cursor
+        -sw-cursor \
+        -screen 400x400+0+0 -screen 400x400+400+0 -screen 400x400+800+0 \
+        +xinerama \
+        +extension RANDR
+

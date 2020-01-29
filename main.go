@@ -8,31 +8,21 @@ import (
   "errors"
   "os/exec"
   "time"
-
+  "howm/frame"
+  "howm/ext"
+  "howm/background"
 	"github.com/BurntSushi/xgbutil"
 	"github.com/BurntSushi/xgbutil/xevent"
 	"github.com/BurntSushi/xgbutil/keybind"
 	"github.com/BurntSushi/xgbutil/mousebind"
 	"github.com/BurntSushi/xgbutil/xwindow"
 	"github.com/BurntSushi/xgb/xproto"
-  // "github.com/BurntSushi/xgbutil/xgraphics"
-  "github.com/BurntSushi/xgb/xinerama"
-  "howm/frame"
-  "howm/ext"
   "github.com/BurntSushi/wingo/prompt"
-)
-
-var (
-	// The icon width and height to use.
-	// _NET_WM_ICON will be searched for an icon closest to these values.
-	// The icon closest in size to what's specified here will be used.
-	// The resulting icon will be scaled to this size.
-	// (Set both to 0 to avoid scaling and use the biggest possible icon.)
-	iconWidth, iconHeight = 300, 300
 )
 
 func main() {
   log.SetFlags(log.LstdFlags | log.Lshortfile)
+  log.Println("\n\n\nStart")
 
 	X, err := xgbutil.NewConn()
 	if err != nil {
@@ -40,31 +30,33 @@ func main() {
   }
   defer X.Conn().Close()
 
-  // Init Xinerama
-  var Xin []xinerama.ScreenInfo
-  if err := xinerama.Init(X.Conn()); err != nil {
-    log.Fatal(err)
-  }
-  if xin, err := xinerama.QueryScreens(X.Conn()).Reply(); err != nil {
-    log.Fatal(err)
-  } else {
-    Xin = xin.ScreenInfo
-  }
-  log.Println("found", len(Xin), "screen(s)", Xin)
-
   // Take ownership
   if err := ConfigRoot(X); err != nil {
     log.Fatal(err)
   }
 
-	// All we really need to do is block, so a 'select{}' would be sufficient.
-	// But running the event loop will emit errors if anything went wrong.
   xevent.Main(X)
   log.Println("Exited")
 }
 
 func ConfigRoot(X *xgbutil.XUtil) error {
   var err error
+
+  // Set x cursor
+  err = exec.Command("xsetroot", "-cursor_name", "arrow").Run()
+  if err != nil {
+    log.Println(err)
+  }
+
+  // Create context
+  c, err := frame.NewContext(X)
+  if err != nil {
+    log.Fatal(err)
+  }
+  log.Println("found", len(c.ScreenInfos), "screen(s)", c.ScreenInfos)
+
+  // Background Images
+  background.GenerateBackgrounds(c)
 
   evMasks := xproto.EventMaskPropertyChange |
 		xproto.EventMaskFocusChange |
@@ -75,11 +67,6 @@ func ConfigRoot(X *xgbutil.XUtil) error {
     xproto.EventMaskSubstructureRedirect
   
   err = xwindow.New(X, X.RootWin()).Listen(evMasks)
-  if err != nil {
-    log.Println(err)
-  }
-
-  c, err := frame.NewContext(X)
   if err != nil {
     log.Println(err)
   }

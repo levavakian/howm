@@ -3,7 +3,6 @@ package frame
 import (
 	"log"
 	"howm/ext"
-	// "github.com/BurntSushi/xgb"
 	"github.com/BurntSushi/xgb/xproto"
 	"github.com/BurntSushi/xgbutil"
 	"github.com/BurntSushi/xgbutil/xcursor"
@@ -12,6 +11,7 @@ import (
 	"github.com/BurntSushi/xgbutil/keybind"
 	"github.com/BurntSushi/xgbutil/xevent"
 	"github.com/BurntSushi/xgbutil/xprop"
+	"github.com/BurntSushi/xgb/xinerama"
 )
 
 type PartitionType int
@@ -25,6 +25,13 @@ type Rect struct {
 	Y int
 	W int
 	H int
+}
+
+type Rectf struct {
+	X float64
+	Y float64
+	W float64
+	H float64
 }
 
 type Decoration struct {
@@ -64,6 +71,7 @@ type Frame struct {
 	Parent, ChildA, ChildB *Frame
 	Separator Partition
 	Mapped bool
+	WaitForConfigure bool
 }
 
 type AttachTarget struct {
@@ -77,6 +85,7 @@ type Context struct {
 	Tracked map[xproto.Window]*Frame
 	Cursors map[int]xproto.Cursor
 	Config Config
+	ScreenInfos []xinerama.ScreenInfo
 }
 
 type Config struct {
@@ -86,12 +95,13 @@ type Config struct {
 	CloseFrame string
 	ElemSize int
 	CloseCursor int
-	DefaultShape Rect
+	DefaultShapeRatio Rectf
 	SeparatorColor uint32
 	GrabColor uint32
 	CloseColor uint32
 	ResizeColor uint32
 	InternalPadding int
+	BackgroundImagePath string
 }
 
 func DefaultConfig() Config {
@@ -102,17 +112,18 @@ func DefaultConfig() Config {
 		CloseFrame: "Mod4-f",
 		ElemSize: 10,
 		CloseCursor: xcursor.Dot,
-		DefaultShape: Rect {
-			X: 200,
-			Y: 200,
-			W: 800,
-			H: 200,
+		DefaultShapeRatio: Rectf {
+			X: .05,
+			Y: .05,
+			W: .9,
+			H: .9,
 		},
 		SeparatorColor: 0x777777,
 		GrabColor: 0x339999,
 		CloseColor: 0xff0000,
 		ResizeColor: 0x00ff00,
 		InternalPadding: 0,
+		BackgroundImagePath: "/home/lev/.config/howm/bg.jpg",
 	}
 }
 
@@ -200,6 +211,9 @@ func (f *Frame) Map() {
 	f.Traverse(
 		func(f *Frame){
 			if f.Window == nil {
+				return
+			}
+			if f.IsRoot() && f.WaitForConfigure {
 				return
 			}
 			f.Window.Map()
@@ -433,12 +447,24 @@ func (c *Container) MoveResize(ctx *Context, x, y, w, h int) {
 
 func NewContext(x *xgbutil.XUtil) (*Context, error) {
 	conf := DefaultConfig()
+
+	var Xin []xinerama.ScreenInfo
+	if err := xinerama.Init(x.Conn()); err != nil {
+		log.Fatal(err)
+	}
+	if xin, err := xinerama.QueryScreens(x.Conn()).Reply(); err != nil {
+		log.Fatal(err)
+	} else {
+		Xin = xin.ScreenInfo
+	}
+
 	var err error
 	c := &Context{
 		X: x,
 		Tracked: make(map[xproto.Window]*Frame),
 		Cursors: make(map[int]xproto.Cursor),
 		Config: conf,
+		ScreenInfos: Xin,
 	}
 
 	for i := xcursor.XCursor; i < xcursor.XTerm; i++ {
@@ -490,6 +516,7 @@ func AttachWindow(ctx *Context, ev xevent.MapRequestEvent) *Frame {
 		Window: xwindow.New(ctx.X, window),
 		Parent: ap,
 		Container: ap.Container,
+		WaitForConfigure: true,
 	}
 	ap.ChildB = cb
 	cb.Shape = cb.CalcShape(ctx)
@@ -499,6 +526,7 @@ func AttachWindow(ctx *Context, ev xevent.MapRequestEvent) *Frame {
 		log.Println("NewContainer:", window, "could not be mapped")
 		return nil
 	}
+
 	err := AddWindowHook(ctx, window)
 	if err != nil {
 		log.Println("failed to add window hooks", err)
@@ -512,7 +540,7 @@ func AttachWindow(ctx *Context, ev xevent.MapRequestEvent) *Frame {
 func NewWindow(ctx *Context, ev xevent.MapRequestEvent) *Frame {
 	window := ev.Window
 	if existing := ctx.Get(window); existing != nil {
-		log.Println("NewContainer:", window, "already tracked")
+		log.Println("NewWindow:", window, "already tracked")
 		return existing
 	}
 
@@ -520,18 +548,25 @@ func NewWindow(ctx *Context, ev xevent.MapRequestEvent) *Frame {
 		return AttachWindow(ctx, ev)
 	}
 
+	defaultShape := Rect{
+		X: int(ctx.Config.DefaultShapeRatio.X * float64(ctx.ScreenInfos[0].Width)),
+		Y: int(ctx.Config.DefaultShapeRatio.Y * float64(ctx.ScreenInfos[0].Height)),
+		W: int(ctx.Config.DefaultShapeRatio.W * float64(ctx.ScreenInfos[0].Width)),
+		H: int(ctx.Config.DefaultShapeRatio.H * float64(ctx.ScreenInfos[0].Height)),
+	}
+
 	root := &Frame{
-		Shape: RootShape(ctx, ctx.Config.DefaultShape),
+		Shape: RootShape(ctx, defaultShape),
 		Window: xwindow.New(ctx.X, window),
 	}
 	root.Window.MoveResize(root.Shape.X, root.Shape.Y, root.Shape.W, root.Shape.H)
 	if err := ext.MapChecked(root.Window); err != nil {
-		log.Println("NewContainer:", window, "could not be mapped")
+		log.Println("NewWindow:", window, "could not be mapped")
 		return nil
 	}
 
 	c := &Container{
-		Shape: ctx.Config.DefaultShape,
+		Shape: defaultShape,
 		Root: root,
 	}
 	root.Container = c
@@ -613,7 +648,7 @@ func NewWindow(ctx *Context, ev xevent.MapRequestEvent) *Frame {
 	err = AddWindowHook(ctx, window)
 
 	if err != nil {
-		log.Println("NewContainer: failed to create a decoration", err)
+		log.Println("NewWindow: failed to create a decoration", err)
 		return nil
 	}
 
@@ -808,6 +843,7 @@ func AddWindowHook(ctx *Context, window xproto.Window) error {
 	xevent.ConfigureRequestFun(
 		func(X *xgbutil.XUtil, ev xevent.ConfigureRequestEvent) {
 			f := ctx.Get(window)
+			f.WaitForConfigure = false
 			if f != nil && f.IsRoot() && f.IsLeaf() {
 				fShape := f.Shape
 				if xproto.ConfigWindowX&ev.ValueMask > 0 {
@@ -823,7 +859,11 @@ func AddWindowHook(ctx *Context, window xproto.Window) error {
 					fShape.H = int(ev.Height)
 				}
 				cShape := ContainerShapeFromRoot(ctx, fShape)
+				cShape.X = ext.IMax(cShape.X, 0)
+				cShape.Y = ext.IMax(cShape.Y, 0)
 				f.Container.MoveResize(ctx, cShape.X, cShape.Y, cShape.W, cShape.H)
+			} else {
+				f.MoveResize(ctx)
 			}
 	}).Connect(ctx.X, window)
 
