@@ -199,7 +199,6 @@ func ConfigRoot(X *xgbutil.XUtil) error {
 
   xevent.MapRequestFun(
 		func(X *xgbutil.XUtil, ev xevent.MapRequestEvent) {
-      log.Println(ev)
       frame.NewWindow(ctx, ev)
     }).Connect(X, X.RootWin())
 

@@ -23,6 +23,7 @@ type Decoration struct {
 }
 
 type ContainerDecorations struct {
+	Hidden bool
 	Close, Grab Decoration
 	Top, Left, Bottom, Right Decoration
 	TopRight, TopLeft, BottomRight, BottomLeft Decoration
@@ -68,6 +69,12 @@ func (cd *ContainerDecorations) MoveResize(ctx *Context, cShape Rect) {
 func (cd *ContainerDecorations) Map() {
 	cd.ForEach(func(d *Decoration){
 		d.Window.Map()
+	})
+}
+
+func (cd *ContainerDecorations) Unmap() {
+	cd.ForEach(func(d *Decoration){
+		d.Window.Unmap()
 	})
 }
 

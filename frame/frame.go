@@ -396,7 +396,6 @@ func AttachWindow(ctx *Context, ev xevent.MapRequestEvent) *Frame {
 func NewWindow(ctx *Context, ev xevent.MapRequestEvent) *Frame {
 	window := ev.Window
 	if existing := ctx.Get(window); existing != nil {
-		log.Println("NewWindow:", window, "already tracked")
 		return existing
 	}
 
@@ -404,6 +403,7 @@ func NewWindow(ctx *Context, ev xevent.MapRequestEvent) *Frame {
 		return AttachWindow(ctx, ev)
 	}
 
+	// Create container and root frame
 	defaultShape := Rect{
 		X: int(ctx.Config.DefaultShapeRatio.X * float64(ctx.ScreenInfos[0].Width)),
 		Y: int(ctx.Config.DefaultShapeRatio.Y * float64(ctx.ScreenInfos[0].Height)),
@@ -411,21 +411,21 @@ func NewWindow(ctx *Context, ev xevent.MapRequestEvent) *Frame {
 		H: int(ctx.Config.DefaultShapeRatio.H * float64(ctx.ScreenInfos[0].Height)),
 	}
 
+	c := &Container{
+		Shape: defaultShape,
+	}
+
 	root := &Frame{
-		Shape: RootShape(ctx, defaultShape),
+		Shape: RootShape(ctx, c),
 		Window: xwindow.New(ctx.X, window),
+		Container: c,
 	}
 	root.Window.MoveResize(root.Shape.X, root.Shape.Y, root.Shape.W, root.Shape.H)
 	if err := ext.MapChecked(root.Window); err != nil {
 		log.Println("NewWindow:", window, "could not be mapped")
 		return nil
 	}
-
-	c := &Container{
-		Shape: defaultShape,
-		Root: root,
-	}
-	root.Container = c
+	c.Root = root
 
 	// Create Decorations
 	var err error
@@ -535,12 +535,15 @@ func NewWindow(ctx *Context, ev xevent.MapRequestEvent) *Frame {
 	return c.Root
 }
 
-func RootShape(context *Context, cShape Rect) Rect {
+func RootShape(ctx *Context, c* Container) Rect {
+	if c.Decorations.Hidden {
+		return c.Shape
+	}
 	return Rect{
-		X: cShape.X + context.Config.ElemSize,
-		Y: cShape.Y + 2*context.Config.ElemSize,
-		W: cShape.W - 2*context.Config.ElemSize,
-		H: cShape.H - 3*context.Config.ElemSize,
+		X: c.Shape.X + ctx.Config.ElemSize,
+		Y: c.Shape.Y + 2*ctx.Config.ElemSize,
+		W: c.Shape.W - 2*ctx.Config.ElemSize,
+		H: c.Shape.H - 3*ctx.Config.ElemSize,
 	}
 }
 
@@ -555,12 +558,12 @@ func ContainerShapeFromRoot(ctx *Context, fShape Rect) Rect {
 
 func (f *Frame) CalcShape(ctx *Context) Rect {
 	if f.IsRoot() || f.Container.Expanded == f {
-		return RootShape(ctx, f.Container.Shape)
+		return RootShape(ctx, f.Container)
 	}
 
 	pShape := func()Rect{
 		if f.Parent != nil && f.Container.Expanded == f.Parent {
-			return RootShape(ctx, f.Container.Shape)
+			return RootShape(ctx, f.Container)
 		} else {
 			return f.Parent.Shape
 		}
@@ -698,6 +701,20 @@ func AddWindowHook(ctx *Context, window xproto.Window) error {
 			f.Container.MoveResizeShape(ctx, f.Container.Shape)
 			f.Container.RaiseFindFocus(ctx)
 	  }).Connect(ctx.X, window, ctx.Config.ToggleExpandFrame, true)
+	ext.Logerr(err)
+
+	err = keybind.KeyPressFun(
+		func(X *xgbutil.XUtil, e xevent.KeyPressEvent){
+			f := ctx.Get(window)
+			if f.Container.Decorations.Hidden {
+				f.Container.Decorations.Hidden = false
+				f.Container.Decorations.Map()
+			} else {
+				f.Container.Decorations.Hidden = true
+				f.Container.Decorations.Unmap()
+			}
+			f.Container.MoveResizeShape(ctx, f.Container.Shape)
+	  }).Connect(ctx.X, window, ctx.Config.ToggleExternalDecorator, true)
 	ext.Logerr(err)
 
 	return err

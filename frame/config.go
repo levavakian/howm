@@ -10,6 +10,7 @@ type Config struct {
 	ButtonClick string
 	CloseFrame string
 	ToggleExpandFrame string
+	ToggleExternalDecorator string
 	ElemSize int
 	CloseCursor int
 	DefaultShapeRatio Rectf
@@ -28,6 +29,7 @@ func DefaultConfig() Config {
 		ButtonClick: "1",
 		CloseFrame: "Mod4-d",
 		ToggleExpandFrame: "Mod4-f",
+		ToggleExternalDecorator: "Mod4-h",
 		ElemSize: 10,
 		CloseCursor: xcursor.Dot,
 		DefaultShapeRatio: Rectf {
