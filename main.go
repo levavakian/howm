@@ -1,11 +1,7 @@
-// Example show-window-icons shows how to get a list of all top-level client
-// windows managed by the currently running window manager, and show the icon
-// for each window. (Each icon is shown by opening its own window.)
 package main
 
 import (
   "log"
-  "errors"
   "os/exec"
   "time"
   "howm/frame"
@@ -48,14 +44,14 @@ func ConfigRoot(X *xgbutil.XUtil) error {
   }
 
   // Create context
-  c, err := frame.NewContext(X)
+  ctx, err := frame.NewContext(X)
   if err != nil {
     log.Fatal(err)
   }
-  log.Println("found", len(c.ScreenInfos), "screen(s)", c.ScreenInfos)
+  log.Println("found", len(ctx.ScreenInfos), "screen(s)", ctx.ScreenInfos)
 
   // Background Images
-  background.GenerateBackgrounds(c)
+  background.GenerateBackgrounds(ctx)
 
   evMasks := xproto.EventMaskPropertyChange |
 		xproto.EventMaskFocusChange |
@@ -102,31 +98,9 @@ func ConfigRoot(X *xgbutil.XUtil) error {
       return nil
     }
 
-    attachF, err := func()(*frame.Frame, error){
-      focus, err := xproto.GetInputFocus(X.Conn()).Reply()
-      if err != nil {
-        log.Println(err)
-        return nil, err
-      }
+    attachF := ctx.GetFocusedFrame()
 
-      found, ok := c.Tracked[focus.Focus]
-      if ok {
-        return found, nil
-      }
-
-      parent, err := xwindow.New(X, focus.Focus).Parent()
-      if err == nil {
-        found, ok = c.Tracked[parent.Id]
-        if ok {
-          return found, nil
-        }
-      }
-
-      return nil, errors.New("not found")
-    }()
-
-    if err != nil {
-      log.Println(err)
+    if attachF == nil {
       msgPrompt := prompt.NewMessage(X,
         prompt.DefaultMessageTheme, prompt.DefaultMessageConfig)
       timeout := 2 * time.Second
@@ -164,7 +138,7 @@ func ConfigRoot(X *xgbutil.XUtil) error {
     if fr == nil {
       return
     }
-    c.AttachPoint = &frame.AttachTarget{
+    ctx.AttachPoint = &frame.AttachTarget{
       Target: fr,
       Type: frame.HORIZONTAL,
     }
@@ -178,7 +152,7 @@ func ConfigRoot(X *xgbutil.XUtil) error {
     if fr == nil {
       return
     }
-    c.AttachPoint = &frame.AttachTarget{
+    ctx.AttachPoint = &frame.AttachTarget{
       Target: fr,
       Type: frame.VERTICAL,
     }
@@ -218,14 +192,15 @@ func ConfigRoot(X *xgbutil.XUtil) error {
 		func(X *xgbutil.XUtil, ev xevent.ButtonPressEvent) {
       ext.Focus(xwindow.New(X, X.RootWin()))
 			xproto.AllowEvents(X.Conn(), xproto.AllowReplayPointer, 0)
-    }).Connect(X, X.RootWin(), c.Config.ButtonClick, true, true)
+    }).Connect(X, X.RootWin(), ctx.Config.ButtonClick, true, true)
     if err != nil {
       log.Println(err)
     }
 
   xevent.MapRequestFun(
 		func(X *xgbutil.XUtil, ev xevent.MapRequestEvent) {
-      frame.NewWindow(c, ev)
+      log.Println(ev)
+      frame.NewWindow(ctx, ev)
     }).Connect(X, X.RootWin())
 
   return err

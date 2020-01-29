@@ -11,38 +11,7 @@ import (
 	"github.com/BurntSushi/xgbutil/keybind"
 	"github.com/BurntSushi/xgbutil/xevent"
 	"github.com/BurntSushi/xgbutil/xprop"
-	"github.com/BurntSushi/xgb/xinerama"
 )
-
-type PartitionType int
-const (
-	HORIZONTAL PartitionType = iota
-	VERTICAL
-)
-
-type Rect struct {
-	X int
-	Y int
-	W int
-	H int
-}
-
-type Rectf struct {
-	X float64
-	Y float64
-	W float64
-	H float64
-}
-
-type Decoration struct {
-	Window *xwindow.Window
-}
-
-type ContainerDecorations struct {
-	Close, Grab Decoration
-	Top, Left, Bottom, Right Decoration
-	TopRight, TopLeft, BottomRight, BottomLeft Decoration
-}
 
 type DragOrigin struct {
 	Container Rect
@@ -54,14 +23,9 @@ type DragOrigin struct {
 type Container struct {
 	Shape Rect
 	Root *Frame
+	Expanded *Frame
 	DragContext DragOrigin
 	Decorations ContainerDecorations
-}
-
-type Partition struct {
-	Ratio float64
-	Type PartitionType
-	Decoration Decoration
 }
 
 type Frame struct {
@@ -76,54 +40,6 @@ type Frame struct {
 type AttachTarget struct {
 	Target *Frame
 	Type PartitionType
-}
-
-type Context struct {
-	X *xgbutil.XUtil
-	AttachPoint *AttachTarget
-	Tracked map[xproto.Window]*Frame
-	Cursors map[int]xproto.Cursor
-	Config Config
-	ScreenInfos []xinerama.ScreenInfo
-}
-
-type Config struct {
-	ButtonClose string
-	ButtonDrag string
-	ButtonClick string
-	CloseFrame string
-	ElemSize int
-	CloseCursor int
-	DefaultShapeRatio Rectf
-	SeparatorColor uint32
-	GrabColor uint32
-	CloseColor uint32
-	ResizeColor uint32
-	InternalPadding int
-	BackgroundImagePath string
-}
-
-func DefaultConfig() Config {
-	return Config{
-		ButtonClose: "1",
-		ButtonDrag: "1",
-		ButtonClick: "1",
-		CloseFrame: "Mod4-f",
-		ElemSize: 10,
-		CloseCursor: xcursor.Dot,
-		DefaultShapeRatio: Rectf {
-			X: .05,
-			Y: .05,
-			W: .9,
-			H: .9,
-		},
-		SeparatorColor: 0x777777,
-		GrabColor: 0x339999,
-		CloseColor: 0xff0000,
-		ResizeColor: 0x00ff00,
-		InternalPadding: 0,
-		BackgroundImagePath: "/home/lev/.config/howm/bg.jpg",
-	}
 }
 
 func (f *Frame) Traverse(fun func(*Frame)) {
@@ -163,57 +79,17 @@ func (f *Frame) Root() *Frame {
 	}
 }
 
-func (cd *ContainerDecorations) ForEach(f func(*Decoration)) {
-	f(&cd.Close)
-	f(&cd.Grab)
-	f(&cd.Top)
-	f(&cd.Bottom)
-	f(&cd.Left)
-	f(&cd.Right)
-	f(&cd.BottomRight)
-	f(&cd.BottomLeft)
-	f(&cd.TopRight)
-	f(&cd.TopLeft)
-}
-
-func (cd *ContainerDecorations) Destroy(ctx *Context) {
-	cd.ForEach(func(d *Decoration){
-		d.Window.Unmap()
-		d.Window.Destroy()
-	})
-}
-
-func (d *Decoration) MoveResize(r Rect) {
-	d.Window.MoveResize(r.X, r.Y, r.W, r.H)
-}
-
-func (cd *ContainerDecorations) MoveResize(ctx *Context, cShape Rect) {
-	cd.Close.MoveResize(CloseShape(ctx, cShape))
-	cd.Grab.MoveResize(GrabShape(ctx, cShape))
-	cd.Top.MoveResize(TopShape(ctx, cShape))
-	cd.Bottom.MoveResize(BottomShape(ctx, cShape))
-	cd.Left.MoveResize(LeftShape(ctx, cShape))
-	cd.Right.MoveResize(RightShape(ctx, cShape))
-	cd.BottomRight.MoveResize(BottomRightShape(ctx, cShape))
-	cd.BottomLeft.MoveResize(BottomLeftShape(ctx, cShape))
-	cd.TopRight.MoveResize(TopRightShape(ctx, cShape))
-	cd.TopLeft.MoveResize(TopLeftShape(ctx, cShape))
-}
-
-func (cd *ContainerDecorations) Map() {
-	cd.ForEach(func(d *Decoration){
-		d.Window.Map()
-	})
-}
-
 func (f *Frame) Map() {
 	f.Traverse(
-		func(f *Frame){
-			if f.Window == nil {
-				return
+		func(ft *Frame){
+			if ft.Window != nil {
+				ft.Window.Map()
 			}
-			f.Window.Map()
-			f.Mapped = true
+
+			if ft.Separator.Decoration.Window != nil {
+				ft.Separator.Decoration.Window.Map()
+			}
+			ft.Mapped = true
 		},
 	)
 }
@@ -254,10 +130,13 @@ func (f *Frame) IsRoot() bool {
 	return f.Parent == nil
 }
 
-func (f *Frame) Unmap(ctx *Context) {
+func (f *Frame) UnmapSingle() {
+	if !f.Mapped {
+		return
+	}
+
 	if f.Window != nil {
 		f.Window.Unmap()
-
 	}
 	if f.Separator.Decoration.Window != nil {
 		f.Separator.Decoration.Window.Unmap()
@@ -266,7 +145,14 @@ func (f *Frame) Unmap(ctx *Context) {
 	f.Mapped = false
 }
 
+func (f *Frame) Unmap() {
+	f.Traverse(func(ft *Frame){
+		ft.UnmapSingle()
+	})
+}
+
 func (f *Frame) Destroy(ctx *Context) {
+	f.UnmapSingle()
 	if f.Window != nil {
 		f.Window.Destroy()
 		delete(ctx.Tracked, f.Window.Id)
@@ -299,7 +185,7 @@ func (f *Frame) Destroy(ctx *Context) {
 				oc.Parent.ChildB = oc
 			}
 		}
-		par.Unmap(ctx)
+		par.UnmapSingle()
 		par.Destroy(ctx)
 
 		oc.MoveResize(ctx)
@@ -332,7 +218,7 @@ func (f *Frame) MoveResize(ctx *Context) {
 		ft.Shape = ft.CalcShape(ctx)
 		if (ft.Shape.W == 0 || ft.Shape.H == 0) {
 			if ft.Mapped {
-				ft.Unmap(ctx)
+				ft.Unmap()
 			}
 		} else {
 			if !ft.Mapped{
@@ -403,6 +289,13 @@ func (c *Container) Raise(ctx *Context){
 	})
 }
 
+func (c *Container) ActiveRoot() *Frame {
+	if c.Expanded != nil {
+		return c.Expanded
+	}
+	return c.Root
+}
+
 func (c *Container) RaiseFindFocus(ctx *Context){
 	c.Raise(ctx)
 	focus, err := xproto.GetInputFocus(ctx.X.Conn()).Reply()
@@ -410,7 +303,7 @@ func (c *Container) RaiseFindFocus(ctx *Context){
 		return
 	}
 
-    focusFrame := c.Root.Find(func(ff *Frame)bool{
+    focusFrame := c.ActiveRoot().Find(func(ff *Frame)bool{
 		return ff.IsLeaf()
 	})
 	if focusFrame == nil {
@@ -430,6 +323,11 @@ func (c *Container) Map() {
 	c.Root.Map()
 }
 
+func (c *Container) UpdateFrameMappings() {
+	c.Root.Unmap()
+	c.ActiveRoot().Map()
+}
+
 func (c *Container) MoveResize(ctx *Context, x, y, w, h int) {
 	c.Shape = Rect{
 		X: x,
@@ -437,49 +335,12 @@ func (c *Container) MoveResize(ctx *Context, x, y, w, h int) {
 		W: w,
 		H: h,
 	}
-	c.Root.MoveResize(ctx)
+	c.ActiveRoot().MoveResize(ctx)
 	c.Decorations.MoveResize(ctx, c.Shape)
 }
 
-func NewContext(x *xgbutil.XUtil) (*Context, error) {
-	conf := DefaultConfig()
-
-	var Xin []xinerama.ScreenInfo
-	if err := xinerama.Init(x.Conn()); err != nil {
-		log.Fatal(err)
-	}
-	if xin, err := xinerama.QueryScreens(x.Conn()).Reply(); err != nil {
-		log.Fatal(err)
-	} else {
-		Xin = xin.ScreenInfo
-	}
-
-	var err error
-	c := &Context{
-		X: x,
-		Tracked: make(map[xproto.Window]*Frame),
-		Cursors: make(map[int]xproto.Cursor),
-		Config: conf,
-		ScreenInfos: Xin,
-	}
-
-	for i := xcursor.XCursor; i < xcursor.XTerm; i++ {
-		curs, err := xcursor.CreateCursor(x, uint16(i))
-		if err != nil {
-			break
-		}
-		c.Cursors[i] = curs
-	}
-	return c, err
-}
-
-func (ctx *Context) MinShape() Rect {
-	return Rect{
-		X: 0,
-		Y: 0,
-		W: 5*ctx.Config.ElemSize,
-		H: 5*ctx.Config.ElemSize,
-	}
+func (c *Container) MoveResizeShape(ctx *Context, shape Rect) {
+	c.MoveResize(ctx, shape.X, shape.Y, shape.W, shape.H)
 }
 
 func AttachWindow(ctx *Context, ev xevent.MapRequestEvent) *Frame {
@@ -574,63 +435,83 @@ func NewWindow(ctx *Context, ev xevent.MapRequestEvent) *Frame {
 		ctx.Config.CloseColor,
 		uint32(ctx.Cursors[xcursor.Dot]),
 	)
+	ext.Logerr(err)
+
 	c.Decorations.Grab, err = CreateDecoration(
 		ctx,
 		GrabShape(ctx, c.Shape),
 		ctx.Config.GrabColor,
 		0,
 	)
+	ext.Logerr(err)
+
 	c.Decorations.Top, err = CreateDecoration(
 		ctx,
 		TopShape(ctx, c.Shape),
 		ctx.Config.SeparatorColor,
 		uint32(ctx.Cursors[xcursor.TopSide]),
 	)
+	ext.Logerr(err)
+
 	c.Decorations.Bottom, err = CreateDecoration(
 		ctx,
 		BottomShape(ctx, c.Shape),
 		ctx.Config.SeparatorColor,
 		uint32(ctx.Cursors[xcursor.BottomSide]),
 	)
+	ext.Logerr(err)
+
 	c.Decorations.Left, err = CreateDecoration(
 		ctx,
 		LeftShape(ctx, c.Shape),
 		ctx.Config.SeparatorColor,
 		uint32(ctx.Cursors[xcursor.LeftSide]),
 	)
+	ext.Logerr(err)
+
 	c.Decorations.Right, err = CreateDecoration(
 		ctx,
 		RightShape(ctx, c.Shape),
 		ctx.Config.SeparatorColor,
 		uint32(ctx.Cursors[xcursor.RightSide]),
 	)
+	ext.Logerr(err)
+
 	c.Decorations.BottomRight, err = CreateDecoration(
 		ctx,
 		BottomRightShape(ctx, c.Shape),
 		ctx.Config.ResizeColor,
 		uint32(ctx.Cursors[xcursor.BottomRightCorner]),
 	)
+	ext.Logerr(err)
+
 	c.Decorations.BottomLeft, err = CreateDecoration(
 		ctx,
 		BottomLeftShape(ctx, c.Shape),
 		ctx.Config.ResizeColor,
 		uint32(ctx.Cursors[xcursor.BottomLeftCorner]),
 	)
+	ext.Logerr(err)
+
 	c.Decorations.TopRight, err = CreateDecoration(
 		ctx,
 		TopRightShape(ctx, c.Shape),
 		ctx.Config.ResizeColor,
 		uint32(ctx.Cursors[xcursor.TopRightCorner]),
 	)
+	ext.Logerr(err)
+
 	c.Decorations.TopLeft, err = CreateDecoration(
 		ctx,
 		TopLeftShape(ctx, c.Shape),
 		ctx.Config.ResizeColor,
 		uint32(ctx.Cursors[xcursor.TopLeftCorner]),
 	)
+	ext.Logerr(err)
 
 	// Add hooks
 	err = c.AddCloseHook(ctx)
+	ext.Logerr(err)
 	c.AddTopHook(ctx)
 	c.AddBottomHook(ctx)
 	c.AddLeftHook(ctx)
@@ -641,9 +522,10 @@ func NewWindow(ctx *Context, ev xevent.MapRequestEvent) *Frame {
 	c.AddTopLeftHook(ctx)
 	c.AddGrabHook(ctx)
 	err = AddWindowHook(ctx, window)
+	ext.Logerr(err)
 
 	if err != nil {
-		log.Println("NewWindow: failed to create a decoration", err)
+		log.Println("NewWindow: failed to create container")
 		return nil
 	}
 
@@ -672,49 +554,57 @@ func ContainerShapeFromRoot(ctx *Context, fShape Rect) Rect {
 }
 
 func (f *Frame) CalcShape(ctx *Context) Rect {
-	if f.IsRoot() {
+	if f.IsRoot() || f.Container.Expanded == f {
 		return RootShape(ctx, f.Container.Shape)
 	}
+
+	pShape := func()Rect{
+		if f.Parent != nil && f.Container.Expanded == f.Parent {
+			return RootShape(ctx, f.Container.Shape)
+		} else {
+			return f.Parent.Shape
+		}
+	}()
 
 	isChildA := (f.Parent.ChildA == f)
 
 	WidthA := func()int{
-		return ext.IMax(int(float64(f.Parent.Shape.W) * f.Parent.Separator.Ratio), ctx.Config.ElemSize) - ctx.Config.ElemSize
+		return ext.IMax(int(float64(pShape.W) * f.Parent.Separator.Ratio), ctx.Config.ElemSize) - ctx.Config.ElemSize
 	}
 	HeightA := func()int{
-		return ext.IMax(int(float64(f.Parent.Shape.H) * f.Parent.Separator.Ratio), ctx.Config.ElemSize) - ctx.Config.ElemSize
+		return ext.IMax(int(float64(pShape.H) * f.Parent.Separator.Ratio), ctx.Config.ElemSize) - ctx.Config.ElemSize
 	}
 
 	if isChildA {
 		if f.Parent.Separator.Type == HORIZONTAL {
 			return Rect{
-				X: f.Parent.Shape.X,
-				Y: f.Parent.Shape.Y,
+				X: pShape.X,
+				Y: pShape.Y,
 				W: WidthA(),
-				H: f.Parent.Shape.H,
+				H: pShape.H,
 			}
 		} else {
 			return Rect{
-				X: f.Parent.Shape.X,
-				Y: f.Parent.Shape.Y,
-				W: f.Parent.Shape.W,
+				X: pShape.X,
+				Y: pShape.Y,
+				W: pShape.W,
 				H: HeightA(),
 			}
 		}
 	} else {
 		if f.Parent.Separator.Type == HORIZONTAL {
 			return Rect{
-				X: f.Parent.Shape.X + WidthA() + ctx.Config.ElemSize,
-				Y: f.Parent.Shape.Y,
-				W: f.Parent.Shape.W - WidthA() - ctx.Config.ElemSize,
-				H: f.Parent.Shape.H,
+				X: pShape.X + WidthA() + ctx.Config.ElemSize,
+				Y: pShape.Y,
+				W: pShape.W - WidthA() - ctx.Config.ElemSize,
+				H: pShape.H,
 			}
 		} else {
 			return Rect{
-				X: f.Parent.Shape.X,
-				Y: f.Parent.Shape.Y + HeightA() + ctx.Config.ElemSize,
-				W: f.Parent.Shape.W,
-				H: f.Parent.Shape.H - HeightA() - ctx.Config.ElemSize,
+				X: pShape.X,
+				Y: pShape.Y + HeightA() + ctx.Config.ElemSize,
+				W: pShape.W,
+				H: pShape.H - HeightA() - ctx.Config.ElemSize,
 			}
 		}
 	}
@@ -741,96 +631,6 @@ func (f *Frame) SeparatorShape(ctx *Context) Rect {
 			W: f.Shape.W + ctx.Config.InternalPadding,
 			H: ctx.Config.ElemSize + ctx.Config.InternalPadding,
 		}	
-	}
-}
-
-func TopRightShape(context *Context, cShape Rect) Rect {
-	return Rect{
-		X: cShape.X + cShape.W - context.Config.ElemSize,
-		Y: cShape.Y + context.Config.ElemSize,
-		W: context.Config.ElemSize,
-		H: context.Config.ElemSize,
-	}
-}
-
-func TopLeftShape(context *Context, cShape Rect) Rect {
-	return Rect{
-		X: cShape.X,
-		Y: cShape.Y + context.Config.ElemSize,
-		W: context.Config.ElemSize,
-		H: context.Config.ElemSize,
-	}
-}
-
-func BottomRightShape(context *Context, cShape Rect) Rect {
-	return Rect{
-		X: cShape.X + cShape.W - context.Config.ElemSize,
-		Y: cShape.Y + cShape.H - context.Config.ElemSize,
-		W: context.Config.ElemSize,
-		H: context.Config.ElemSize,
-	}
-}
-
-func BottomLeftShape(context *Context, cShape Rect) Rect {
-	return Rect{
-		X: cShape.X,
-		Y: cShape.Y + cShape.H - context.Config.ElemSize,
-		W: context.Config.ElemSize,
-		H: context.Config.ElemSize,
-	}
-}
-
-func TopShape(context *Context, cShape Rect) Rect {
-	return Rect{
-		X: cShape.X + context.Config.ElemSize,
-		Y: cShape.Y + context.Config.ElemSize,
-		W: cShape.W - 2*context.Config.ElemSize,
-		H: context.Config.ElemSize,
-	}
-}
-
-func BottomShape(context *Context, cShape Rect) Rect {
-	return Rect{
-		X: cShape.X + context.Config.ElemSize,
-		Y: cShape.Y + cShape.H - context.Config.ElemSize,
-		W: cShape.W - 2*context.Config.ElemSize,
-		H: context.Config.ElemSize,
-	}
-}
-
-func LeftShape(context *Context, cShape Rect) Rect {
-	return Rect{
-		X: cShape.X,
-		Y: cShape.Y + 2*context.Config.ElemSize,
-		W: context.Config.ElemSize,
-		H: cShape.H - 3*context.Config.ElemSize,
-	}
-}
-
-func RightShape(context *Context, cShape Rect) Rect {
-	return Rect{
-		X: cShape.X + cShape.W - context.Config.ElemSize,
-		Y: cShape.Y + 2*context.Config.ElemSize,
-		W: context.Config.ElemSize,
-		H: cShape.H - 3*context.Config.ElemSize,
-	}
-}
-
-func GrabShape(context *Context, cShape Rect) Rect {
-	return Rect{
-		X: cShape.X,
-		Y: cShape.Y,
-		W: cShape.W - context.Config.ElemSize,
-		H: context.Config.ElemSize,
-	}
-}
-
-func CloseShape(context *Context, cShape Rect) Rect {
-	return Rect{
-		X: cShape.X + cShape.W - context.Config.ElemSize,
-		Y: cShape.Y,
-		W: context.Config.ElemSize,
-		H: context.Config.ElemSize,
 	}
 }
 
@@ -863,7 +663,10 @@ func AddWindowHook(ctx *Context, window xproto.Window) error {
 	xevent.UnmapNotifyFun(
 		func(X *xgbutil.XUtil, ev xevent.UnmapNotifyEvent) {
 			f := ctx.Get(window)
-			f.Unmap(ctx)
+			if !f.IsRoot() || !f.IsLeaf() {
+				return
+			}
+			f.Unmap()
 		}).Connect(ctx.X, window)
 	
 	err := mousebind.ButtonPressFun(
@@ -872,9 +675,7 @@ func AddWindowHook(ctx *Context, window xproto.Window) error {
 			f.FocusRaise(ctx)
 			xproto.AllowEvents(ctx.X.Conn(), xproto.AllowReplayPointer, 0)
 		}).Connect(ctx.X, window, ctx.Config.ButtonClick, true, true)
-	if err != nil {
-		log.Println(err)
-	}
+	ext.Logerr(err)
 
 	err = keybind.KeyPressFun(
 		func(X *xgbutil.XUtil, e xevent.KeyPressEvent){
@@ -883,188 +684,23 @@ func AddWindowHook(ctx *Context, window xproto.Window) error {
 				f.Close(ctx)
 			}
 	  }).Connect(ctx.X, window, ctx.Config.CloseFrame, true)
-	if err != nil {
-		log.Println(err)
-	}
+	ext.Logerr(err)
+
+	err = keybind.KeyPressFun(
+		func(X *xgbutil.XUtil, e xevent.KeyPressEvent){
+			f := ctx.Get(window)
+			if f.Container.Expanded == f {
+				f.Container.Expanded = nil
+			} else {
+				f.Container.Expanded = f
+			}
+			f.Container.UpdateFrameMappings()
+			f.Container.MoveResizeShape(ctx, f.Container.Shape)
+			f.Container.RaiseFindFocus(ctx)
+	  }).Connect(ctx.X, window, ctx.Config.ToggleExpandFrame, true)
+	ext.Logerr(err)
 
 	return err
-}
-
-func (c *Container) AddGrabHook(ctx *Context) {
-	mousebind.Drag(
-		ctx.X, c.Decorations.Grab.Window.Id, c.Decorations.Grab.Window.Id, ctx.Config.ButtonDrag, true,
-		func(X *xgbutil.XUtil, rX, rY, eX, eY int) (bool, xproto.Cursor) {
-			c.DragContext = GenerateDragContext(ctx, c, nil, rX, rY)
-			c.RaiseFindFocus(ctx)
-			return true, ctx.Cursors[xcursor.Circle]
-		},
-		func(X *xgbutil.XUtil, rX, rY, eX, eY int) {
-			dX := rX - c.DragContext.MouseX
-			dY := rY - c.DragContext.MouseY
-			c.MoveResize(ctx, c.DragContext.Container.X + dX, c.DragContext.Container.Y + dY, c.Shape.W, c.Shape.H)
-		},
-		func(X *xgbutil.XUtil, rX, rY, eX, eY int) {
-		},
-	)
-}
-
-func (c *Container) AddCloseHook(ctx *Context) error {
-	return mousebind.ButtonPressFun(
-		func(X *xgbutil.XUtil, ev xevent.ButtonPressEvent) {
-			c.Root.Close(ctx)
-		}).Connect(ctx.X, c.Decorations.Close.Window.Id, ctx.Config.ButtonClose, false, true)
-}
-
-func (c *Container) AddTopHook(ctx *Context) {
-	mousebind.Drag(
-		ctx.X, c.Decorations.Top.Window.Id, c.Decorations.Top.Window.Id, ctx.Config.ButtonDrag, true,
-		func(X *xgbutil.XUtil, rX, rY, eX, eY int) (bool, xproto.Cursor) {
-			c.DragContext = GenerateDragContext(ctx, c, nil, rX, rY)
-			c.RaiseFindFocus(ctx)
-			return true, ctx.Cursors[xcursor.Circle]
-		},
-		func(X *xgbutil.XUtil, rX, rY, eX, eY int) {
-			origYEnd := c.DragContext.Container.Y + c.DragContext.Container.H
-			h := ext.IMax(origYEnd - rY, ctx.MinShape().H)
-			y := origYEnd - h
-			c.MoveResize(ctx, c.DragContext.Container.X, y, c.DragContext.Container.W, h)
-		},
-		func(X *xgbutil.XUtil, rX, rY, eX, eY int) {
-		},
-	)
-}
-
-func (c *Container) AddBottomHook(ctx *Context) {
-	mousebind.Drag(
-		ctx.X, c.Decorations.Bottom.Window.Id, c.Decorations.Bottom.Window.Id, ctx.Config.ButtonDrag, true,
-		func(X *xgbutil.XUtil, rX, rY, eX, eY int) (bool, xproto.Cursor) {
-			c.DragContext = GenerateDragContext(ctx, c, nil, rX, rY)
-			c.RaiseFindFocus(ctx)
-			return true, ctx.Cursors[xcursor.Circle]
-		},
-		func(X *xgbutil.XUtil, rX, rY, eX, eY int) {
-			h := ext.IMax(rY - c.DragContext.Container.Y, ctx.MinShape().H)
-			c.MoveResize(ctx, c.DragContext.Container.X, c.DragContext.Container.Y, c.DragContext.Container.W, h)
-		},
-		func(X *xgbutil.XUtil, rX, rY, eX, eY int) {
-		},
-	)
-}
-
-func (c *Container) AddRightHook(ctx *Context) {
-	mousebind.Drag(
-		ctx.X, c.Decorations.Right.Window.Id, c.Decorations.Right.Window.Id, ctx.Config.ButtonDrag, true,
-		func(X *xgbutil.XUtil, rX, rY, eX, eY int) (bool, xproto.Cursor) {
-			c.DragContext = GenerateDragContext(ctx, c, nil, rX, rY)
-			c.RaiseFindFocus(ctx)
-			return true, ctx.Cursors[xcursor.Circle]
-		},
-		func(X *xgbutil.XUtil, rX, rY, eX, eY int) {
-			w := ext.IMax(rX - c.DragContext.Container.X, ctx.MinShape().W)
-			c.MoveResize(ctx, c.DragContext.Container.X, c.DragContext.Container.Y, w, c.DragContext.Container.H)
-		},
-		func(X *xgbutil.XUtil, rX, rY, eX, eY int) {
-		},
-	)
-}
-
-func (c *Container) AddLeftHook(ctx *Context) {
-	mousebind.Drag(
-		ctx.X, c.Decorations.Left.Window.Id, c.Decorations.Left.Window.Id, ctx.Config.ButtonDrag, true,
-		func(X *xgbutil.XUtil, rX, rY, eX, eY int) (bool, xproto.Cursor) {
-			c.DragContext = GenerateDragContext(ctx, c, nil, rX, rY)
-			c.RaiseFindFocus(ctx)
-			return true, ctx.Cursors[xcursor.Circle]
-		},
-		func(X *xgbutil.XUtil, rX, rY, eX, eY int) {
-			origXEnd := c.DragContext.Container.X + c.DragContext.Container.W
-			w := ext.IMax(origXEnd - rX, ctx.MinShape().W)
-			x := origXEnd - w
-			c.MoveResize(ctx, x, c.DragContext.Container.Y, w, c.DragContext.Container.H)
-		},
-		func(X *xgbutil.XUtil, rX, rY, eX, eY int) {
-		},
-	)
-}
-
-func (c *Container) AddBottomRightHook(ctx *Context) {
-	mousebind.Drag(
-		ctx.X, c.Decorations.BottomRight.Window.Id, c.Decorations.BottomRight.Window.Id, ctx.Config.ButtonDrag, true,
-		func(X *xgbutil.XUtil, rX, rY, eX, eY int) (bool, xproto.Cursor) {
-			c.DragContext = GenerateDragContext(ctx, c, nil, rX, rY)
-			c.RaiseFindFocus(ctx)
-			return true, ctx.Cursors[xcursor.Circle]
-		},
-		func(X *xgbutil.XUtil, rX, rY, eX, eY int) {
-			w := ext.IMax(rX - c.DragContext.Container.X, ctx.MinShape().W)
-			h := ext.IMax(rY - c.DragContext.Container.Y, ctx.MinShape().H)
-			c.MoveResize(ctx, c.DragContext.Container.X, c.DragContext.Container.Y, w, h)
-		},
-		func(X *xgbutil.XUtil, rX, rY, eX, eY int) {
-		},
-	)
-}
-
-func (c *Container) AddBottomLeftHook(ctx *Context) {
-	mousebind.Drag(
-		ctx.X, c.Decorations.BottomLeft.Window.Id, c.Decorations.BottomLeft.Window.Id, ctx.Config.ButtonDrag, true,
-		func(X *xgbutil.XUtil, rX, rY, eX, eY int) (bool, xproto.Cursor) {
-			c.DragContext = GenerateDragContext(ctx, c, nil, rX, rY)
-			c.RaiseFindFocus(ctx)
-			return true, ctx.Cursors[xcursor.Circle]
-		},
-		func(X *xgbutil.XUtil, rX, rY, eX, eY int) {
-			origXEnd := c.DragContext.Container.X + c.DragContext.Container.W
-			w := ext.IMax(origXEnd - rX, ctx.MinShape().W)
-			x := origXEnd - w
-			h := ext.IMax(rY - c.DragContext.Container.Y, ctx.MinShape().H)
-			c.MoveResize(ctx, x, c.DragContext.Container.Y, w, h)
-		},
-		func(X *xgbutil.XUtil, rX, rY, eX, eY int) {
-		},
-	)
-}
-
-func (c *Container) AddTopRightHook(ctx *Context) {
-	mousebind.Drag(
-		ctx.X, c.Decorations.TopRight.Window.Id, c.Decorations.TopRight.Window.Id, ctx.Config.ButtonDrag, true,
-		func(X *xgbutil.XUtil, rX, rY, eX, eY int) (bool, xproto.Cursor) {
-			c.DragContext = GenerateDragContext(ctx, c, nil, rX, rY)
-			c.RaiseFindFocus(ctx)
-			return true, ctx.Cursors[xcursor.Circle]
-		},
-		func(X *xgbutil.XUtil, rX, rY, eX, eY int) {
-			origYEnd := c.DragContext.Container.Y + c.DragContext.Container.H
-			w := ext.IMax(rX - c.DragContext.Container.X, ctx.MinShape().W)
-			h := ext.IMax(origYEnd - rY, ctx.MinShape().H)
-			y := origYEnd - h
-			c.MoveResize(ctx, c.DragContext.Container.X, y, w, h)
-		},
-		func(X *xgbutil.XUtil, rX, rY, eX, eY int) {
-		},
-	)
-}
-
-func (c *Container) AddTopLeftHook(ctx *Context) {
-	mousebind.Drag(
-		ctx.X, c.Decorations.TopLeft.Window.Id, c.Decorations.TopLeft.Window.Id, ctx.Config.ButtonDrag, true,
-		func(X *xgbutil.XUtil, rX, rY, eX, eY int) (bool, xproto.Cursor) {
-			c.DragContext = GenerateDragContext(ctx, c, nil, rX, rY)
-			c.RaiseFindFocus(ctx)
-			return true, ctx.Cursors[xcursor.Circle]
-		},
-		func(X *xgbutil.XUtil, rX, rY, eX, eY int) {
-			origYEnd := c.DragContext.Container.Y + c.DragContext.Container.H
-			origXEnd := c.DragContext.Container.X + c.DragContext.Container.W
-			w := ext.IMax(origXEnd - rX, ctx.MinShape().W)
-			h := ext.IMax(origYEnd - rY, ctx.MinShape().H)
-			y := origYEnd - h
-			x := origXEnd - w
-			c.MoveResize(ctx, x, y, w, h)
-		},
-		func(X *xgbutil.XUtil, rX, rY, eX, eY int) {
-		},
-	)
 }
 
 func GenerateDragContext(ctx *Context, c *Container, f *Frame, mouseX, mouseY int) DragOrigin {
@@ -1078,32 +714,4 @@ func GenerateDragContext(ctx *Context, c *Container, f *Frame, mouseX, mouseY in
 	dc.MouseX = mouseX
 	dc.MouseY = mouseY
 	return dc
-}
-
-func CreateDecoration(c *Context, shape Rect, color uint32, cursor uint32) (Decoration, error) {
-	w, err := xwindow.Generate(c.X)
-	if err != nil {
-		log.Println("CreateDecoration: failed to create xwindow")
-		return Decoration{}, err
-	}
-	if cursor == 0 {
-		err := w.CreateChecked(c.X.RootWin(), shape.X, shape.Y, shape.W, shape.H, xproto.CwBackPixel, color)
-		if err != nil {
-			log.Println(err)
-		}
-	} else {
-		err := w.CreateChecked(c.X.RootWin(), shape.X, shape.Y, shape.W, shape.H, xproto.CwBackPixel | xproto.CwCursor, color, cursor)
-		if err != nil {
-			log.Println(err)
-		}
-	}
-
-	return Decoration{
-		Window: w,
-	}, nil
-}
-
-func (c *Context) Get(w xproto.Window) *Frame {
-	f, _ := c.Tracked[w]
-	return f
 }

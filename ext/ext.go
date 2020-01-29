@@ -2,6 +2,7 @@ package ext
 
 import (
 	"math"
+	"log"
 	"github.com/BurntSushi/xgb/xproto"
 	"github.com/BurntSushi/xgbutil/xwindow"
 	"github.com/BurntSushi/xgbutil"
@@ -41,5 +42,11 @@ func Focus(w *xwindow.Window) {
 	err := xproto.SetInputFocusChecked(w.X.Conn(), mode, w.Id, 0).Check()
 	if err != nil {
 		xgbutil.Logger.Println(err)
+	}
+}
+
+func Logerr(err error) {
+	if err != nil {
+		log.Println(err)
 	}
 }
