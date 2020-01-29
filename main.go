@@ -22,7 +22,6 @@ import (
 
 func main() {
   log.SetFlags(log.LstdFlags | log.Lshortfile)
-  log.Println("\n\n\nStart")
 
 	X, err := xgbutil.NewConn()
 	if err != nil {

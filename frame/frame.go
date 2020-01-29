@@ -71,7 +71,6 @@ type Frame struct {
 	Parent, ChildA, ChildB *Frame
 	Separator Partition
 	Mapped bool
-	WaitForConfigure bool
 }
 
 type AttachTarget struct {
@@ -211,9 +210,6 @@ func (f *Frame) Map() {
 	f.Traverse(
 		func(f *Frame){
 			if f.Window == nil {
-				return
-			}
-			if f.IsRoot() && f.WaitForConfigure {
 				return
 			}
 			f.Window.Map()
@@ -516,7 +512,6 @@ func AttachWindow(ctx *Context, ev xevent.MapRequestEvent) *Frame {
 		Window: xwindow.New(ctx.X, window),
 		Parent: ap,
 		Container: ap.Container,
-		WaitForConfigure: true,
 	}
 	ap.ChildB = cb
 	cb.Shape = cb.CalcShape(ctx)
@@ -843,21 +838,12 @@ func AddWindowHook(ctx *Context, window xproto.Window) error {
 	xevent.ConfigureRequestFun(
 		func(X *xgbutil.XUtil, ev xevent.ConfigureRequestEvent) {
 			f := ctx.Get(window)
-			f.WaitForConfigure = false
 			if f != nil && f.IsRoot() && f.IsLeaf() {
 				fShape := f.Shape
-				if xproto.ConfigWindowX&ev.ValueMask > 0 {
-					fShape.X = int(ev.X)
-				}
-				if xproto.ConfigWindowY&ev.ValueMask > 0 {
-					fShape.Y = int(ev.Y)
-				}
-				if xproto.ConfigWindowWidth&ev.ValueMask > 0 {
-					fShape.W = int(ev.Width)
-				}
-				if xproto.ConfigWindowHeight&ev.ValueMask > 0 {
-					fShape.H = int(ev.Height)
-				}
+				fShape.X = int(ev.X)
+				fShape.Y = int(ev.Y)
+				fShape.W = int(ev.Width)
+				fShape.H = int(ev.Height)
 				cShape := ContainerShapeFromRoot(ctx, fShape)
 				cShape.X = ext.IMax(cShape.X, 0)
 				cShape.Y = ext.IMax(cShape.Y, 0)
