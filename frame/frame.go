@@ -452,6 +452,7 @@ func AttachWindow(ctx *Context, ev xevent.MapRequestEvent) *Frame {
 
 	ap.MoveResize(ctx)
 
+		cb.Focus(ctx)
 	return cb
 }
 
@@ -587,6 +588,7 @@ func NewWindow(ctx *Context, ev xevent.MapRequestEvent) *Frame {
 	// Yay
 	c.Map()
 	ctx.Tracked[window] = c.Root
+	c.Root.Focus(ctx)
 	return c.Root
 }
 

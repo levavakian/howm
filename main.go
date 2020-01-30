@@ -67,7 +67,11 @@ func ConfigRoot(X *xgbutil.XUtil) error {
   }
 
   keybind.Initialize(X)
-	mousebind.Initialize(X)
+  mousebind.Initialize(X)
+
+  xevent.ConfigureNotifyFun(func(X *xgbutil.XUtil, ev xevent.ConfigureNotifyEvent){
+    log.Println(ev)
+  }).Connect(X, X.RootWin())
 
   err = keybind.KeyReleaseFun(
 		func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent) {
@@ -81,6 +85,9 @@ func ConfigRoot(X *xgbutil.XUtil) error {
     ncmd := v  // force to not be a reference
     err = keybind.KeyReleaseFun(
       func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent) {
+        if ctx.SplitPrompt != nil {
+          ctx.SplitPrompt.Destroy()
+        }
         cmd := exec.Command(ncmd)
         err := cmd.Start()
         if err != nil {
@@ -111,11 +118,12 @@ func ConfigRoot(X *xgbutil.XUtil) error {
       return nil
     }
 
-    inpPrompt := prompt.NewInput(X,
+    ctx.SplitPrompt = prompt.NewInput(X,
       prompt.DefaultInputTheme, prompt.DefaultInputConfig)
 
     canc := func (inp *prompt.Input) {
       log.Println("canceled")
+      ctx.SplitPrompt = nil
     }
 
     resp := func (inp *prompt.Input, text string) {
@@ -127,10 +135,11 @@ func ConfigRoot(X *xgbutil.XUtil) error {
       go func() {
         cmd.Wait()
       }()
-      inpPrompt.Destroy()
+      ctx.SplitPrompt.Destroy()
+      ctx.SplitPrompt = nil
     }
     
-    inpPrompt.Show(xwindow.RootGeometry(X),
+    ctx.SplitPrompt.Show(xwindow.RootGeometry(X),
       "Command:", resp, canc)
 
     return attachF
@@ -165,7 +174,7 @@ func ConfigRoot(X *xgbutil.XUtil) error {
   }
 
   err = keybind.KeyReleaseFun(func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent){
-    inpPrompt := prompt.NewInput(X,
+    inPrompt := prompt.NewInput(X,
       prompt.DefaultInputTheme, prompt.DefaultInputConfig)
 
     canc := func (inp *prompt.Input) {
@@ -181,10 +190,10 @@ func ConfigRoot(X *xgbutil.XUtil) error {
       go func() {
         cmd.Wait()
       }()
-      inpPrompt.Destroy()
+      inPrompt.Destroy()
     }
     
-    inpPrompt.Show(xwindow.RootGeometry(X),
+    inPrompt.Show(xwindow.RootGeometry(X),
       "Command:", resp, canc)
   }).Connect(X, X.RootWin(), ctx.Config.RunCmd, true)
   if err != nil {
