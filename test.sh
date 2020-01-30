@@ -12,7 +12,6 @@ xinit ./xinitrc -- \
         :100 \
         -ac \
         -sw-cursor \
-        -screen 1500x700 \
+        -screen 1500x800 \
         +xinerama \
         +extension RANDR
-

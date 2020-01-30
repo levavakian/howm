@@ -48,7 +48,7 @@ func ConfigRoot(X *xgbutil.XUtil) error {
   if err != nil {
     log.Fatal(err)
   }
-  log.Println("found", len(ctx.ScreenInfos), "screen(s)", ctx.ScreenInfos)
+  log.Println("found", len(ctx.Screens), "screen(s)", ctx.Screens)
 
   // Background Images
   background.GenerateBackgrounds(ctx)
@@ -72,24 +72,28 @@ func ConfigRoot(X *xgbutil.XUtil) error {
   err = keybind.KeyPressFun(
 		func(X *xgbutil.XUtil, e xevent.KeyPressEvent) {
       xevent.Quit(X)
-    }).Connect(X, X.RootWin(), "Mod4-BackSpace", true)
+    }).Connect(X, X.RootWin(), ctx.Config.Shutdown, true)
   if err != nil {
     log.Println(err)
   }
 
-  err = keybind.KeyPressFun(
-		func(X *xgbutil.XUtil, e xevent.KeyPressEvent) {
-      cmd := exec.Command("x-terminal-emulator")
-      err := cmd.Start()
-      if err != nil {
-        log.Println(err)
-      }
-      go func() {
-        cmd.Wait()
-      }()
-    }).Connect(X, X.RootWin(), "Mod4-t", true)
-  if err != nil {
-    log.Println(err)
+  for k, v := range(ctx.Config.BuiltinCommands) {
+    log.Println(k, v)
+    ncmd := v  // force to not be a reference
+    err = keybind.KeyPressFun(
+      func(X *xgbutil.XUtil, e xevent.KeyPressEvent) {
+        cmd := exec.Command(ncmd)
+        err := cmd.Start()
+        if err != nil {
+          log.Println(err)
+        }
+        go func() {
+          cmd.Wait()
+        }()
+      }).Connect(X, X.RootWin(), k, true)
+    if err != nil {
+      log.Println(err)
+    }
   }
 
   splitF := func() *frame.Frame {
@@ -142,7 +146,7 @@ func ConfigRoot(X *xgbutil.XUtil) error {
       Target: fr,
       Type: frame.HORIZONTAL,
     }
-  }).Connect(X, X.RootWin(), "Mod4-e", true)
+  }).Connect(X, X.RootWin(), ctx.Config.SplitHorizontal, true)
   if err != nil {
     log.Println(err)
   }
@@ -156,7 +160,7 @@ func ConfigRoot(X *xgbutil.XUtil) error {
       Target: fr,
       Type: frame.VERTICAL,
     }
-  }).Connect(X, X.RootWin(), "Mod4-r", true)
+  }).Connect(X, X.RootWin(), ctx.Config.SplitVertical, true)
   if err != nil {
     log.Println(err)
   }
@@ -183,7 +187,7 @@ func ConfigRoot(X *xgbutil.XUtil) error {
     
     inpPrompt.Show(xwindow.RootGeometry(X),
       "Command:", resp, canc)
-  }).Connect(X, X.RootWin(), "Mod4-c", true)
+  }).Connect(X, X.RootWin(), ctx.Config.RunCmd, true)
   if err != nil {
     log.Println(err)
   }

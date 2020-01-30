@@ -20,10 +20,10 @@ func GenerateBackgrounds(ctx *frame.Context) error {
 		return err
 	}
 
-	for _, screen := range ctx.ScreenInfos {
-		rimg := imaging.Fill(img, int(screen.Width), int(screen.Height), imaging.Center, imaging.Lanczos)
+	for _, screen := range ctx.Screens {
+		rimg := imaging.Fill(img, int(screen.W), int(screen.H), imaging.Center, imaging.Lanczos)
 		ximg := xgraphics.NewConvert(ctx.X, rimg)
-		DisplayBackground(ximg, int(screen.XOrg), int(screen.YOrg))
+		DisplayBackground(ximg, int(screen.X), int(screen.Y))
 	}
 	return nil
 }

@@ -16,7 +16,7 @@ type Context struct {
 	Tracked map[xproto.Window]*Frame
 	Cursors map[int]xproto.Cursor
 	Config Config
-	ScreenInfos []xinerama.ScreenInfo
+	Screens []Rect
 }
 
 func NewContext(x *xgbutil.XUtil) (*Context, error) {
@@ -38,7 +38,14 @@ func NewContext(x *xgbutil.XUtil) (*Context, error) {
 		Tracked: make(map[xproto.Window]*Frame),
 		Cursors: make(map[int]xproto.Cursor),
 		Config: conf,
-		ScreenInfos: Xin,
+	}
+	for _, xi := range(Xin) {
+		c.Screens = append(c.Screens, Rect{
+			X: int(xi.XOrg),
+			Y: int(xi.YOrg),
+			W: int(xi.Width),
+			H: int(xi.Height),
+		})
 	}
 
 	for i := xcursor.XCursor; i < xcursor.XTerm; i++ {
@@ -63,6 +70,28 @@ func (ctx *Context) MinShape() Rect {
 		W: 5*ctx.Config.ElemSize,
 		H: 5*ctx.Config.ElemSize,
 	}
+}
+
+func (ctx *Context) DefaultShapeForScreen(screen Rect) Rect {
+	return Rect{
+		X: screen.X + int(ctx.Config.DefaultShapeRatio.X * float64(screen.W)),
+		Y: screen.Y + int(ctx.Config.DefaultShapeRatio.Y * float64(screen.H)),
+		W: int(ctx.Config.DefaultShapeRatio.W * float64(screen.W)),
+		H: int(ctx.Config.DefaultShapeRatio.H * float64(screen.H)),
+	}
+}
+
+func (ctx *Context) GetScreenForShape(shape Rect) (Rect, int) {
+	max_overlap := 0
+	screen := ctx.Screens[0]
+	for _, s := range(ctx.Screens) {
+		overlap := AreaOfIntersection(shape, s)
+		if overlap > max_overlap {
+			max_overlap = overlap
+			screen = s
+		}
+	}
+	return screen, max_overlap
 }
 
 func (ctx *Context) GetFocusedFrame() *Frame {
