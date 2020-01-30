@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=howm
+Comment=is where the heart is
+Exec=howm
+TryExec=howm
+Type=Application
+X-LightDM-DesktopName=howm
+DesktopNames=howm
+Keywords=tiling;floating;wm;windowmanager;window;manager;
