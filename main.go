@@ -25,7 +25,7 @@ func main() {
   }
   defer X.Conn().Close()
 
-  // Take ownership
+  // Configure root hooks
   if err := ConfigRoot(X); err != nil {
     log.Fatal(err)
   }

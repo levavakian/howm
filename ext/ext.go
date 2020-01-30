@@ -37,6 +37,13 @@ func MapChecked(w *xwindow.Window) error {
 	return xproto.MapWindowChecked(w.X.Conn(), w.Id).Check()
 }
 
+func UnmapChecked(w *xwindow.Window) error {
+	if w == nil {
+		return nil
+	}
+	return xproto.UnmapWindowChecked(w.X.Conn(), w.Id).Check()
+}
+
 func Focus(w *xwindow.Window) {
 	mode := byte(xproto.InputFocusNone)
 	err := xproto.SetInputFocusChecked(w.X.Conn(), mode, w.Id, 0).Check()

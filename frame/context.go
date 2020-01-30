@@ -2,7 +2,6 @@ package frame
 
 import (
 	"log"
-	"howm/ext"
 	"github.com/BurntSushi/xgb/xproto"
 	"github.com/BurntSushi/xgbutil"
 	"github.com/BurntSushi/xgbutil/xcursor"
@@ -17,6 +16,7 @@ type Context struct {
 	Cursors map[int]xproto.Cursor
 	Config Config
 	Screens []Rect
+	LastKnownFocused xproto.Window
 }
 
 func NewContext(x *xgbutil.XUtil) (*Context, error) {
@@ -95,9 +95,9 @@ func (ctx *Context) GetScreenForShape(shape Rect) (Rect, int) {
 }
 
 func (ctx *Context) GetFocusedFrame() *Frame {
+	// Try getting the input focus directly
 	focus, err := xproto.GetInputFocus(ctx.X.Conn()).Reply()
 	if err != nil {
-		log.Println(err)
 		return nil
 	}
 
@@ -106,13 +106,19 @@ func (ctx *Context) GetFocusedFrame() *Frame {
 		return found
 	}
 
+	// Try the parent as well
 	parent, err := xwindow.New(ctx.X, focus.Focus).Parent()
-	ext.Logerr(err)
 	if err == nil {
 		found, ok = ctx.Tracked[parent.Id]
 		if ok {
 			return found
 		}
+	}
+
+	// Try our last known focus
+	found, ok = ctx.Tracked[ctx.LastKnownFocused]
+	if ok {
+		return found
 	}
 
 	return nil

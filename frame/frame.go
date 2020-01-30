@@ -2,6 +2,7 @@ package frame
 
 import (
 	"log"
+	"container/list"
 	"howm/ext"
 	"github.com/BurntSushi/xgb/xproto"
 	"github.com/BurntSushi/xgbutil"
@@ -77,6 +78,43 @@ func (f *Frame) Find(fun func(*Frame)bool) *Frame {
 	return nil
 }
 
+func (f *Frame) FindNearest(fun func(*Frame)bool) *Frame {
+	visited := make(map[*Frame]bool)
+	nbrs := list.New()
+
+	pb := func(fpb *Frame) {
+		if v, _ := visited[fpb]; !v {
+			nbrs.PushBack(fpb)
+		}
+	}
+
+	pb(f)
+
+	for nbrs.Len() > 0 {
+		pop := nbrs.Front()
+		fr := pop.Value.(*Frame)
+		nbrs.Remove(pop)
+		visited[fr] = true
+
+		if fun(fr) {
+			return fr
+		}
+
+		if fr.ChildA != nil {
+			pb(fr.ChildA)
+		}
+
+		if fr.ChildB != nil {
+			pb(fr.ChildB)
+		}
+
+		if fr.Parent != nil {
+			pb(fr.Parent)
+		}
+	}
+	return nil
+}
+
 func (f *Frame) Root() *Frame {
 	z := f
 	for {
@@ -91,6 +129,10 @@ func (f *Frame) Root() *Frame {
 func (f *Frame) Map() {
 	f.Traverse(
 		func(ft *Frame){
+			if ft.Mapped {
+				return
+			}
+
 			if ft.Window != nil {
 				ft.Window.Map()
 			}
@@ -101,6 +143,27 @@ func (f *Frame) Map() {
 			ft.Mapped = true
 		},
 	)
+}
+
+func (f *Frame) UnmapSingle() {
+	if !f.Mapped {
+		return
+	}
+
+	if f.Window != nil {
+		f.Window.Unmap()
+	}
+	if f.Separator.Decoration.Window != nil {
+		f.Separator.Decoration.Window.Unmap()
+	}
+
+	f.Mapped = false
+}
+
+func (f *Frame) Unmap() {
+	f.Traverse(func(ft *Frame){
+		ft.UnmapSingle()
+	})
 }
 
 func (f *Frame) Close(ctx *Context) {
@@ -139,27 +202,6 @@ func (f *Frame) IsRoot() bool {
 	return f.Parent == nil
 }
 
-func (f *Frame) UnmapSingle() {
-	if !f.Mapped {
-		return
-	}
-
-	if f.Window != nil {
-		f.Window.Unmap()
-	}
-	if f.Separator.Decoration.Window != nil {
-		f.Separator.Decoration.Window.Unmap()
-	}
-
-	f.Mapped = false
-}
-
-func (f *Frame) Unmap() {
-	f.Traverse(func(ft *Frame){
-		ft.UnmapSingle()
-	})
-}
-
 func (f *Frame) Destroy(ctx *Context) {
 	f.UnmapSingle()
 	if f.Window != nil {
@@ -170,7 +212,7 @@ func (f *Frame) Destroy(ctx *Context) {
 		f.Separator.Decoration.Window.Destroy()
 	}
 
-	if f.IsRoot() && f.IsLeaf() {
+	if f.IsRoot() && f.IsLeaf() && f.Container != nil {
 		f.Container.Destroy(ctx)
 		return
 	}
@@ -194,9 +236,11 @@ func (f *Frame) Destroy(ctx *Context) {
 				oc.Parent.ChildB = oc
 			}
 		}
+		if par.IsRoot() {
+			oc.Container.Root = oc
+		}
 		par.UnmapSingle()
 		par.Destroy(ctx)
-
 		oc.MoveResize(ctx)
 	}
 }
@@ -219,6 +263,7 @@ func (f *Frame) Focus(ctx *Context) {
 	})
 	if leaf != nil {
 		ext.Focus(leaf.Window)
+		ctx.LastKnownFocused = leaf.Window.Id
 	}
 }
 
@@ -337,23 +382,26 @@ func (c *Container) Map() {
 }
 
 func (c *Container) UpdateFrameMappings() {
-	c.Root.Unmap()
+	if c.Root != c.ActiveRoot() {
+		c.Root.Unmap()
+	}
 	c.ActiveRoot().Map()
 }
 
 func (c *Container) MoveResize(ctx *Context, x, y, w, h int) {
-	c.Shape = Rect{
+	shape := Rect{
 		X: x,
 		Y: y,
 		W: w,
 		H: h,
 	}
-	c.ActiveRoot().MoveResize(ctx)
-	c.Decorations.MoveResize(ctx, c.Shape)
+	c.MoveResizeShape(ctx, shape)
 }
 
 func (c *Container) MoveResizeShape(ctx *Context, shape Rect) {
-	c.MoveResize(ctx, shape.X, shape.Y, shape.W, shape.H)
+	c.Shape = shape
+	c.ActiveRoot().MoveResize(ctx)
+	c.Decorations.MoveResize(ctx, c.Shape)
 }
 
 func AttachWindow(ctx *Context, ev xevent.MapRequestEvent) *Frame {
@@ -591,7 +639,7 @@ func AnchorShape(screen Rect, anchor int) Rect {
 }
 
 func (f *Frame) CalcShape(ctx *Context) Rect {
-	if f.IsRoot() || f.Container.Expanded == f {
+	if f == f.Container.ActiveRoot() {
 		return RootShape(ctx, f.Container)
 	}
 
@@ -693,17 +741,16 @@ func AddWindowHook(ctx *Context, window xproto.Window) error {
 	xevent.DestroyNotifyFun(
 		func(X *xgbutil.XUtil, ev xevent.DestroyNotifyEvent) {
 			f := ctx.Get(window)
+			if ctx.GetFocusedFrame() == f {
+				nf := f.FindNearest(func(fr *Frame)bool{
+					return fr != f && fr.Mapped && fr.IsLeaf()
+				})
+				if nf != nil {
+					nf.Focus(ctx)
+				}
+			}
 			f.Destroy(ctx)
 			delete(ctx.Tracked, window)
-		}).Connect(ctx.X, window)
-
-	xevent.UnmapNotifyFun(
-		func(X *xgbutil.XUtil, ev xevent.UnmapNotifyEvent) {
-			f := ctx.Get(window)
-			if !f.IsRoot() || !f.IsLeaf() {
-				return
-			}
-			f.Unmap()
 		}).Connect(ctx.X, window)
 	
 	err := mousebind.ButtonPressFun(
@@ -726,7 +773,7 @@ func AddWindowHook(ctx *Context, window xproto.Window) error {
 	err = keybind.KeyPressFun(
 		func(X *xgbutil.XUtil, e xevent.KeyPressEvent){
 			f := ctx.Get(window)
-			if f.Container.Expanded == f {
+			if f.Container.Expanded == f || f.IsRoot() {
 				f.Container.Expanded = nil
 			} else {
 				f.Container.Expanded = f
@@ -734,7 +781,7 @@ func AddWindowHook(ctx *Context, window xproto.Window) error {
 			f.Container.UpdateFrameMappings()
 			f.Focus(ctx)
 			f.Container.MoveResizeShape(ctx, f.Container.Shape)
-	  }).Connect(ctx.X, window, ctx.Config.ToggleExpandFrame, true)
+			}).Connect(ctx.X, window, ctx.Config.ToggleExpandFrame, true)
 	ext.Logerr(err)
 
 	err = keybind.KeyPressFun(

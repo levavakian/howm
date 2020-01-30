@@ -1,6 +1,9 @@
 package frame
 
 import (
+	"log"
+	"path"
+	"os/user"
 	"github.com/BurntSushi/xgbutil/xcursor"
 )
 
@@ -30,6 +33,15 @@ type Config struct {
 	InternalPadding int
 	BackgroundImagePath string
 	BuiltinCommands map[string]string
+}
+
+func HomeDir() string {
+	usr, err := user.Current()
+	if err != nil {
+		log.Println(err)
+		return ""
+	}
+    return usr.HomeDir
 }
 
 func DefaultConfig() Config {
@@ -62,7 +74,7 @@ func DefaultConfig() Config {
 		CloseColor: 0xff0000,
 		ResizeColor: 0x00ff00,
 		InternalPadding: 0,
-		BackgroundImagePath: "/home/lev/.config/howm/bg.jpg",
+		BackgroundImagePath: path.Join(HomeDir(), ".config/howm/bg.jpg"),
 		BuiltinCommands: map[string]string{
 			"Mod4-t": "x-terminal-emulator",
 			"Mod4-w": "google-chrome",
