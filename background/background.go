@@ -2,9 +2,13 @@ package background
 
 import (
 	"log"
+	"bytes"
+	"image"
 	"howm/frame"
+	"howm/ext"
 	"github.com/disintegration/imaging"
 	"github.com/BurntSushi/xgbutil/xwindow"
+	"github.com/BurntSushi/xgbutil/gopher"
 	"github.com/BurntSushi/xgbutil/xgraphics"
 	"github.com/BurntSushi/xgbutil/xevent"
 	"github.com/BurntSushi/xgbutil/keybind"
@@ -14,9 +18,18 @@ import (
 )
 
 func GenerateBackgrounds(ctx *frame.Context) error {
-	img, err := imaging.Open(ctx.Config.BackgroundImagePath)
+	img, err := func()(image.Image, error){
+		img, err := imaging.Open(ctx.Config.BackgroundImagePath)
+		ext.Logerr(err)
+		if err == nil {
+			return img, err
+		}
+
+		dimg, _, err := image.Decode(bytes.NewBuffer(gopher.GopherPng()))
+		ext.Logerr(err)
+		return dimg, err
+	}()
 	if err != nil {
-		log.Println(err)
 		return err
 	}
 

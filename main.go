@@ -78,7 +78,6 @@ func ConfigRoot(X *xgbutil.XUtil) error {
   }
 
   for k, v := range(ctx.Config.BuiltinCommands) {
-    log.Println(k, v)
     ncmd := v  // force to not be a reference
     err = keybind.KeyPressFun(
       func(X *xgbutil.XUtil, e xevent.KeyPressEvent) {
