@@ -358,6 +358,7 @@ func (c *Container) ActiveRoot() *Frame {
 func (c *Container) RaiseFindFocus(ctx *Context){
 	c.Raise(ctx)
 	if ff := ctx.GetFocusedFrame(); ff != nil && ff.Container == c {
+		ff.Focus(ctx)
 		return
 	}
 

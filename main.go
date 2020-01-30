@@ -106,7 +106,7 @@ func ConfigRoot(X *xgbutil.XUtil) error {
     if attachF == nil {
       msgPrompt := prompt.NewMessage(X,
         prompt.DefaultMessageTheme, prompt.DefaultMessageConfig)
-      timeout := 2 * time.Second
+      timeout := 1 * time.Second
       msgPrompt.Show(xwindow.RootGeometry(X), "Cannot split when not focused on a window", timeout, func(msg *prompt.Message){})
       return nil
     }

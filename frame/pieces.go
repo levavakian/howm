@@ -23,6 +23,7 @@ func (c *Container) AddGrabHook(ctx *Context) {
 			c.MoveResize(ctx, c.DragContext.Container.X + dX, c.DragContext.Container.Y + dY, c.Shape.W, c.Shape.H)
 		},
 		func(X *xgbutil.XUtil, rX, rY, eX, eY int) {
+			c.RaiseFindFocus(ctx)
 		},
 	)
 }
@@ -49,6 +50,7 @@ func (c *Container) AddTopHook(ctx *Context) {
 			c.MoveResize(ctx, c.DragContext.Container.X, y, c.DragContext.Container.W, h)
 		},
 		func(X *xgbutil.XUtil, rX, rY, eX, eY int) {
+			c.RaiseFindFocus(ctx)
 		},
 	)
 }
@@ -66,6 +68,7 @@ func (c *Container) AddBottomHook(ctx *Context) {
 			c.MoveResize(ctx, c.DragContext.Container.X, c.DragContext.Container.Y, c.DragContext.Container.W, h)
 		},
 		func(X *xgbutil.XUtil, rX, rY, eX, eY int) {
+			c.RaiseFindFocus(ctx)
 		},
 	)
 }
@@ -83,6 +86,7 @@ func (c *Container) AddRightHook(ctx *Context) {
 			c.MoveResize(ctx, c.DragContext.Container.X, c.DragContext.Container.Y, w, c.DragContext.Container.H)
 		},
 		func(X *xgbutil.XUtil, rX, rY, eX, eY int) {
+			c.RaiseFindFocus(ctx)
 		},
 	)
 }
@@ -102,6 +106,7 @@ func (c *Container) AddLeftHook(ctx *Context) {
 			c.MoveResize(ctx, x, c.DragContext.Container.Y, w, c.DragContext.Container.H)
 		},
 		func(X *xgbutil.XUtil, rX, rY, eX, eY int) {
+			c.RaiseFindFocus(ctx)
 		},
 	)
 }
@@ -120,6 +125,7 @@ func (c *Container) AddBottomRightHook(ctx *Context) {
 			c.MoveResize(ctx, c.DragContext.Container.X, c.DragContext.Container.Y, w, h)
 		},
 		func(X *xgbutil.XUtil, rX, rY, eX, eY int) {
+			c.RaiseFindFocus(ctx)
 		},
 	)
 }
@@ -140,6 +146,7 @@ func (c *Container) AddBottomLeftHook(ctx *Context) {
 			c.MoveResize(ctx, x, c.DragContext.Container.Y, w, h)
 		},
 		func(X *xgbutil.XUtil, rX, rY, eX, eY int) {
+			c.RaiseFindFocus(ctx)
 		},
 	)
 }
@@ -160,6 +167,7 @@ func (c *Container) AddTopRightHook(ctx *Context) {
 			c.MoveResize(ctx, c.DragContext.Container.X, y, w, h)
 		},
 		func(X *xgbutil.XUtil, rX, rY, eX, eY int) {
+			c.RaiseFindFocus(ctx)
 		},
 	)
 }
@@ -182,6 +190,7 @@ func (c *Container) AddTopLeftHook(ctx *Context) {
 			c.MoveResize(ctx, x, y, w, h)
 		},
 		func(X *xgbutil.XUtil, rX, rY, eX, eY int) {
+			c.RaiseFindFocus(ctx)
 		},
 	)
 }
