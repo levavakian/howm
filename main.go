@@ -69,8 +69,8 @@ func ConfigRoot(X *xgbutil.XUtil) error {
   keybind.Initialize(X)
 	mousebind.Initialize(X)
 
-  err = keybind.KeyPressFun(
-		func(X *xgbutil.XUtil, e xevent.KeyPressEvent) {
+  err = keybind.KeyReleaseFun(
+		func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent) {
       xevent.Quit(X)
     }).Connect(X, X.RootWin(), ctx.Config.Shutdown, true)
   if err != nil {
@@ -79,8 +79,8 @@ func ConfigRoot(X *xgbutil.XUtil) error {
 
   for k, v := range(ctx.Config.BuiltinCommands) {
     ncmd := v  // force to not be a reference
-    err = keybind.KeyPressFun(
-      func(X *xgbutil.XUtil, e xevent.KeyPressEvent) {
+    err = keybind.KeyReleaseFun(
+      func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent) {
         cmd := exec.Command(ncmd)
         err := cmd.Start()
         if err != nil {
@@ -136,7 +136,7 @@ func ConfigRoot(X *xgbutil.XUtil) error {
     return attachF
   }
 
-  err = keybind.KeyPressFun(func(X *xgbutil.XUtil, e xevent.KeyPressEvent){
+  err = keybind.KeyReleaseFun(func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent){
     fr := splitF()
     if fr == nil {
       return
@@ -150,7 +150,7 @@ func ConfigRoot(X *xgbutil.XUtil) error {
     log.Println(err)
   }
 
-  err = keybind.KeyPressFun(func(X *xgbutil.XUtil, e xevent.KeyPressEvent){
+  err = keybind.KeyReleaseFun(func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent){
     fr := splitF()
     if fr == nil {
       return
@@ -164,7 +164,7 @@ func ConfigRoot(X *xgbutil.XUtil) error {
     log.Println(err)
   }
 
-  err = keybind.KeyPressFun(func(X *xgbutil.XUtil, e xevent.KeyPressEvent){
+  err = keybind.KeyReleaseFun(func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent){
     inpPrompt := prompt.NewInput(X,
       prompt.DefaultInputTheme, prompt.DefaultInputConfig)
 

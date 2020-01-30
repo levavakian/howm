@@ -739,6 +739,11 @@ func AddWindowHook(ctx *Context, window xproto.Window) error {
 			}
 	}).Connect(ctx.X, window)
 
+	xevent.ResizeRequestFun(
+		func(X *xgbutil.XUtil, ev xevent.ResizeRequestEvent) {
+			log.Println(ev)
+	}).Connect(ctx.X, window)
+
 	xevent.DestroyNotifyFun(
 		func(X *xgbutil.XUtil, ev xevent.DestroyNotifyEvent) {
 			f := ctx.Get(window)
@@ -762,8 +767,8 @@ func AddWindowHook(ctx *Context, window xproto.Window) error {
 		}).Connect(ctx.X, window, ctx.Config.ButtonClick, true, true)
 	ext.Logerr(err)
 
-	err = keybind.KeyPressFun(
-		func(X *xgbutil.XUtil, e xevent.KeyPressEvent){
+	err = keybind.KeyReleaseFun(
+		func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent){
 			f := ctx.Get(window)
 			if f.IsLeaf() {
 				f.Close(ctx)
@@ -771,8 +776,8 @@ func AddWindowHook(ctx *Context, window xproto.Window) error {
 	  }).Connect(ctx.X, window, ctx.Config.CloseFrame, true)
 	ext.Logerr(err)
 
-	err = keybind.KeyPressFun(
-		func(X *xgbutil.XUtil, e xevent.KeyPressEvent){
+	err = keybind.KeyReleaseFun(
+		func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent){
 			f := ctx.Get(window)
 			if f.Container.Expanded == f || f.IsRoot() {
 				f.Container.Expanded = nil
@@ -785,8 +790,8 @@ func AddWindowHook(ctx *Context, window xproto.Window) error {
 			}).Connect(ctx.X, window, ctx.Config.ToggleExpandFrame, true)
 	ext.Logerr(err)
 
-	err = keybind.KeyPressFun(
-		func(X *xgbutil.XUtil, e xevent.KeyPressEvent){
+	err = keybind.KeyReleaseFun(
+		func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent){
 			f := ctx.Get(window)
 			if f.Container.Decorations.Hidden {
 				f.Container.Decorations.Hidden = false
@@ -799,16 +804,16 @@ func AddWindowHook(ctx *Context, window xproto.Window) error {
 	  }).Connect(ctx.X, window, ctx.Config.ToggleExternalDecorator, true)
 	ext.Logerr(err)
 
-	err = keybind.KeyPressFun(
-		func(X *xgbutil.XUtil, e xevent.KeyPressEvent){
+	err = keybind.KeyReleaseFun(
+		func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent){
 			f := ctx.Get(window)
 			screen, _ := ctx.GetScreenForShape(f.Container.Shape)
 			f.Container.MoveResizeShape(ctx, ctx.DefaultShapeForScreen(screen))
 	  }).Connect(ctx.X, window, ctx.Config.ResetSize, true)
 	ext.Logerr(err)
 
-	err = keybind.KeyPressFun(
-		func(X *xgbutil.XUtil, e xevent.KeyPressEvent){
+	err = keybind.KeyReleaseFun(
+		func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent){
 			f := ctx.Get(window)
 			screen, _ := ctx.GetScreenForShape(f.Container.Shape)
 			if f.Container.Shape == AnchorShape(screen, FULL) {
@@ -828,8 +833,8 @@ func AddWindowHook(ctx *Context, window xproto.Window) error {
 	  }).Connect(ctx.X, window, ctx.Config.WindowUp, true)
 	ext.Logerr(err)
 
-	err = keybind.KeyPressFun(
-		func(X *xgbutil.XUtil, e xevent.KeyPressEvent){
+	err = keybind.KeyReleaseFun(
+		func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent){
 			f := ctx.Get(window)
 			screen, _ := ctx.GetScreenForShape(f.Container.Shape)
 			if f.Container.Shape == AnchorShape(screen, FULL) || f.Container.Shape == AnchorShape(screen, TOP) {
@@ -846,8 +851,8 @@ func AddWindowHook(ctx *Context, window xproto.Window) error {
 	  }).Connect(ctx.X, window, ctx.Config.WindowDown, true)
 	ext.Logerr(err)
 
-	err = keybind.KeyPressFun(
-		func(X *xgbutil.XUtil, e xevent.KeyPressEvent){
+	err = keybind.KeyReleaseFun(
+		func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent){
 			f := ctx.Get(window)
 			screen, _ := ctx.GetScreenForShape(f.Container.Shape)
 			if f.Container.Shape == AnchorShape(screen, RIGHT) {
@@ -864,8 +869,8 @@ func AddWindowHook(ctx *Context, window xproto.Window) error {
 	  }).Connect(ctx.X, window, ctx.Config.WindowLeft, true)
 	ext.Logerr(err)
 
-	err = keybind.KeyPressFun(
-		func(X *xgbutil.XUtil, e xevent.KeyPressEvent){
+	err = keybind.KeyReleaseFun(
+		func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent){
 			f := ctx.Get(window)
 			screen, _ := ctx.GetScreenForShape(f.Container.Shape)
 			if f.Container.Shape == AnchorShape(screen, LEFT) {

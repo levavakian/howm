@@ -2,6 +2,7 @@ package frame
 
 import (
 	"log"
+	"github.com/BurntSushi/wingo/prompt"
 	"github.com/BurntSushi/xgb/xproto"
 	"github.com/BurntSushi/xgbutil"
 	"github.com/BurntSushi/xgbutil/xcursor"
@@ -17,6 +18,7 @@ type Context struct {
 	Config Config
 	Screens []Rect
 	LastKnownFocused xproto.Window
+	SplitPrompt *prompt.Input
 }
 
 func NewContext(x *xgbutil.XUtil) (*Context, error) {
