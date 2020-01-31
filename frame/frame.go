@@ -588,6 +588,7 @@ func NewWindow(ctx *Context, ev xevent.MapRequestEvent) *Frame {
 	// Yay
 	c.Map()
 	ctx.Tracked[window] = c.Root
+	ctx.Containers[c] = struct{}{}
 	c.Root.Focus(ctx)
 	return c.Root
 }

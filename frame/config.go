@@ -3,6 +3,7 @@ package frame
 import (
 	"log"
 	"path"
+	"time"
 	"os/user"
 	"github.com/BurntSushi/xgbutil/xcursor"
 )
@@ -33,6 +34,7 @@ type Config struct {
 	InternalPadding int
 	BackgroundImagePath string
 	BuiltinCommands map[string]string
+	ScreenPoll time.Duration
 }
 
 func HomeDir() string {
@@ -75,6 +77,7 @@ func DefaultConfig() Config {
 		ResizeColor: 0x00ff00,
 		InternalPadding: 0,
 		BackgroundImagePath: path.Join(HomeDir(), ".config/howm/bg.jpg"),
+		ScreenPoll: time.Second * 2,
 		BuiltinCommands: map[string]string{
 			"Mod4-t": "x-terminal-emulator",
 			"Mod4-w": "google-chrome",

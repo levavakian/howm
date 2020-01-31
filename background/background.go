@@ -9,6 +9,7 @@ import (
 	"github.com/disintegration/imaging"
 	"github.com/BurntSushi/xgbutil/xwindow"
 	"github.com/BurntSushi/xgbutil/gopher"
+	"github.com/BurntSushi/xgb/xproto"
 	"github.com/BurntSushi/xgbutil/xgraphics"
 	"github.com/BurntSushi/xgbutil/xevent"
 	"github.com/BurntSushi/xgbutil/keybind"
@@ -18,6 +19,12 @@ import (
 )
 
 func GenerateBackgrounds(ctx *frame.Context) error {
+	for _, v := range(ctx.Backgrounds) {
+		v.Unmap()
+		v.Destroy()
+	}
+	ctx.Backgrounds = make(map[xproto.Window]*xwindow.Window)
+
 	img, err := func()(image.Image, error){
 		img, err := imaging.Open(ctx.Config.BackgroundImagePath)
 		ext.Logerr(err)
@@ -36,7 +43,10 @@ func GenerateBackgrounds(ctx *frame.Context) error {
 	for _, screen := range ctx.Screens {
 		rimg := imaging.Fill(img, int(screen.W), int(screen.H), imaging.Center, imaging.Lanczos)
 		ximg := xgraphics.NewConvert(ctx.X, rimg)
-		DisplayBackground(ximg, int(screen.X), int(screen.Y))
+		win := DisplayBackground(ximg, int(screen.X), int(screen.Y))
+		if win != nil {
+			ctx.Backgrounds[win.Id] = win
+		}
 	}
 	return nil
 }
@@ -102,6 +112,7 @@ func DisplayBackground(im *xgraphics.Image, x, y int) *xwindow.Window {
 	// Now we can map, since we've set all our properties.
 	// (The initial map is when the window manager starts managing.)
 	win.Map()
+	win.Stack(xproto.StackModeBelow)
 
 	return win
 }

@@ -2,19 +2,22 @@ package frame
 
 import (
 	"log"
+	"howm/ext"
 	"github.com/BurntSushi/wingo/prompt"
 	"github.com/BurntSushi/xgb/xproto"
+	"github.com/BurntSushi/xgb/xinerama"
 	"github.com/BurntSushi/xgbutil"
 	"github.com/BurntSushi/xgbutil/xcursor"
 	"github.com/BurntSushi/xgbutil/xwindow"
-	"github.com/BurntSushi/xgb/xinerama"
 )
 
 type Context struct {
 	X *xgbutil.XUtil
 	AttachPoint *AttachTarget
 	Tracked map[xproto.Window]*Frame
+	Containers map[*Container]struct{}
 	Cursors map[int]xproto.Cursor
+	Backgrounds map[xproto.Window]*xwindow.Window
 	Config Config
 	Screens []Rect
 	LastKnownFocused xproto.Window
@@ -24,30 +27,17 @@ type Context struct {
 func NewContext(x *xgbutil.XUtil) (*Context, error) {
 	conf := DefaultConfig()
 
-	var Xin []xinerama.ScreenInfo
-	if err := xinerama.Init(x.Conn()); err != nil {
-		log.Fatal(err)
-	}
-	if xin, err := xinerama.QueryScreens(x.Conn()).Reply(); err != nil {
-		log.Fatal(err)
-	} else {
-		Xin = xin.ScreenInfo
-	}
-
 	var err error
 	c := &Context{
 		X: x,
 		Tracked: make(map[xproto.Window]*Frame),
 		Cursors: make(map[int]xproto.Cursor),
+		Containers: make(map[*Container]struct{}),
 		Config: conf,
 	}
-	for _, xi := range(Xin) {
-		c.Screens = append(c.Screens, Rect{
-			X: int(xi.XOrg),
-			Y: int(xi.YOrg),
-			W: int(xi.Width),
-			H: int(xi.Height),
-		})
+	_, c.Screens, err = c.DetectScreensChange()
+	if err != nil {
+		log.Fatal(err)
 	}
 
 	for i := xcursor.XCursor; i < xcursor.XTerm; i++ {
@@ -58,6 +48,54 @@ func NewContext(x *xgbutil.XUtil) (*Context, error) {
 		c.Cursors[i] = curs
 	}
 	return c, err
+}
+
+func (ctx *Context) DetectScreensChange() (bool, []Rect, error) {
+	var Xin []xinerama.ScreenInfo
+	if xin, err := xinerama.QueryScreens(ctx.X.Conn()).Reply(); err != nil {
+		return false, nil, err
+	} else {
+		Xin = xin.ScreenInfo
+	}
+
+	screens := make([]Rect, 0, len(Xin))
+	for _, xi := range(Xin) {
+		screens = append(screens, Rect{
+			X: int(xi.XOrg),
+			Y: int(xi.YOrg),
+			W: int(xi.Width),
+			H: int(xi.Height),
+		})
+	}
+
+	if len(screens) != len(ctx.Screens) {
+		return true, screens, nil
+	}
+
+	for i := 0; i < len(screens); i++ {
+		if screens[i] != ctx.Screens[i] {
+			return true, screens, nil
+		}
+	}
+	return false, ctx.Screens, nil
+}
+
+func (ctx *Context) UpdateScreens() {
+	changed, screens, err := ctx.DetectScreensChange()
+	ext.Logerr(err)
+	if err != nil || !changed {
+		return
+	}
+
+    ctx.Screens = screens
+    log.Println("found", len(ctx.Screens), "screen(s)", ctx.Screens)
+
+    for c, _ := range(ctx.Containers) {
+	  topShape := TopShape(ctx, c.Shape)
+      if screen, overlap := ctx.GetScreenForShape(topShape); topShape.Area() > overlap {
+        c.MoveResizeShape(ctx, ctx.DefaultShapeForScreen(screen))
+      }
+	}
 }
 
 func (c *Context) Get(w xproto.Window) *Frame {

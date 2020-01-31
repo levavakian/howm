@@ -18,6 +18,10 @@ type Rectf struct {
 	H float64
 }
 
+func (r *Rect) Area() int {
+	return r.W*r.H
+}
+
 func AreaOfIntersection(shapeA, shapeB Rect) int {
 	xminmax := ext.IMin(shapeA.X + shapeA.W, shapeB.X + shapeB.W)
 	xmaxmin := ext.IMax(shapeA.X, shapeB.X)
