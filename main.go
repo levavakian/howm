@@ -6,7 +6,6 @@ import (
   "time"
   "howm/frame"
   "howm/ext"
-  "howm/background"
   "howm/sideloop"
   "github.com/BurntSushi/xgbutil"
   "github.com/BurntSushi/xgbutil/xevent"
@@ -14,6 +13,7 @@ import (
   "github.com/BurntSushi/xgbutil/mousebind"
   "github.com/BurntSushi/xgbutil/xwindow"
   "github.com/BurntSushi/xgb/xproto"
+  "github.com/BurntSushi/xgb/randr"
   "github.com/BurntSushi/wingo/prompt"
 )
 
@@ -22,14 +22,14 @@ func main() {
 
   X, err := xgbutil.NewConn()
   if err != nil {
-	log.Fatal(err)
+	  log.Fatal(err)
   }
   defer X.Conn().Close()
 
   inj := sideloop.NewInjector()
 
   // Configure root hooks
-  if err := ConfigRoot(X); err != nil {
+  if err := ConfigRoot(X, inj); err != nil {
     log.Fatal(err)
   }
 
@@ -42,14 +42,20 @@ func main() {
 	case <-inj.WorkRequest:
 		<-inj.WorkNotify
 	case <-pingQuit:
-		fmt.Printf("xevent loop has quit")
+		log.Println("xevent loop has quit")
 		return
 	}
   }
 }
 
-func ConfigRoot(X *xgbutil.XUtil) error {
+func ConfigRoot(X *xgbutil.XUtil, inj *sideloop.Injector) error {
   var err error
+
+  // Randr init
+  err = randr.Init(X.Conn())
+  if err != nil {
+    log.Fatal(err)
+  }
 
   // Set x cursor
   err = exec.Command("xsetroot", "-cursor_name", "arrow").Run()
@@ -64,8 +70,9 @@ func ConfigRoot(X *xgbutil.XUtil) error {
   }
   log.Println("found", len(ctx.Screens), "screen(s)", ctx.Screens)
 
-  // Background Images
-  background.GenerateBackgrounds(ctx)
+  // Start monitor for screens
+  MonitorScreens(ctx, inj)
+
 
   evMasks := xproto.EventMaskPropertyChange |
 		xproto.EventMaskFocusChange |

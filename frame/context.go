@@ -67,6 +67,7 @@ func (ctx *Context) DetectScreensChange() (bool, []Rect, error) {
 			H: int(xi.Height),
 		})
 	}
+    log.Println("found", len(screens), "screen(s)", screens)
 
 	if len(screens) != len(ctx.Screens) {
 		return true, screens, nil
@@ -87,9 +88,9 @@ func (ctx *Context) UpdateScreens() {
 		return
 	}
 
-    ctx.Screens = screens
-    log.Println("found", len(ctx.Screens), "screen(s)", ctx.Screens)
+  	GenerateBackgrounds(ctx)
 
+    ctx.Screens = screens
     for c, _ := range(ctx.Containers) {
 	  topShape := TopShape(ctx, c.Shape)
       if screen, overlap := ctx.GetScreenForShape(topShape); topShape.Area() > overlap {
