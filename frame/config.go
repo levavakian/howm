@@ -56,7 +56,7 @@ func DefaultConfig() Config {
 		RunCmd: "Mod4-c",
 		Shutdown: "Mod4-BackSpace",
 		CloseFrame: "Mod4-d",
-		ToggleExpandFrame: "Mod4-f",
+		ToggleExpandFrame: "Mod4-x",
 		ToggleExternalDecorator: "Mod4-h",
 		WindowUp: "Mod4-up",
 		WindowDown: "Mod4-down",

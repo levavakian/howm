@@ -7,31 +7,45 @@ import (
   "howm/frame"
   "howm/ext"
   "howm/background"
-	"github.com/BurntSushi/xgbutil"
-	"github.com/BurntSushi/xgbutil/xevent"
-	"github.com/BurntSushi/xgbutil/keybind"
-	"github.com/BurntSushi/xgbutil/mousebind"
-	"github.com/BurntSushi/xgbutil/xwindow"
-	"github.com/BurntSushi/xgb/xproto"
+  "howm/sideloop"
+  "github.com/BurntSushi/xgbutil"
+  "github.com/BurntSushi/xgbutil/xevent"
+  "github.com/BurntSushi/xgbutil/keybind"
+  "github.com/BurntSushi/xgbutil/mousebind"
+  "github.com/BurntSushi/xgbutil/xwindow"
+  "github.com/BurntSushi/xgb/xproto"
   "github.com/BurntSushi/wingo/prompt"
 )
 
 func main() {
   log.SetFlags(log.LstdFlags | log.Lshortfile)
 
-	X, err := xgbutil.NewConn()
-	if err != nil {
-		log.Fatal(err)
+  X, err := xgbutil.NewConn()
+  if err != nil {
+	log.Fatal(err)
   }
   defer X.Conn().Close()
+
+  inj := sideloop.NewInjector()
 
   // Configure root hooks
   if err := ConfigRoot(X); err != nil {
     log.Fatal(err)
   }
 
-  xevent.Main(X)
-  log.Println("Exited")
+  pingBefore, pingAfter, pingQuit := xevent.MainPing(X)
+  for {
+	select {
+	case <-pingBefore:
+		// Wait for the event to finish processing.
+		<-pingAfter
+	case <-inj.WorkRequest:
+		<-inj.WorkNotify
+	case <-pingQuit:
+		fmt.Printf("xevent loop has quit")
+		return
+	}
+  }
 }
 
 func ConfigRoot(X *xgbutil.XUtil) error {
@@ -68,10 +82,6 @@ func ConfigRoot(X *xgbutil.XUtil) error {
 
   keybind.Initialize(X)
   mousebind.Initialize(X)
-
-  xevent.ConfigureNotifyFun(func(X *xgbutil.XUtil, ev xevent.ConfigureNotifyEvent){
-    log.Println(ev)
-  }).Connect(X, X.RootWin())
 
   err = keybind.KeyReleaseFun(
 		func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent) {
