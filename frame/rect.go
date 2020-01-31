@@ -2,6 +2,7 @@ package frame
 
 import (
 	"howm/ext"
+	"github.com/BurntSushi/xgbutil/xrect"
 )
 
 type Rect struct {
@@ -36,4 +37,8 @@ func AreaOfIntersection(shapeA, shapeB Rect) int {
 	} else {
 		return 0
 	}
+}
+
+func (r *Rect) ToXRect() *xrect.XRect {
+	return xrect.New(r.X, r.Y, r.W, r.H)
 }

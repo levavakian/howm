@@ -21,6 +21,7 @@ type Context struct {
 	Config Config
 	Screens []Rect
 	LastKnownFocused xproto.Window
+	LastKnownFocusedScreen int
 	SplitPrompt *prompt.Input
 }
 
@@ -35,7 +36,7 @@ func NewContext(x *xgbutil.XUtil) (*Context, error) {
 		Containers: make(map[*Container]struct{}),
 		Config: conf,
 	}
-	_, c.Screens, err = c.DetectScreensChange()
+	c.UpdateScreens()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -67,7 +68,6 @@ func (ctx *Context) DetectScreensChange() (bool, []Rect, error) {
 			H: int(xi.Height),
 		})
 	}
-    log.Println("found", len(screens), "screen(s)", screens)
 
 	if len(screens) != len(ctx.Screens) {
 		return true, screens, nil
@@ -87,13 +87,13 @@ func (ctx *Context) UpdateScreens() {
 	if err != nil || !changed {
 		return
 	}
-
-  	GenerateBackgrounds(ctx)
+    log.Println("found", len(screens), "screen(s)", screens)
 
     ctx.Screens = screens
+  	GenerateBackgrounds(ctx)
     for c, _ := range(ctx.Containers) {
 	  topShape := TopShape(ctx, c.Shape)
-      if screen, overlap := ctx.GetScreenForShape(topShape); topShape.Area() > overlap {
+      if screen, overlap, _ := ctx.GetScreenForShape(topShape); topShape.Area() > overlap {
         c.MoveResizeShape(ctx, ctx.DefaultShapeForScreen(screen))
       }
 	}
@@ -122,17 +122,26 @@ func (ctx *Context) DefaultShapeForScreen(screen Rect) Rect {
 	}
 }
 
-func (ctx *Context) GetScreenForShape(shape Rect) (Rect, int) {
+func (ctx *Context) GetScreenForShape(shape Rect) (Rect, int, int) {
 	max_overlap := 0
+	max_i := 0
 	screen := ctx.Screens[0]
-	for _, s := range(ctx.Screens) {
+	for i, s := range(ctx.Screens) {
 		overlap := AreaOfIntersection(shape, s)
 		if overlap > max_overlap {
 			max_overlap = overlap
+			max_i = i
 			screen = s
 		}
 	}
-	return screen, max_overlap
+	return screen, max_overlap, max_i
+}
+
+func (ctx *Context) LastFocusedScreen() Rect {
+	if len(ctx.Screens) <= ctx.LastKnownFocusedScreen {
+		ctx.LastKnownFocusedScreen = 0
+	}
+	return ctx.Screens[ctx.LastKnownFocusedScreen]
 }
 
 func (ctx *Context) GetFocusedFrame() *Frame {

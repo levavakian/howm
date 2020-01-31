@@ -26,11 +26,10 @@ import (
       }
 
       for {
-        ev, err := XR.Conn().WaitForEvent()
+        _, err := XR.Conn().WaitForEvent()
         if err != nil {
           log.Println(err)
         }
-        log.Println(ev)
         exec.Command("xrandr", "--auto").Run()
         inj.Do(func(){
           ctx.UpdateScreens()

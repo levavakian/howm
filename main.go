@@ -19,6 +19,9 @@ import (
 
 func main() {
   log.SetFlags(log.LstdFlags | log.Lshortfile)
+  log.Println("HOme Window Manager")
+  log.Println("Hybrid Floating and Tiling Window Manager")
+  log.Println("Carbonated for your pleasure")
 
   X, err := xgbutil.NewConn()
   if err != nil {
@@ -51,28 +54,26 @@ func main() {
 func ConfigRoot(X *xgbutil.XUtil, inj *sideloop.Injector) error {
   var err error
 
-  // Randr init
+  // Init
   err = randr.Init(X.Conn())
+  if err != nil {
+    log.Fatal(err)
+  }
+  keybind.Initialize(X)
+  mousebind.Initialize(X)
+
+  // Create context
+  exec.Command("xrandr", "--auto").Run()
+  ctx, err := frame.NewContext(X)
   if err != nil {
     log.Fatal(err)
   }
 
   // Set x cursor
-  err = exec.Command("xsetroot", "-cursor_name", "arrow").Run()
+  err = exec.Command(ctx.Config.Shell, "-c", "xsetroot -cursor_name arrow").Run()
   if err != nil {
     log.Println(err)
   }
-
-  // Create context
-  ctx, err := frame.NewContext(X)
-  if err != nil {
-    log.Fatal(err)
-  }
-  log.Println("found", len(ctx.Screens), "screen(s)", ctx.Screens)
-
-  // Start monitor for screens
-  MonitorScreens(ctx, inj)
-
 
   evMasks := xproto.EventMaskPropertyChange |
 		xproto.EventMaskFocusChange |
@@ -87,8 +88,14 @@ func ConfigRoot(X *xgbutil.XUtil, inj *sideloop.Injector) error {
     log.Println(err)
   }
 
-  keybind.Initialize(X)
-  mousebind.Initialize(X)
+  // Start monitor for screens
+  MonitorScreens(ctx, inj)
+
+  // Add volume hooks
+  err = RegisterVolumeHooks(ctx)
+  if err != nil {
+    log.Fatal(err)
+  }
 
   err = keybind.KeyReleaseFun(
 		func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent) {
@@ -131,7 +138,7 @@ func ConfigRoot(X *xgbutil.XUtil, inj *sideloop.Injector) error {
       msgPrompt := prompt.NewMessage(X,
         prompt.DefaultMessageTheme, prompt.DefaultMessageConfig)
       timeout := 1 * time.Second
-      msgPrompt.Show(xwindow.RootGeometry(X), "Cannot split when not focused on a window", timeout, func(msg *prompt.Message){})
+      msgPrompt.Show(ctx.Screens[0].ToXRect(), "Cannot split when not focused on a window", timeout, func(msg *prompt.Message){})
       return nil
     }
 
@@ -156,7 +163,7 @@ func ConfigRoot(X *xgbutil.XUtil, inj *sideloop.Injector) error {
       ctx.SplitPrompt = nil
     }
     
-    ctx.SplitPrompt.Show(xwindow.RootGeometry(X),
+    ctx.SplitPrompt.Show(ctx.Screens[0].ToXRect(),
       "Command:", resp, canc)
 
     return attachF
@@ -210,7 +217,7 @@ func ConfigRoot(X *xgbutil.XUtil, inj *sideloop.Injector) error {
       inPrompt.Destroy()
     }
     
-    inPrompt.Show(xwindow.RootGeometry(X),
+    inPrompt.Show(ctx.Screens[0].ToXRect(),
       "Command:", resp, canc)
   }).Connect(X, X.RootWin(), ctx.Config.RunCmd, true)
   if err != nil {

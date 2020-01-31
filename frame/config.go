@@ -9,6 +9,7 @@ import (
 )
 
 type Config struct {
+	Shell string
 	ButtonClose string
 	ButtonDrag string
 	ButtonClick string
@@ -24,6 +25,9 @@ type Config struct {
 	WindowDown string
 	WindowLeft string
 	WindowRight string
+	VolumeUp string
+	VolumeDown string
+	VolumeMute string
 	ElemSize int
 	CloseCursor int
 	DefaultShapeRatio Rectf
@@ -48,6 +52,7 @@ func HomeDir() string {
 
 func DefaultConfig() Config {
 	return Config{
+		Shell: "/bin/bash",
 		ButtonClose: "1",
 		ButtonDrag: "1",
 		ButtonClick: "1",
@@ -63,6 +68,9 @@ func DefaultConfig() Config {
 		WindowLeft: "Mod4-left",
 		WindowRight: "Mod4-right",
 		ResetSize: "Mod4-Shift-up",
+		VolumeUp: "Mod4-F3",
+		VolumeDown: "Mod4-F2",
+		VolumeMute: "Mod4-F1",
 		ElemSize: 10,
 		CloseCursor: xcursor.Dot,
 		DefaultShapeRatio: Rectf {
@@ -81,6 +89,7 @@ func DefaultConfig() Config {
 		BuiltinCommands: map[string]string{
 			"Mod4-t": "x-terminal-emulator",
 			"Mod4-w": "google-chrome",
+			"Mod4-p": "XDG_CURRENT_DESKTOP=GNOME gnome-control-center",
 		},
 	}
 }

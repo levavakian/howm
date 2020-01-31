@@ -264,6 +264,7 @@ func (f *Frame) Focus(ctx *Context) {
 	if leaf != nil {
 		ext.Focus(leaf.Window)
 		ctx.LastKnownFocused = leaf.Window.Id
+		_, _, ctx.LastKnownFocusedScreen = ctx.GetScreenForShape(leaf.Container.Shape)
 	}
 }
 
@@ -468,7 +469,7 @@ func NewWindow(ctx *Context, ev xevent.MapRequestEvent) *Frame {
 
 	// Create container and root frame
 	c := &Container{
-		Shape: ctx.DefaultShapeForScreen(ctx.Screens[0]),
+		Shape: ctx.DefaultShapeForScreen(ctx.LastFocusedScreen()),
 	}
 
 	root := &Frame{
@@ -810,7 +811,7 @@ func AddWindowHook(ctx *Context, window xproto.Window) error {
 	err = keybind.KeyReleaseFun(
 		func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent){
 			f := ctx.Get(window)
-			screen, _ := ctx.GetScreenForShape(f.Container.Shape)
+			screen, _, _ := ctx.GetScreenForShape(f.Container.Shape)
 			f.Container.MoveResizeShape(ctx, ctx.DefaultShapeForScreen(screen))
 	  }).Connect(ctx.X, window, ctx.Config.ResetSize, true)
 	ext.Logerr(err)
@@ -818,14 +819,14 @@ func AddWindowHook(ctx *Context, window xproto.Window) error {
 	err = keybind.KeyReleaseFun(
 		func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent){
 			f := ctx.Get(window)
-			screen, _ := ctx.GetScreenForShape(f.Container.Shape)
+			screen, _, _ := ctx.GetScreenForShape(f.Container.Shape)
 			if f.Container.Shape == AnchorShape(screen, FULL) {
 				s := AnchorShape(screen, TOP)
 				f.Container.MoveResizeShape(ctx, s)
 			} else if f.Container.Shape == AnchorShape(screen, TOP) {
 				raised := screen
 				raised.Y = raised.Y - raised.H
-				if nscreen, overlap := ctx.GetScreenForShape(raised); overlap > 0 && nscreen != screen  {
+				if nscreen, overlap, _ := ctx.GetScreenForShape(raised); overlap > 0 && nscreen != screen  {
 					f.Container.MoveResizeShape(ctx, AnchorShape(nscreen, BOTTOM))
 				}
 			} else if f.Container.Shape == AnchorShape(screen, BOTTOM) {
@@ -839,13 +840,13 @@ func AddWindowHook(ctx *Context, window xproto.Window) error {
 	err = keybind.KeyReleaseFun(
 		func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent){
 			f := ctx.Get(window)
-			screen, _ := ctx.GetScreenForShape(f.Container.Shape)
+			screen, _, _ := ctx.GetScreenForShape(f.Container.Shape)
 			if f.Container.Shape == AnchorShape(screen, FULL) || f.Container.Shape == AnchorShape(screen, TOP) {
 				f.Container.MoveResizeShape(ctx, ctx.DefaultShapeForScreen(screen))
 			} else if f.Container.Shape == AnchorShape(screen, BOTTOM) {
 				lowered := screen
 				lowered.Y = lowered.Y + lowered.H
-				if nscreen, overlap := ctx.GetScreenForShape(lowered); overlap > 0 && nscreen != screen  {
+				if nscreen, overlap, _ := ctx.GetScreenForShape(lowered); overlap > 0 && nscreen != screen  {
 					f.Container.MoveResizeShape(ctx, AnchorShape(nscreen, TOP))
 				}
 			} else {
@@ -857,13 +858,13 @@ func AddWindowHook(ctx *Context, window xproto.Window) error {
 	err = keybind.KeyReleaseFun(
 		func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent){
 			f := ctx.Get(window)
-			screen, _ := ctx.GetScreenForShape(f.Container.Shape)
+			screen, _, _ := ctx.GetScreenForShape(f.Container.Shape)
 			if f.Container.Shape == AnchorShape(screen, RIGHT) {
 				f.Container.MoveResizeShape(ctx, ctx.DefaultShapeForScreen(screen))
 			} else if f.Container.Shape == AnchorShape(screen, LEFT) {
 				lefted := screen
 				lefted.X = lefted.X - lefted.W
-				if nscreen, overlap := ctx.GetScreenForShape(lefted); overlap > 0 && nscreen != screen {
+				if nscreen, overlap, _ := ctx.GetScreenForShape(lefted); overlap > 0 && nscreen != screen {
 					f.Container.MoveResizeShape(ctx, AnchorShape(nscreen, RIGHT))
 				}
 			} else {
@@ -875,13 +876,13 @@ func AddWindowHook(ctx *Context, window xproto.Window) error {
 	err = keybind.KeyReleaseFun(
 		func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent){
 			f := ctx.Get(window)
-			screen, _ := ctx.GetScreenForShape(f.Container.Shape)
+			screen, _, _ := ctx.GetScreenForShape(f.Container.Shape)
 			if f.Container.Shape == AnchorShape(screen, LEFT) {
 				f.Container.MoveResizeShape(ctx, ctx.DefaultShapeForScreen(screen))
 			} else if f.Container.Shape == AnchorShape(screen, RIGHT) {
 				righted := screen
 				righted.X = righted.X + righted.W
-				if nscreen, overlap := ctx.GetScreenForShape(righted); overlap > 0 && nscreen != screen {
+				if nscreen, overlap, _ := ctx.GetScreenForShape(righted); overlap > 0 && nscreen != screen {
 					f.Container.MoveResizeShape(ctx, AnchorShape(nscreen, LEFT))
 				}
 			} else {
