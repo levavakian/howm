@@ -3,6 +3,7 @@ package frame
 import (
 	"log"
 	"path"
+	"fmt"
 	"time"
 	"os/user"
 	"github.com/BurntSushi/xgbutil/xcursor"
@@ -27,6 +28,9 @@ type Config struct {
 	WindowRight string
 	VolumeUp string
 	VolumeDown string
+	BrightnessUp string
+	BrightnessDown string
+	Backlight string
 	VolumeMute string
 	ElemSize int
 	CloseCursor int
@@ -71,6 +75,9 @@ func DefaultConfig() Config {
 		VolumeUp: "Mod4-F3",
 		VolumeDown: "Mod4-F2",
 		VolumeMute: "Mod4-F1",
+		BrightnessUp: "Mod4-F11",
+		BrightnessDown: "Mod4-F12",
+		Backlight: "intel_backlight",
 		ElemSize: 10,
 		CloseCursor: xcursor.Dot,
 		DefaultShapeRatio: Rectf {
@@ -84,7 +91,7 @@ func DefaultConfig() Config {
 		CloseColor: 0xff0000,
 		ResizeColor: 0x00ff00,
 		InternalPadding: 0,
-		BackgroundImagePath: path.Join(HomeDir(), ".config/howm/bg.jpg"),
+		BackgroundImagePath: path.Join(HomeDir(), ".config/howm/bg.png"),
 		ScreenPoll: time.Second * 2,
 		BuiltinCommands: map[string]string{
 			"Mod4-t": "x-terminal-emulator",
@@ -92,4 +99,12 @@ func DefaultConfig() Config {
 			"Mod4-p": "XDG_CURRENT_DESKTOP=GNOME gnome-control-center",
 		},
 	}
+}
+
+func (c *Config) BrightFile() string {
+	return fmt.Sprintf("/sys/class/backlight/%s/brightness", c.Backlight)
+}
+
+func (c *Config) MaxBrightFile() string {
+	return fmt.Sprintf("/sys/class/backlight/%s/max_brightness", c.Backlight)
 }

@@ -14,7 +14,7 @@ import (
 	"github.com/BurntSushi/wingo/prompt"
 )
 
-func GetCurrentAudio(shell string) (int, error) {
+func GetCurrentAudio() (int, error) {
 	out, err := exec.Command("amixer", "sget", "Master").Output()
 	if err != nil {
 		log.Println(err)
@@ -36,7 +36,7 @@ func RegisterVolumeHooks(ctx *frame.Context) error {
 	VolumeBeforeMute := &VolumeContext{}
 	audioMod := func(increment int) {
 		target := 0
-		current, err := GetCurrentAudio(ctx.Config.Shell)
+		current, err := GetCurrentAudio()
 		if err != nil {
 			log.Println(err)
 			return
@@ -47,16 +47,19 @@ func RegisterVolumeHooks(ctx *frame.Context) error {
 
 		if increment == 0 {
 			if VolumeBeforeMute.Volume == 0 {
-				exec.Command("amixer", "sset", "Master", "0%").Run()
+				err = exec.Command("amixer", "sset", "Master", "0%").Run()
 				VolumeBeforeMute.Volume = current
 			} else {
-				exec.Command("amixer", "sset", "Master", strconv.Itoa(VolumeBeforeMute.Volume) + "%").Run()
+				err = exec.Command("amixer", "sset", "Master", strconv.Itoa(VolumeBeforeMute.Volume) + "%").Run()
 				VolumeBeforeMute.Volume = 0
 			}
 		} else {
-			exec.Command("amixer", "sset", "Master", strconv.Itoa(target) + "%").Run()
+			err = exec.Command("amixer", "sset", "Master", strconv.Itoa(target) + "%").Run()
 		}
-		current, err = GetCurrentAudio(ctx.Config.Shell)
+		if err != nil {
+			log.Println(err)
+		}
+		current, err = GetCurrentAudio()
 		if err != nil {
 			log.Println(err)
 			return

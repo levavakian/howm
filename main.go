@@ -97,6 +97,11 @@ func ConfigRoot(X *xgbutil.XUtil, inj *sideloop.Injector) error {
     log.Fatal(err)
   }
 
+  err = RegisterBrightnessHooks(ctx)
+  if err != nil {
+    log.Fatal(err)
+  }
+
   err = keybind.KeyReleaseFun(
 		func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent) {
       xevent.Quit(X)
