@@ -97,10 +97,14 @@ func ConfigRoot(X *xgbutil.XUtil, inj *sideloop.Injector) error {
     log.Fatal(err)
   }
 
+  // Add backlight hooks
   err = RegisterBrightnessHooks(ctx)
   if err != nil {
     log.Fatal(err)
   }
+
+  // Add alttab-like hooks
+  RegisterChooseHooks(ctx)
 
   err = keybind.KeyReleaseFun(
 		func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent) {
@@ -147,12 +151,15 @@ func ConfigRoot(X *xgbutil.XUtil, inj *sideloop.Injector) error {
       return nil
     }
 
-    ctx.SplitPrompt = prompt.NewInput(X,
+    nprompt := prompt.NewInput(X,
       prompt.DefaultInputTheme, prompt.DefaultInputConfig)
+    ctx.SplitPrompt = nprompt
 
     canc := func (inp *prompt.Input) {
-      log.Println("canceled")
-      ctx.SplitPrompt = nil
+      if ctx.SplitPrompt == nprompt {
+        ctx.SplitPrompt = nil
+        ctx.AttachPoint = nil
+      }
     }
 
     resp := func (inp *prompt.Input, text string) {
@@ -207,7 +214,7 @@ func ConfigRoot(X *xgbutil.XUtil, inj *sideloop.Injector) error {
       prompt.DefaultInputTheme, prompt.DefaultInputConfig)
 
     canc := func (inp *prompt.Input) {
-      log.Println("canceled")
+      // Chill
     }
 
     resp := func (inp *prompt.Input, text string) {

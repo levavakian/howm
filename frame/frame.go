@@ -376,6 +376,7 @@ func (c *Container) RaiseFindFocus(ctx *Context){
 
 func (c *Container) Destroy(ctx *Context) {
 	c.Decorations.Destroy(ctx)
+	delete(ctx.Containers, c)
 	xwindow.New(ctx.X, ctx.X.RootWin()).Focus()
 }
 

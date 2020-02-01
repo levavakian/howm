@@ -33,7 +33,7 @@ type VolumeContext struct {
 }
 
 func RegisterVolumeHooks(ctx *frame.Context) error {
-	VolumeBeforeMute := &VolumeContext{}
+	volumeBeforeMute := &VolumeContext{}
 	audioMod := func(increment int) {
 		target := 0
 		current, err := GetCurrentAudio()
@@ -46,12 +46,12 @@ func RegisterVolumeHooks(ctx *frame.Context) error {
 		}
 
 		if increment == 0 {
-			if VolumeBeforeMute.Volume == 0 {
+			if volumeBeforeMute.Volume == 0 {
 				err = exec.Command("amixer", "sset", "Master", "0%").Run()
-				VolumeBeforeMute.Volume = current
+				volumeBeforeMute.Volume = current
 			} else {
-				err = exec.Command("amixer", "sset", "Master", strconv.Itoa(VolumeBeforeMute.Volume) + "%").Run()
-				VolumeBeforeMute.Volume = 0
+				err = exec.Command("amixer", "sset", "Master", strconv.Itoa(volumeBeforeMute.Volume) + "%").Run()
+				volumeBeforeMute.Volume = 0
 			}
 		} else {
 			err = exec.Command("amixer", "sset", "Master", strconv.Itoa(target) + "%").Run()
