@@ -69,7 +69,7 @@ func ConfigRoot(X *xgbutil.XUtil, inj *sideloop.Injector) error {
   // Set x cursor
   err = exec.Command(ctx.Config.Shell, "-c", "xsetroot -cursor_name arrow").Run()
   if err != nil {
-    log.Println(err)
+    log.Fatal(err)
   }
 
   evMasks := xproto.EventMaskPropertyChange |
@@ -82,7 +82,7 @@ func ConfigRoot(X *xgbutil.XUtil, inj *sideloop.Injector) error {
   
   err = xwindow.New(X, X.RootWin()).Listen(evMasks)
   if err != nil {
-    log.Println(err)
+    log.Fatal(err)
   }
 
   // Start monitor for screens

@@ -28,6 +28,8 @@ More commands can be added to the builtin commands in `config.go`.
 
 `Mod4-h` will hide the container decorations.
 
+`Alt-Tab`/`Alt-Shift-Tab` works like you'd expect.
+
 If an internal video is being fullscreened, sometimes you may need to resize or move the window a little to have the internal video fill the screen.
 
 #### Background image
