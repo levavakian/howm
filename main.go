@@ -13,7 +13,6 @@ import (
   "github.com/BurntSushi/xgbutil/xwindow"
   "github.com/BurntSushi/xgb/xproto"
   "github.com/BurntSushi/xgb/randr"
-  "github.com/BurntSushi/wingo/prompt"
 )
 
 func main() {
@@ -115,72 +114,24 @@ func ConfigRoot(X *xgbutil.XUtil, inj *sideloop.Injector) error {
   err = keybind.KeyReleaseFun(
 		func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent) {
       xevent.Quit(X)
-    }).Connect(X, X.RootWin(), ctx.Config.Shutdown, true)
+  }).Connect(X, X.RootWin(), ctx.Config.Shutdown, true)
   if err != nil {
     log.Fatal(err)
-  }
-
-  for k, v := range(ctx.Config.BuiltinCommands) {
-    ncmd := v  // force to not be a reference
-    err = keybind.KeyReleaseFun(
-      func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent) {
-        if ctx.SplitPrompt != nil {
-          ctx.SplitPrompt.Destroy()
-        }
-        cmd := exec.Command(ncmd)
-        err := cmd.Start()
-        if err != nil {
-          log.Println(err)
-        }
-        go func() {
-          cmd.Wait()
-        }()
-      }).Connect(X, X.RootWin(), k, true)
-    if err != nil {
-      log.Println(err)
-    }
-  }
-
-  err = keybind.KeyReleaseFun(func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent){
-    inPrompt := prompt.NewInput(X,
-      prompt.DefaultInputTheme, prompt.DefaultInputConfig)
-
-    canc := func (inp *prompt.Input) {
-      // Chill
-    }
-
-    resp := func (inp *prompt.Input, text string) {
-      cmd := exec.Command(text)
-      err = cmd.Start()
-      if err != nil {
-        log.Println(err)
-      }
-      go func() {
-        cmd.Wait()
-      }()
-      inPrompt.Destroy()
-    }
-    
-    inPrompt.Show(ctx.Screens[0].ToXRect(),
-      "Command:", resp, canc)
-  }).Connect(X, X.RootWin(), ctx.Config.RunCmd, true)
-  if err != nil {
-    log.Println(err)
   }
 
   err = mousebind.ButtonPressFun(
 		func(X *xgbutil.XUtil, ev xevent.ButtonPressEvent) {
       ext.Focus(xwindow.New(X, X.RootWin()))
 			xproto.AllowEvents(X.Conn(), xproto.AllowReplayPointer, 0)
-    }).Connect(X, X.RootWin(), ctx.Config.ButtonClick, true, true)
-    if err != nil {
-      log.Println(err)
-    }
+  }).Connect(X, X.RootWin(), ctx.Config.ButtonClick, true, true)
+  if err != nil {
+    log.Println(err)
+  }
 
   xevent.MapRequestFun(
 		func(X *xgbutil.XUtil, ev xevent.MapRequestEvent) {
       frame.NewWindow(ctx, ev)
-    }).Connect(X, X.RootWin())
+  }).Connect(X, X.RootWin())
 
   return err
 }

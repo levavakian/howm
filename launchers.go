@@ -37,7 +37,7 @@ func Split(ctx *frame.Context) *frame.Frame {
 	}
 
 	resp := func (inp *prompt.Input, text string) {
-		cmd := exec.Command(text)
+		cmd := exec.Command("bash", "-c", text)
 		err := cmd.Start()
 		if err != nil {
 			log.Println(err)
@@ -54,7 +54,58 @@ func Split(ctx *frame.Context) *frame.Frame {
 }
 
 func RegisterSplitHooks(ctx *frame.Context) error {
-	err := keybind.KeyReleaseFun(func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent){
+    var err error
+    // Builting shortcuts
+    for k, v := range(ctx.Config.BuiltinCommands) {
+		ncmd := v  // force to not be a reference
+		err = keybind.KeyReleaseFun(
+		  func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent) {
+			if ctx.SplitPrompt != nil {
+			  ctx.SplitPrompt.Destroy()
+			}
+			cmd := exec.Command("bash", "-c", ncmd)
+			err := cmd.Start()
+			if err != nil {
+			  log.Println(err)
+			}
+			go func() {
+			  cmd.Wait()
+			}()
+		  }).Connect(ctx.X, ctx.X.RootWin(), k, true)
+		if err != nil {
+            return err
+		}
+    }
+
+    // Shitty standalone launchers
+    err = keybind.KeyReleaseFun(func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent){
+		inPrompt := prompt.NewInput(X, prompt.DefaultInputTheme, prompt.DefaultInputConfig)
+	
+		canc := func (inp *prompt.Input) {
+		  // Chill
+		}
+	
+		resp := func (inp *prompt.Input, text string) {
+            cmd := exec.Command("bash", "-c", text)
+            err = cmd.Start()
+            if err != nil {
+                log.Println(err)
+            }
+            go func() {
+                cmd.Wait()
+            }()
+            inPrompt.Destroy()
+		}
+		
+        inPrompt.Show(ctx.Screens[0].ToXRect(), "Command:", resp, canc)
+
+    }).Connect(ctx.X, ctx.X.RootWin(), ctx.Config.RunCmd, true)
+    if err != nil {
+        return err
+    }
+
+    // Split launchers
+	err = keybind.KeyReleaseFun(func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent){
 		fr := Split(ctx)
 		if fr == nil {
 			return
