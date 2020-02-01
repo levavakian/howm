@@ -1,5 +1,19 @@
 set -e
+
+STARTEDDOWN="false"
+if [ ! "$(docker ps -q -f name=howmc)" ]; then
+    echo "No container detected, starting own"
+    STARTEDDOWN="true"
+    if [ "$(docker ps -aq -f status=exited -f name=howmc)" ]; then
+        docker rm -f howmc
+    fi
+    # run your container
+    docker run -itd --network=host --name howmc -v $(pwd)/../howm:/go/src/howm/ golang:latest bash
+fi
+
+echo "Compiling..."
 $(pwd)/compile.sh
+echo "Installing to global directories"
 rm -rf /usr/bin/howm
 rm -rf /usr/bin/howmbright.sh
 mkdir -p /usr/share/fonts/truetype/dejavu
@@ -7,3 +21,8 @@ cp $(pwd)/howm /usr/bin/howm
 cp $(pwd)/cmd/howmbright/howmbright /usr/bin/howmbright
 cp $(pwd)/resources/DejaVuSans.ttf /usr/share/fonts/truetype/dejavu/DejaVuSans.ttf
 chmod u+s /usr/bin/howmbright
+
+if [ "$STARTEDDOWN" = "true" ]; then
+  echo "Removing container howmc"
+  docker rm -f howmc
+fi
