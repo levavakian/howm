@@ -3,7 +3,6 @@ package main
 import (
   "log"
   "os/exec"
-  "time"
   "howm/frame"
   "howm/ext"
   "howm/sideloop"
@@ -91,6 +90,12 @@ func ConfigRoot(X *xgbutil.XUtil, inj *sideloop.Injector) error {
   // Start monitor for screens
   MonitorScreens(ctx, inj)
 
+  // Add splitting hooks
+  err = RegisterSplitHooks(ctx)
+  if err != nil {
+    log.Fatal(err)
+  }
+
   // Add volume hooks
   err = RegisterVolumeHooks(ctx)
   if err != nil {
@@ -106,12 +111,13 @@ func ConfigRoot(X *xgbutil.XUtil, inj *sideloop.Injector) error {
   // Add alttab-like hooks
   RegisterChooseHooks(ctx)
 
+  // Make sure we can leave
   err = keybind.KeyReleaseFun(
 		func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent) {
       xevent.Quit(X)
     }).Connect(X, X.RootWin(), ctx.Config.Shutdown, true)
   if err != nil {
-    log.Println(err)
+    log.Fatal(err)
   }
 
   for k, v := range(ctx.Config.BuiltinCommands) {
@@ -133,80 +139,6 @@ func ConfigRoot(X *xgbutil.XUtil, inj *sideloop.Injector) error {
     if err != nil {
       log.Println(err)
     }
-  }
-
-  splitF := func() *frame.Frame {
-    if err != nil {
-      log.Println(err)
-      return nil
-    }
-
-    attachF := ctx.GetFocusedFrame()
-
-    if attachF == nil {
-      msgPrompt := prompt.NewMessage(X,
-        prompt.DefaultMessageTheme, prompt.DefaultMessageConfig)
-      timeout := 1 * time.Second
-      msgPrompt.Show(ctx.Screens[0].ToXRect(), "Cannot split when not focused on a window", timeout, func(msg *prompt.Message){})
-      return nil
-    }
-
-    nprompt := prompt.NewInput(X,
-      prompt.DefaultInputTheme, prompt.DefaultInputConfig)
-    ctx.SplitPrompt = nprompt
-
-    canc := func (inp *prompt.Input) {
-      if ctx.SplitPrompt == nprompt {
-        ctx.SplitPrompt = nil
-        ctx.AttachPoint = nil
-      }
-    }
-
-    resp := func (inp *prompt.Input, text string) {
-      cmd := exec.Command(text)
-      err = cmd.Start()
-      if err != nil {
-        log.Println(err)
-      }
-      go func() {
-        cmd.Wait()
-      }()
-      ctx.SplitPrompt.Destroy()
-      ctx.SplitPrompt = nil
-    }
-    
-    ctx.SplitPrompt.Show(ctx.Screens[0].ToXRect(),
-      "Command:", resp, canc)
-
-    return attachF
-  }
-
-  err = keybind.KeyReleaseFun(func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent){
-    fr := splitF()
-    if fr == nil {
-      return
-    }
-    ctx.AttachPoint = &frame.AttachTarget{
-      Target: fr,
-      Type: frame.HORIZONTAL,
-    }
-  }).Connect(X, X.RootWin(), ctx.Config.SplitHorizontal, true)
-  if err != nil {
-    log.Println(err)
-  }
-
-  err = keybind.KeyReleaseFun(func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent){
-    fr := splitF()
-    if fr == nil {
-      return
-    }
-    ctx.AttachPoint = &frame.AttachTarget{
-      Target: fr,
-      Type: frame.VERTICAL,
-    }
-  }).Connect(X, X.RootWin(), ctx.Config.SplitVertical, true)
-  if err != nil {
-    log.Println(err)
   }
 
   err = keybind.KeyReleaseFun(func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent){
