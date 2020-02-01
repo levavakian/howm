@@ -4,7 +4,6 @@ import (
   "log"
   "os/exec"
   "howm/frame"
-  "howm/ext"
   "howm/sideloop"
   "github.com/BurntSushi/xgbutil"
   "github.com/BurntSushi/xgbutil/xevent"
@@ -89,6 +88,12 @@ func ConfigRoot(X *xgbutil.XUtil, inj *sideloop.Injector) error {
   // Start monitor for screens
   MonitorScreens(ctx, inj)
 
+  // Add base control hooks
+  err = RegisterBaseHooks(ctx)
+  if err != nil {
+    log.Fatal(err)
+  }
+
   // Add splitting hooks
   err = RegisterSplitHooks(ctx)
   if err != nil {
@@ -109,29 +114,6 @@ func ConfigRoot(X *xgbutil.XUtil, inj *sideloop.Injector) error {
 
   // Add alttab-like hooks
   RegisterChooseHooks(ctx)
-
-  // Make sure we can leave
-  err = keybind.KeyReleaseFun(
-		func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent) {
-      xevent.Quit(X)
-  }).Connect(X, X.RootWin(), ctx.Config.Shutdown, true)
-  if err != nil {
-    log.Fatal(err)
-  }
-
-  err = mousebind.ButtonPressFun(
-		func(X *xgbutil.XUtil, ev xevent.ButtonPressEvent) {
-      ext.Focus(xwindow.New(X, X.RootWin()))
-			xproto.AllowEvents(X.Conn(), xproto.AllowReplayPointer, 0)
-  }).Connect(X, X.RootWin(), ctx.Config.ButtonClick, true, true)
-  if err != nil {
-    log.Println(err)
-  }
-
-  xevent.MapRequestFun(
-		func(X *xgbutil.XUtil, ev xevent.MapRequestEvent) {
-      frame.NewWindow(ctx, ev)
-  }).Connect(X, X.RootWin())
 
   return err
 }
