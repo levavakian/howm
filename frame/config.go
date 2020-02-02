@@ -15,7 +15,6 @@ type Config struct {
 	TabByFrame bool
 	TabForward string
 	TabBackward string
-	ButtonClose string
 	ButtonDrag string
 	ButtonClick string
 	SplitVertical string
@@ -79,7 +78,6 @@ func DefaultConfig() Config {
 		TabByFrame: true,
 		TabForward: "Mod1-tab",
 		TabBackward: "Mod1-Shift-tab",
-		ButtonClose: "1",
 		ButtonDrag: "1",
 		ButtonClick: "1",
 		SplitVertical: "Mod4-r",

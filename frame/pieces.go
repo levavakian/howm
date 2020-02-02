@@ -120,6 +120,8 @@ func GeneratePieces(ctx *Context, c *Container) error {
 	c.AddTopRightHook(ctx)
 	c.AddTopLeftHook(ctx)
 	c.AddGrabHook(ctx)
+	c.AddMaximizeHook(ctx)
+	c.AddMinimizeHook(ctx)
 	return err
 }
 
@@ -146,7 +148,27 @@ func (c *Container) AddCloseHook(ctx *Context) error {
 	return mousebind.ButtonPressFun(
 		func(X *xgbutil.XUtil, ev xevent.ButtonPressEvent) {
 			c.Root.Close(ctx)
-		}).Connect(ctx.X, c.Decorations.Close.Window.Id, ctx.Config.ButtonClose, false, true)
+		}).Connect(ctx.X, c.Decorations.Close.Window.Id, ctx.Config.ButtonClick, false, true)
+}
+
+func (c *Container) AddMinimizeHook(ctx *Context) error {
+	return mousebind.ButtonPressFun(
+		func(X *xgbutil.XUtil, ev xevent.ButtonPressEvent) {
+			c.ChangeMinimizationState(ctx)
+		}).Connect(ctx.X, c.Decorations.Minimize.Window.Id, ctx.Config.ButtonClick, false, true)
+}
+
+func (c *Container) AddMaximizeHook(ctx *Context) error {
+	return mousebind.ButtonPressFun(
+		func(X *xgbutil.XUtil, ev xevent.ButtonPressEvent) {
+			screen, _, _ := ctx.GetScreenForShape(c.Shape)
+			s := AnchorShape(ctx, screen, FULL)
+			if c.Shape == s {
+				c.MoveResizeShape(ctx, ctx.DefaultShapeForScreen(screen))
+			} else {
+				c.MoveResizeShape(ctx, s)
+			}
+		}).Connect(ctx.X, c.Decorations.Maximize.Window.Id, ctx.Config.ButtonClick, false, true)
 }
 
 func (c *Container) AddTopHook(ctx *Context) {
