@@ -1,6 +1,7 @@
 package frame
 
 import (
+	"image"
 	"howm/ext"
 	"github.com/BurntSushi/xgbutil/xrect"
 )
@@ -41,4 +42,8 @@ func AreaOfIntersection(shapeA, shapeB Rect) int {
 
 func (r *Rect) ToXRect() *xrect.XRect {
 	return xrect.New(r.X, r.Y, r.W, r.H)
+}
+
+func (r *Rect) ToImageRect() image.Rectangle {
+	return image.Rect(r.X, r.Y, r.W, r.H)
 }

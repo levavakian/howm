@@ -36,6 +36,7 @@ type Container struct {
 	Expanded *Frame
 	DragContext DragOrigin
 	Decorations ContainerDecorations
+	Hidden bool
 }
 
 type Frame struct {
@@ -347,6 +348,7 @@ func (c *Container) Raise(ctx *Context){
 	c.Root.Traverse(func(f *Frame){
 		f.RaiseDecoration(ctx)
 	})
+	ctx.Taskbar.Raise(ctx)
 }
 
 func (c *Container) ActiveRoot() *Frame {
@@ -386,6 +388,20 @@ func (c *Container) Map() {
 }
 
 func (c *Container) UpdateFrameMappings() {
+	if c.Hidden {
+		c.Root.Unmap()
+		c.Decorations.Unmap()
+		return
+	}
+
+	if c.Decorations.Hidden {
+		c.Decorations.Hidden = false
+		c.Decorations.Map()
+	} else {
+		c.Decorations.Hidden = true
+		c.Decorations.Unmap()
+	}
+
 	if c.Root != c.ActiveRoot() {
 		c.Root.Unmap()
 	}
@@ -454,8 +470,8 @@ func AttachWindow(ctx *Context, ev xevent.MapRequestEvent) *Frame {
 	}
 
 	ap.MoveResize(ctx)
-
-		cb.Focus(ctx)
+	ap.Container.Raise(ctx)
+	cb.Focus(ctx)
 	return cb
 }
 
@@ -617,7 +633,11 @@ func ContainerShapeFromRoot(ctx *Context, fShape Rect) Rect {
 	}
 }
 
-func AnchorShape(screen Rect, anchor int) Rect {
+func AnchorShape(ctx *Context, screen Rect, anchor int) Rect {
+	if !ctx.Taskbar.Hidden {
+		screen.H = screen.H - ctx.Config.TaskbarHeight
+	}
+
 	if anchor == TOP {
 		screen.H = screen.H / 2
 		return screen
@@ -793,19 +813,13 @@ func AddWindowHook(ctx *Context, window xproto.Window) error {
 			f.Container.UpdateFrameMappings()
 			f.Focus(ctx)
 			f.Container.MoveResizeShape(ctx, f.Container.Shape)
-			}).Connect(ctx.X, window, ctx.Config.ToggleExpandFrame, true)
+		}).Connect(ctx.X, window, ctx.Config.ToggleExpandFrame, true)
 	ext.Logerr(err)
 
 	err = keybind.KeyReleaseFun(
 		func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent){
 			f := ctx.Get(window)
-			if f.Container.Decorations.Hidden {
-				f.Container.Decorations.Hidden = false
-				f.Container.Decorations.Map()
-			} else {
-				f.Container.Decorations.Hidden = true
-				f.Container.Decorations.Unmap()
-			}
+			f.Container.UpdateFrameMappings()
 			f.Container.MoveResizeShape(ctx, f.Container.Shape)
 	  }).Connect(ctx.X, window, ctx.Config.ToggleExternalDecorator, true)
 	ext.Logerr(err)
@@ -822,19 +836,19 @@ func AddWindowHook(ctx *Context, window xproto.Window) error {
 		func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent){
 			f := ctx.Get(window)
 			screen, _, _ := ctx.GetScreenForShape(f.Container.Shape)
-			if f.Container.Shape == AnchorShape(screen, FULL) {
-				s := AnchorShape(screen, TOP)
+			if f.Container.Shape == AnchorShape(ctx, screen, FULL) {
+				s := AnchorShape(ctx, screen, TOP)
 				f.Container.MoveResizeShape(ctx, s)
-			} else if f.Container.Shape == AnchorShape(screen, TOP) {
+			} else if f.Container.Shape == AnchorShape(ctx, screen, TOP) {
 				raised := screen
 				raised.Y = raised.Y - raised.H
 				if nscreen, overlap, _ := ctx.GetScreenForShape(raised); overlap > 0 && nscreen != screen  {
-					f.Container.MoveResizeShape(ctx, AnchorShape(nscreen, BOTTOM))
+					f.Container.MoveResizeShape(ctx, AnchorShape(ctx, nscreen, BOTTOM))
 				}
-			} else if f.Container.Shape == AnchorShape(screen, BOTTOM) {
+			} else if f.Container.Shape == AnchorShape(ctx, screen, BOTTOM) {
 				f.Container.MoveResizeShape(ctx, ctx.DefaultShapeForScreen(screen))
 			} else {
-				f.Container.MoveResizeShape(ctx, screen)
+				f.Container.MoveResizeShape(ctx, AnchorShape(ctx, screen, FULL))
 			}
 	  }).Connect(ctx.X, window, ctx.Config.WindowUp, true)
 	ext.Logerr(err)
@@ -843,16 +857,16 @@ func AddWindowHook(ctx *Context, window xproto.Window) error {
 		func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent){
 			f := ctx.Get(window)
 			screen, _, _ := ctx.GetScreenForShape(f.Container.Shape)
-			if f.Container.Shape == AnchorShape(screen, FULL) || f.Container.Shape == AnchorShape(screen, TOP) {
+			if f.Container.Shape == AnchorShape(ctx, screen, FULL) || f.Container.Shape == AnchorShape(ctx, screen, TOP) {
 				f.Container.MoveResizeShape(ctx, ctx.DefaultShapeForScreen(screen))
-			} else if f.Container.Shape == AnchorShape(screen, BOTTOM) {
+			} else if f.Container.Shape == AnchorShape(ctx, screen, BOTTOM) {
 				lowered := screen
 				lowered.Y = lowered.Y + lowered.H
 				if nscreen, overlap, _ := ctx.GetScreenForShape(lowered); overlap > 0 && nscreen != screen  {
-					f.Container.MoveResizeShape(ctx, AnchorShape(nscreen, TOP))
+					f.Container.MoveResizeShape(ctx, AnchorShape(ctx, nscreen, TOP))
 				}
 			} else {
-				f.Container.MoveResizeShape(ctx, AnchorShape(screen, BOTTOM))
+				f.Container.MoveResizeShape(ctx, AnchorShape(ctx, screen, BOTTOM))
 			}
 	  }).Connect(ctx.X, window, ctx.Config.WindowDown, true)
 	ext.Logerr(err)
@@ -861,16 +875,16 @@ func AddWindowHook(ctx *Context, window xproto.Window) error {
 		func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent){
 			f := ctx.Get(window)
 			screen, _, _ := ctx.GetScreenForShape(f.Container.Shape)
-			if f.Container.Shape == AnchorShape(screen, RIGHT) {
+			if f.Container.Shape == AnchorShape(ctx, screen, RIGHT) {
 				f.Container.MoveResizeShape(ctx, ctx.DefaultShapeForScreen(screen))
-			} else if f.Container.Shape == AnchorShape(screen, LEFT) {
+			} else if f.Container.Shape == AnchorShape(ctx, screen, LEFT) {
 				lefted := screen
 				lefted.X = lefted.X - lefted.W
 				if nscreen, overlap, _ := ctx.GetScreenForShape(lefted); overlap > 0 && nscreen != screen {
-					f.Container.MoveResizeShape(ctx, AnchorShape(nscreen, RIGHT))
+					f.Container.MoveResizeShape(ctx, AnchorShape(ctx, nscreen, RIGHT))
 				}
 			} else {
-				f.Container.MoveResizeShape(ctx, AnchorShape(screen, LEFT))
+				f.Container.MoveResizeShape(ctx, AnchorShape(ctx, screen, LEFT))
 			}
 	  }).Connect(ctx.X, window, ctx.Config.WindowLeft, true)
 	ext.Logerr(err)
@@ -879,16 +893,16 @@ func AddWindowHook(ctx *Context, window xproto.Window) error {
 		func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent){
 			f := ctx.Get(window)
 			screen, _, _ := ctx.GetScreenForShape(f.Container.Shape)
-			if f.Container.Shape == AnchorShape(screen, LEFT) {
+			if f.Container.Shape == AnchorShape(ctx, screen, LEFT) {
 				f.Container.MoveResizeShape(ctx, ctx.DefaultShapeForScreen(screen))
-			} else if f.Container.Shape == AnchorShape(screen, RIGHT) {
+			} else if f.Container.Shape == AnchorShape(ctx, screen, RIGHT) {
 				righted := screen
 				righted.X = righted.X + righted.W
 				if nscreen, overlap, _ := ctx.GetScreenForShape(righted); overlap > 0 && nscreen != screen {
-					f.Container.MoveResizeShape(ctx, AnchorShape(nscreen, LEFT))
+					f.Container.MoveResizeShape(ctx, AnchorShape(ctx, nscreen, LEFT))
 				}
 			} else {
-				f.Container.MoveResizeShape(ctx, AnchorShape(screen, RIGHT))
+				f.Container.MoveResizeShape(ctx, AnchorShape(ctx, screen, RIGHT))
 			}
 	  }).Connect(ctx.X, window, ctx.Config.WindowRight, true)
 	ext.Logerr(err)

@@ -54,6 +54,7 @@ func (c *Choice) CycleHighlighted() {
 func (c *Choice) CycleSelected() {
 	if f := c.Context.Get(c.Win.Id); f != nil {
 		f.Container.RaiseFindFocus(c.Context)
+		f.Container.UpdateFrameMappings()
 	}
 	c.Wrapper.Destroy()
 }

@@ -34,6 +34,7 @@ type Context struct {
 	SplitPrompt *prompt.Input
 	Locked bool
 	LockPrompt *prompt.Input
+	Taskbar *Taskbar
 }
 
 func NewContext(x *xgbutil.XUtil) (*Context, error) {
@@ -47,6 +48,7 @@ func NewContext(x *xgbutil.XUtil) (*Context, error) {
 		Containers: make(map[*Container]struct{}),
 		Config: conf,
 	}
+	c.Taskbar = NewTaskbar(c)
 	c.UpdateScreens()
 	if err != nil {
 		log.Fatal(err)
@@ -79,6 +81,8 @@ func (ctx *Context) GenerateLockPrompt() {
 		err = exec.Command(ctx.Config.Shell, "-c", fmt.Sprintf("echo %s | sudo -u %s -S", usr.Name, text)).Run()
 		if err != nil {
 			ctx.Locked = false
+		} else {
+			log.Println(err)
 		}
 
 		ctx.LockPrompt.Destroy()
@@ -161,6 +165,7 @@ func (ctx *Context) UpdateScreens() {
       }
 	}
 
+	ctx.Taskbar.MoveResize(ctx)
 	ctx.RaiseLock()
 }
 

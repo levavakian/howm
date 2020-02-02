@@ -25,6 +25,7 @@ type Config struct {
 	CloseFrame string
 	ToggleExpandFrame string
 	ToggleExternalDecorator string
+	ToggleTaskbar string
 	ResetSize string
 	WindowUp string
 	WindowDown string
@@ -43,10 +44,17 @@ type Config struct {
 	GrabColor uint32
 	CloseColor uint32
 	ResizeColor uint32
+	TaskbarBaseColor uint32
+	TaskbarTextColor uint32
 	InternalPadding int
 	BackgroundImagePath string
 	BuiltinCommands map[string]string
 	ScreenPoll time.Duration
+	TaskbarHeight int
+	TaskbarFontSize float64
+	TaskbarTimeBaseColor uint32
+	TaskbarXPad int
+	TaskbarYPad int
 }
 
 func HomeDir() string {
@@ -75,6 +83,7 @@ func DefaultConfig() Config {
 		CloseFrame: "Mod4-d",
 		ToggleExpandFrame: "Mod4-x",
 		ToggleExternalDecorator: "Mod4-h",
+		ToggleTaskbar: "Mod4-s",
 		WindowUp: "Mod4-up",
 		WindowDown: "Mod4-down",
 		WindowLeft: "Mod4-left",
@@ -96,8 +105,10 @@ func DefaultConfig() Config {
 		},
 		SeparatorColor: 0x777777,
 		GrabColor: 0x339999,
+		ResizeColor: 0x777777,
+		TaskbarBaseColor: 0x222222,
+		TaskbarTextColor: 0xbbbbbb,
 		CloseColor: 0xff0000,
-		ResizeColor: 0x00ff00,
 		InternalPadding: 0,
 		BackgroundImagePath: path.Join(HomeDir(), ".config/howm/bg.png"),
 		ScreenPoll: time.Second * 2,
@@ -106,6 +117,11 @@ func DefaultConfig() Config {
 			"Mod4-w": "google-chrome",
 			"Mod4-p": "XDG_CURRENT_DESKTOP=GNOME gnome-control-center",
 		},
+		TaskbarHeight: 20,
+		TaskbarFontSize: 12,
+		TaskbarTimeBaseColor: 0x222222,
+		TaskbarXPad: 5,
+		TaskbarYPad: 5,
 	}
 }
 

@@ -2,6 +2,7 @@ package main
 
 import (
   "log"
+  "time"
   "os/exec"
   "howm/frame"
   "howm/sideloop"
@@ -114,6 +115,13 @@ func ConfigRoot(X *xgbutil.XUtil, inj *sideloop.Injector) error {
 
   // Add alttab-like hooks
   RegisterChooseHooks(ctx)
+
+  // Taskbar hooks
+  err = RegisterTaskbarHooks(ctx)
+  if err != nil {
+    log.Fatal(err)
+  }
+  sideloop.NewRepeater(func(){ ctx.Taskbar.Update(ctx) }, 1 * time.Second, inj)
 
   return err
 }
