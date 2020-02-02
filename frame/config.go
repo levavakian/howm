@@ -11,6 +11,7 @@ import (
 
 type Config struct {
 	Shell string
+	Lock string
 	TabByFrame bool
 	TabForward string
 	TabBackward string
@@ -60,6 +61,7 @@ func HomeDir() string {
 func DefaultConfig() Config {
 	return Config{
 		Shell: "/bin/bash",
+		Lock: "Mod4-l",
 		TabByFrame: true,
 		TabForward: "Mod1-tab",
 		TabBackward: "Mod1-Shift-tab",

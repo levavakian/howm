@@ -16,10 +16,11 @@ $(pwd)/compile.sh
 echo "Installing to global directories"
 rm -rf /usr/bin/howm
 rm -rf /usr/bin/howmbright.sh
-mkdir -p /usr/share/fonts/truetype/dejavu
+mkdir -p  /usr/local/share/wingo/
 cp $(pwd)/howm /usr/bin/howm
 cp $(pwd)/cmd/howmbright/howmbright /usr/bin/howmbright
-cp $(pwd)/resources/DejaVuSans.ttf /usr/share/fonts/truetype/dejavu/DejaVuSans.ttf
+cp $(pwd)/resources/dejavu/DejaVuSans.ttf  /usr/local/share/wingo/DejaVuSans.ttf
+cp $(pwd)/resources/nofont/write-your-password-with-this-font.ttf  /usr/local/share/wingo/write-your-password-with-this-font.ttf
 chmod u+s /usr/bin/howmbright
 
 if [ "$STARTEDDOWN" = "true" ]; then

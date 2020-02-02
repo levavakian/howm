@@ -2,14 +2,23 @@ package frame
 
 import (
 	"log"
+	"fmt"
+	"bytes"
+	"os/user"
+	"os/exec"
 	"howm/ext"
+	"github.com/BurntSushi/wingo/misc"
 	"github.com/BurntSushi/wingo/prompt"
 	"github.com/BurntSushi/xgb/xproto"
 	"github.com/BurntSushi/xgb/xinerama"
 	"github.com/BurntSushi/xgbutil"
+	"github.com/BurntSushi/xgbutil/xgraphics"
 	"github.com/BurntSushi/xgbutil/xcursor"
 	"github.com/BurntSushi/xgbutil/xwindow"
 )
+
+var NoFont = xgraphics.MustFont(xgraphics.ParseFont(
+	bytes.NewBuffer(misc.DataFile("write-your-password-with-this-font.ttf"))))
 
 type Context struct {
 	X *xgbutil.XUtil
@@ -23,6 +32,8 @@ type Context struct {
 	LastKnownFocused xproto.Window
 	LastKnownFocusedScreen int
 	SplitPrompt *prompt.Input
+	Locked bool
+	LockPrompt *prompt.Input
 }
 
 func NewContext(x *xgbutil.XUtil) (*Context, error) {
@@ -40,7 +51,6 @@ func NewContext(x *xgbutil.XUtil) (*Context, error) {
 	if err != nil {
 		log.Fatal(err)
 	}
-
 	for i := xcursor.XCursor; i < xcursor.XTerm; i++ {
 		curs, err := xcursor.CreateCursor(x, uint16(i))
 		if err != nil {
@@ -49,6 +59,59 @@ func NewContext(x *xgbutil.XUtil) (*Context, error) {
 		c.Cursors[i] = curs
 	}
 	return c, err
+}
+
+func (ctx *Context) GenerateLockPrompt() {
+	theme := *prompt.DefaultInputTheme
+	theme.Font = NoFont
+	ctx.LockPrompt = prompt.NewInput(ctx.X, &theme, prompt.DefaultInputConfig)
+	
+	canc := func (inp *prompt.Input) {
+		ctx.RaiseLock()
+	}
+
+	resp := func (inp *prompt.Input, text string) {
+		usr, err := user.Current()
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		err = exec.Command(ctx.Config.Shell, "-c", fmt.Sprintf("echo %s | sudo -u %s -S", usr.Name, text)).Run()
+		if err != nil {
+			ctx.Locked = false
+		}
+
+		ctx.LockPrompt.Destroy()
+		ctx.LockPrompt = nil
+		if ctx.Locked {
+			ctx.RaiseLock()
+		} else {
+			ctx.LowerLock()
+		}
+	}
+	ctx.LockPrompt.Show(ctx.Screens[0].ToXRect(), "", resp, canc)
+}
+
+func (ctx *Context) RaiseLock() {
+	if !ctx.Locked {
+		return
+	}
+
+	for _, bg := range(ctx.Backgrounds) {
+		bg.Stack(xproto.StackModeAbove)
+	}
+
+	ctx.GenerateLockPrompt()
+}
+
+func (ctx *Context) LowerLock() {
+	if ctx.Locked {
+		return
+	}
+
+	for _, bg := range(ctx.Backgrounds) {
+		bg.Stack(xproto.StackModeBelow)
+	}
 }
 
 func (ctx *Context) DetectScreensChange() (bool, []Rect, error) {
@@ -97,6 +160,8 @@ func (ctx *Context) UpdateScreens() {
         c.MoveResizeShape(ctx, ctx.DefaultShapeForScreen(screen))
       }
 	}
+
+	ctx.RaiseLock()
 }
 
 func (c *Context) Get(w xproto.Window) *Frame {

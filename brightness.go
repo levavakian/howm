@@ -41,6 +41,10 @@ func GetBrightnessAndMaxBrightness(ctx *frame.Context) (int, int, error) {
 
 func RegisterBrightnessHooks(ctx *frame.Context) error {
 	brightnessMod := func(increment float64) {
+		if ctx.Locked {
+			return
+		}
+
 		current, max, err := GetBrightnessAndMaxBrightness(ctx)
 		if err != nil || max <= 0 {
 			return

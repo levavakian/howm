@@ -35,6 +35,10 @@ type VolumeContext struct {
 func RegisterVolumeHooks(ctx *frame.Context) error {
 	volumeBeforeMute := &VolumeContext{}
 	audioMod := func(increment int) {
+		if ctx.Locked {
+			return
+		}
+
 		target := 0
 		current, err := GetCurrentAudio()
 		if err != nil {

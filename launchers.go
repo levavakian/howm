@@ -60,6 +60,10 @@ func RegisterSplitHooks(ctx *frame.Context) error {
 		ncmd := v  // force to not be a reference
 		err = keybind.KeyReleaseFun(
 		  func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent) {
+            if ctx.Locked {
+                return
+            }
+
 			if ctx.SplitPrompt != nil {
 			  ctx.SplitPrompt.Destroy()
 			}
@@ -79,6 +83,10 @@ func RegisterSplitHooks(ctx *frame.Context) error {
 
     // Shitty standalone launchers
     err = keybind.KeyReleaseFun(func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent){
+        if ctx.Locked {
+            return
+        }
+
 		inPrompt := prompt.NewInput(X, prompt.DefaultInputTheme, prompt.DefaultInputConfig)
 	
 		canc := func (inp *prompt.Input) {
@@ -106,6 +114,10 @@ func RegisterSplitHooks(ctx *frame.Context) error {
 
     // Split launchers
 	err = keybind.KeyReleaseFun(func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent){
+        if ctx.Locked {
+            return
+        }
+
 		fr := Split(ctx)
 		if fr == nil {
 			return
@@ -120,6 +132,10 @@ func RegisterSplitHooks(ctx *frame.Context) error {
 	}
 
 	err = keybind.KeyReleaseFun(func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent){
+        if ctx.Locked {
+            return
+        }
+
 		fr := Split(ctx)
 		if fr == nil {
 			return

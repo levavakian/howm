@@ -62,6 +62,10 @@ func RegisterChooseHooks(ctx *frame.Context) {
 	wrapper := &CycleWrap{}
 
 	cycle := func(cycleDir string){
+		if ctx.Locked {
+			return
+		}
+
 		if wrapper.Cycle != nil {
 			if cycleDir == ctx.Config.TabBackward {
 				wrapper.Cycle.Prev()
@@ -73,6 +77,10 @@ func RegisterChooseHooks(ctx *frame.Context) {
 	}
 
 	register := func(cycleDir string){
+		if ctx.Locked {
+			return
+		}
+
 		if wrapper.Cycle != nil {
 			shown := wrapper.Cycle.Show(ctx.Screens[0].ToXRect(), cycleDir, wrapper.Choices)
 			if !shown {
