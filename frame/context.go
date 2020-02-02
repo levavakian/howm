@@ -26,6 +26,7 @@ type Context struct {
 	Tracked map[xproto.Window]*Frame
 	Containers map[*Container]struct{}
 	Cursors map[int]xproto.Cursor
+	DummyIcon *xgraphics.Image
 	Backgrounds map[xproto.Window]*xwindow.Window
 	Config Config
 	Screens []Rect
@@ -47,6 +48,7 @@ func NewContext(x *xgbutil.XUtil) (*Context, error) {
 		Cursors: make(map[int]xproto.Cursor),
 		Containers: make(map[*Container]struct{}),
 		Config: conf,
+		DummyIcon: xgraphics.New(x, conf.TaskbarElementShape.ToImageRect()),
 	}
 	c.UpdateScreens()
 	c.Taskbar = NewTaskbar(c)

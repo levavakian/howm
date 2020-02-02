@@ -113,7 +113,7 @@ func (t *Taskbar) UpdateContainer(ctx *Context, c *Container) {
 	ximg, err := xgraphics.FindIcon(ctx.X, f.Window.Id, ctx.Config.TaskbarElementShape.W, ctx.Config.TaskbarElementShape.H)
 	if err != nil {
 		log.Println(err)
-		return
+		ximg = ctx.DummyIcon
 	}
 
 	ximg.XSurfaceSet(elem.Window.Id)
@@ -362,6 +362,14 @@ func (e *Element) AddIconHooks(ctx *Context) error {
 			return
 		}
 
+		if !e.Container.Hidden {
+			f := ctx.GetFocusedFrame()
+			if f == nil || f.Container != e.Container {
+				f.Container.RaiseFindFocus(ctx)
+				return
+			}
+		}
+		
 		e.Container.ChangeMinimizationState(ctx)
 	}).Connect(ctx.X, e.Window.Id, ctx.Config.ButtonClick, false, true)
 	if err != nil {
@@ -445,6 +453,7 @@ func (t *Taskbar) MoveResize(ctx *Context) {
 	t.Base.Window.MoveResize(s.X, s.Y, s.W, s.H)
 	st := TimeShape(ctx)
 	t.TimeWin.MoveResize(st.X, st.Y, st.W, st.H)
+	t.Scroller.MoveResize(ctx)
 }
 
 func (t *Taskbar) Update(ctx *Context) {

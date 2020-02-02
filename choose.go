@@ -33,9 +33,11 @@ func (c *Choice) CycleIsActive() bool {
 }
 
 func (c *Choice) CycleImage() *xgraphics.Image {
-	ximg, _ := xgraphics.FindIcon(c.Context.X, c.Win.Id,
+	ximg, err := xgraphics.FindIcon(c.Context.X, c.Win.Id,
 		prompt.DefaultCycleTheme.IconSize, prompt.DefaultCycleTheme.IconSize)
-	// TODO: return empty image
+	if err != nil {
+		return c.Context.DummyIcon
+	}
 	return ximg
 }
 
