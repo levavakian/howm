@@ -32,6 +32,9 @@ More commands can be added to the builtin commands in `config.go`.
 
 If an internal video is being fullscreened, sometimes you may need to resize or move the window a little to have the internal video fill the screen.
 
+#### Taskbar
+The taskbar can be toggled with `Mod4-s`. The display time format can be changed in `config.go`
+
 #### Background image
 Any photo named `$USER/.config/howm/bg.png` will be used as a background image. You can change the path in `config.go`.
 

@@ -30,7 +30,10 @@ func RegisterTaskbarHooks(ctx *frame.Context) error {
 		updates := make(map[*frame.Container]AnchorTo)
 		for c, _ := range(ctx.Containers) {
 			anchor := func()AnchorTo{
-				screen, _, _ := ctx.GetScreenForShape(c.Shape)
+				screen, _, index := ctx.GetScreenForShape(c.Shape)
+				if index != 0 {
+					return AnchorTo{frame.NONE, frame.Rect{}}
+				}
 				for _, opt := range(options) {
 					if c.Shape == frame.AnchorShape(ctx, screen, opt) {
 						return AnchorTo{opt, screen}

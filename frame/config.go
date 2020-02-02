@@ -55,6 +55,7 @@ type Config struct {
 	TaskbarTimeBaseColor uint32
 	TaskbarXPad int
 	TaskbarYPad int
+	TaskbarTimeFormat string
 }
 
 func HomeDir() string {
@@ -122,6 +123,7 @@ func DefaultConfig() Config {
 		TaskbarTimeBaseColor: 0x222222,
 		TaskbarXPad: 5,
 		TaskbarYPad: 5,
+		TaskbarTimeFormat: "2006 Mon Jan 2 - 15:04:05 (MST)",
 	}
 }
 

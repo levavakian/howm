@@ -11,9 +11,6 @@ import (
 	"github.com/BurntSushi/wingo/render"
 )
 
-const (
-	TimeFormat = "2006 Mon Jan 2 - 15:04:05 (MST)"
-)
 
 type Taskbar struct {
 	Base Decoration
@@ -39,7 +36,7 @@ func TaskbarShape(ctx *Context) Rect {
 }
 
 func TimeShape(ctx *Context, time time.Time) Rect {
-	ew, eh := xgraphics.Extents(prompt.DefaultInputTheme.Font, ctx.Config.TaskbarFontSize, time.Format(TimeFormat))
+	ew, eh := xgraphics.Extents(prompt.DefaultInputTheme.Font, ctx.Config.TaskbarFontSize, time.Format(ctx.Config.TaskbarTimeFormat))
 	s := TaskbarShape(ctx)
 	return Rect{
 		X: s.X + s.W - ew - ctx.Config.TaskbarXPad,
@@ -79,7 +76,6 @@ func NewTaskbar(ctx *Context) *Taskbar {
 
 func (t *Taskbar) MoveResize(ctx *Context) {
 	s := TaskbarShape(ctx)
-	log.Println(s)
 	t.Base.Window.MoveResize(s.X, s.Y, s.W, s.H)
 	st := TimeShape(ctx, time.Now())
 	t.TimeWin.MoveResize(st.X, st.Y, st.W, st.H)
@@ -95,7 +91,7 @@ func (t *Taskbar) Update(ctx *Context) {
 		ctx.Config.TaskbarFontSize,
 		render.NewColor(int(ctx.Config.TaskbarTextColor)),
 		render.NewColor(int(ctx.Config.TaskbarBaseColor)),
-		now.Format(TimeFormat),
+		now.Format(ctx.Config.TaskbarTimeFormat),
 	)
 	t.TimeWin.MoveResize(s.X, s.Y, s.W, s.H)
 }
