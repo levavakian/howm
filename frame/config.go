@@ -59,6 +59,8 @@ type Config struct {
 	TaskbarYPad int
 	TaskbarTimeFormat string
 	TaskbarElementShape Rect
+	TaskbarMinMarkHeight int
+	TaskbarMinMarkColor uint32
 }
 
 func HomeDir() string {
@@ -131,10 +133,12 @@ func DefaultConfig() Config {
 		TaskbarTimeFormat: "2006 Mon Jan 2 - 15:04:05 (MST)",
 		TaskbarElementShape: Rect{
 			X: 2,
-			Y: 2,
+			Y: 0,
 			W: 16,
 			H: 16,
 		},
+		TaskbarMinMarkHeight: 4,
+		TaskbarMinMarkColor: 0x999999,
 	}
 }
 

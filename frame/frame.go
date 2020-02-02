@@ -389,6 +389,15 @@ func (c *Container) Map() {
 	c.Root.Map()
 }
 
+func (c *Container) ChangeMinimizationState(ctx *Context) {
+	c.Hidden = !c.Hidden
+	c.UpdateFrameMappings()
+	if !c.Hidden {
+		c.RaiseFindFocus(ctx)
+	}
+	ctx.Taskbar.UpdateContainer(ctx, c)
+}
+
 func (c *Container) UpdateFrameMappings() {
 	if c.Hidden {
 		c.Root.Unmap()
@@ -396,11 +405,9 @@ func (c *Container) UpdateFrameMappings() {
 		return
 	}
 
-	if c.Decorations.Hidden {
-		c.Decorations.Hidden = false
+	if !c.Decorations.Hidden {
 		c.Decorations.Map()
 	} else {
-		c.Decorations.Hidden = true
 		c.Decorations.Unmap()
 	}
 
@@ -729,6 +736,7 @@ func AddWindowHook(ctx *Context, window xproto.Window) error {
 	err = keybind.KeyReleaseFun(
 		func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent){
 			f := ctx.Get(window)
+			f.Container.Decorations.Hidden = !f.Container.Decorations.Hidden
 			f.Container.UpdateFrameMappings()
 			f.Container.MoveResizeShape(ctx, f.Container.Shape)
 	  }).Connect(ctx.X, window, ctx.Config.ToggleExternalDecorator, true)

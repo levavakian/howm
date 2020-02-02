@@ -5,6 +5,9 @@ import (
 	"time"
 	"github.com/BurntSushi/xgb/xproto"
 	"github.com/BurntSushi/xgbutil/xgraphics"
+	"github.com/BurntSushi/xgbutil"
+	"github.com/BurntSushi/xgbutil/xevent"
+	"github.com/BurntSushi/xgbutil/mousebind"
 	"github.com/BurntSushi/xgbutil/xwindow"
 	"github.com/BurntSushi/wingo/prompt"
 	"github.com/BurntSushi/wingo/text"
@@ -22,15 +25,48 @@ type Taskbar struct {
 type Element struct {
 	Container *Container
 	Window *xwindow.Window
+	MinWin *xwindow.Window
 	Shape Rect
+}
+
+func (e *Element) Raise(ctx *Context) {
+	e.Window.Stack(xproto.StackModeAbove)
+	e.MinWin.Stack(xproto.StackModeAbove)
+}
+
+func (e *Element) Lower(ctx *Context) {
+	e.Window.Stack(xproto.StackModeBelow)
+	e.MinWin.Stack(xproto.StackModeBelow)
+}
+
+func (e *Element) UpdateMapping(t *Taskbar) {
+	if t.Hidden {
+		e.MinWin.Unmap()
+		e.Window.Unmap()
+	} else {
+		if e.Container.Hidden {
+			e.MinWin.Map()
+		} else {
+			e.MinWin.Unmap()
+		}
+		e.Window.Map()
+	}
+}
+
+func (e *Element) Destroy() {
+	e.Window.Destroy()
+	e.MinWin.Destroy()
 }
 
 func (e *Element) MoveResize(ctx *Context, shape Rect) {
 	e.Shape = shape
 	e.Window.MoveResize(shape.X, shape.Y, shape.W, shape.H)
+	mwShape := MinWinShape(ctx, e.Shape)
+	e.MinWin.MoveResize(mwShape.X, mwShape.Y, mwShape.W, mwShape.H)
 }
 
 func (t *Taskbar) UpdateContainer(ctx *Context, c *Container) {
+	var err error
 	elem, ok := t.Elements[c]
 	if !ok {
 		elem = &Element{
@@ -45,6 +81,14 @@ func (t *Taskbar) UpdateContainer(ctx *Context, c *Container) {
 		}
 		win.Create(ctx.X.RootWin(), elem.Shape.X, elem.Shape.Y, elem.Shape.W, elem.Shape.H, 0)
 		elem.Window = win
+
+		dec, err := CreateDecoration(ctx, MinWinShape(ctx, elem.Shape), ctx.Config.TaskbarMinMarkColor, 0)
+		if err != nil {
+			log.Println(err)
+		}
+		elem.MinWin = dec.Window
+
+		elem.AddIconHooks(ctx)
 		t.Elements[c] = elem
 	}
 
@@ -66,9 +110,21 @@ func (t *Taskbar) UpdateContainer(ctx *Context, c *Container) {
 	ximg.XDraw()
 	ximg.XPaint(elem.Window.Id)
 
-	if !t.Hidden {
-		elem.Window.Map()
+	elem.UpdateMapping(t)
+}
+
+func (e *Element) AddIconHooks(ctx *Context) error {
+	err := mousebind.ButtonPressFun(func(X *xgbutil.XUtil, ev xevent.ButtonPressEvent) {
+		if ctx.Locked {
+			return
+		}
+
+		e.Container.ChangeMinimizationState(ctx)
+	}).Connect(ctx.X, e.Window.Id, ctx.Config.ButtonClick, false, true)
+	if err != nil {
+		return err
 	}
+	return err
 }
 
 func (t *Taskbar) RemoveContainer(ctx *Context, c *Container) {
@@ -77,7 +133,8 @@ func (t *Taskbar) RemoveContainer(ctx *Context, c *Container) {
 		return
 	}
 	elem.Window.Unmap()
-	elem.Window.Destroy()
+	elem.MinWin.Unmap()
+	elem.Destroy()
 
 	delete(t.Elements, c)
 	combWidth := ctx.Config.TaskbarElementShape.X *2 + ctx.Config.TaskbarElementShape.W
@@ -98,6 +155,15 @@ func ElementShape(ctx *Context, index int, offset int) Rect {
 		Y: tb.Y + ctx.Config.TaskbarElementShape.Y,
 		W: ctx.Config.TaskbarElementShape.W,
 		H: ctx.Config.TaskbarElementShape.H,
+	}
+}
+
+func MinWinShape(ctx *Context, elementShape Rect) Rect {
+	return Rect{
+		X: elementShape.X,
+		Y: elementShape.Y + elementShape.H,
+		W: elementShape.W,
+		H: ctx.Config.TaskbarMinMarkHeight,
 	}
 }
 
@@ -157,7 +223,7 @@ func (t *Taskbar) Map() {
 	t.Base.Window.Map()
 	t.TimeWin.Map()
 	for _, e := range(t.Elements) {
-		e.Window.Map()
+		e.UpdateMapping(t)
 	}
 }
 
@@ -165,7 +231,7 @@ func (t *Taskbar) Unmap() {
 	t.Base.Window.Unmap()
 	t.TimeWin.Unmap()
 	for _, e := range(t.Elements) {
-		e.Window.Unmap()
+		e.UpdateMapping(t)
 	}
 }
 
@@ -173,7 +239,7 @@ func (t *Taskbar) Raise(ctx *Context) {
 	t.Base.Window.Stack(xproto.StackModeAbove)
 	t.TimeWin.Stack(xproto.StackModeAbove)
 	for _, e := range(t.Elements) {
-		e.Window.Stack(xproto.StackModeAbove)
+		e.Raise(ctx)
 	}
 }
 
@@ -181,7 +247,7 @@ func (t *Taskbar) Lower(ctx *Context) {
 	t.Base.Window.Stack(xproto.StackModeBelow)
 	t.TimeWin.Stack(xproto.StackModeBelow)
 	for _, e := range(t.Elements) {
-		e.Window.Stack(xproto.StackModeBelow)
+		e.Lower(ctx)
 	}
 }
 
