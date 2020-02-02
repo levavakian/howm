@@ -33,7 +33,9 @@ More commands can be added to the builtin commands in `config.go`.
 If an internal video is being fullscreened, sometimes you may need to resize or move the window a little to have the internal video fill the screen.
 
 #### Taskbar
-The taskbar can be toggled with `Mod4-s`. The display time format can be changed in `config.go`
+The taskbar can be toggled with `Mod4-s`. `Mod4-Shift-down` will minimize the focused container to the taskbar. `Mod4-Shift-left/right` will scroll the taskbar if lots of windows are open.
+
+The display time format can be changed in `config.go`, but things may be a bit funky if the time format does not have constant size.
 
 #### Background image
 Any photo named `$USER/.config/howm/bg.png` will be used as a background image. You can change the path in `config.go`.

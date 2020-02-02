@@ -26,6 +26,7 @@ type Config struct {
 	ToggleExternalDecorator string
 	ToggleTaskbar string
 	ResetSize string
+	Minimize string
 	WindowUp string
 	WindowDown string
 	WindowLeft string
@@ -52,14 +53,19 @@ type Config struct {
 	BuiltinCommands map[string]string
 	ScreenPoll time.Duration
 	TaskbarHeight int
+	TaskbarSlideWidth int
+	TaskbarSlideActiveColor uint32
+	TaskbarSlideInactiveColor uint32
 	TaskbarFontSize float64
 	TaskbarTimeBaseColor uint32
 	TaskbarXPad int
 	TaskbarYPad int
 	TaskbarTimeFormat string
 	TaskbarElementShape Rect
-	TaskbarMinMarkHeight int
-	TaskbarMinMarkColor uint32
+	TaskbarMinMaxHeight int
+	TaskbarMinMaxColor uint32
+	TaskbarSlideLeft string
+	TaskbarSlideRight string
 }
 
 func HomeDir() string {
@@ -93,6 +99,7 @@ func DefaultConfig() Config {
 		WindowLeft: "Mod4-left",
 		WindowRight: "Mod4-right",
 		ResetSize: "Mod4-Shift-up",
+		Minimize: "Mod4-Shift-down",
 		VolumeUp: "Mod4-F3",
 		VolumeDown: "Mod4-F2",
 		VolumeMute: "Mod4-F1",
@@ -128,15 +135,20 @@ func DefaultConfig() Config {
 		TaskbarTimeBaseColor: 0x222222,
 		TaskbarXPad: 5,
 		TaskbarYPad: 5,
-		TaskbarTimeFormat: "2006 Mon Jan 2 - 15:04:05 (MST)",
+		TaskbarTimeFormat: "2006 Mon Jan 02 - 15:04:05 (MST)",
 		TaskbarElementShape: Rect{
 			X: 2,
 			Y: 0,
 			W: 16,
 			H: 16,
 		},
-		TaskbarMinMarkHeight: 4,
-		TaskbarMinMarkColor: 0x999999,
+		TaskbarSlideWidth: 10,
+		TaskbarSlideActiveColor: 0x666666,
+		TaskbarSlideInactiveColor: 0x333333,
+		TaskbarMinMaxHeight: 4,
+		TaskbarMinMaxColor: 0x999999,
+		TaskbarSlideLeft: "Mod4-Shift-left",
+		TaskbarSlideRight: "Mod4-Shift-right",
 	}
 }
 

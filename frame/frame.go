@@ -719,6 +719,18 @@ func AddWindowHook(ctx *Context, window xproto.Window) error {
 	  }).Connect(ctx.X, window, ctx.Config.CloseFrame, true)
 	ext.Logerr(err)
 
+	err = keybind.KeyReleaseFun(func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent){
+        if ctx.Locked {
+            return
+		}
+		
+		f := ctx.Get(window)
+		if !f.Container.Hidden {
+			f.Container.ChangeMinimizationState(ctx)
+		}
+	}).Connect(ctx.X, window, ctx.Config.Minimize, true)
+	ext.Logerr(err)
+
 	err = keybind.KeyReleaseFun(
 		func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent){
 			f := ctx.Get(window)

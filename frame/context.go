@@ -48,8 +48,8 @@ func NewContext(x *xgbutil.XUtil) (*Context, error) {
 		Containers: make(map[*Container]struct{}),
 		Config: conf,
 	}
-	c.Taskbar = NewTaskbar(c)
 	c.UpdateScreens()
+	c.Taskbar = NewTaskbar(c)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -165,7 +165,9 @@ func (ctx *Context) UpdateScreens() {
       }
 	}
 
-	ctx.Taskbar.MoveResize(ctx)
+	if ctx.Taskbar != nil {
+		ctx.Taskbar.MoveResize(ctx)
+	}
 	ctx.RaiseLock()
 }
 

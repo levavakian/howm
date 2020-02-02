@@ -47,15 +47,37 @@ func RegisterTaskbarHooks(ctx *frame.Context) error {
 		}
 
 		ctx.Taskbar.Hidden = !ctx.Taskbar.Hidden
-		if (ctx.Taskbar.Hidden) {
-			ctx.Taskbar.Unmap()
-		} else {
-			ctx.Taskbar.Map()
-		}
+		ctx.Taskbar.UpdateMapping(ctx)
 
 		for c, anchor := range(updates) {
 			c.MoveResizeShape(ctx, frame.AnchorShape(ctx, anchor.Screen, anchor.Anchor))
 		}
-    }).Connect(ctx.X, ctx.X.RootWin(), ctx.Config.ToggleTaskbar, true)
+	}).Connect(ctx.X, ctx.X.RootWin(), ctx.Config.ToggleTaskbar, true)
+	if err != nil {
+		return err
+	}
+
+	err = keybind.KeyReleaseFun(func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent){
+        if ctx.Locked {
+            return
+		}
+		
+		ctx.Taskbar.Scroller.SlideLeft(ctx)
+	}).Connect(ctx.X, ctx.X.RootWin(), ctx.Config.TaskbarSlideLeft, true)
+	if err != nil {
+		return err
+	}
+
+	err = keybind.KeyReleaseFun(func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent){
+        if ctx.Locked {
+            return
+		}
+		
+		ctx.Taskbar.Scroller.SlideRight(ctx)
+	}).Connect(ctx.X, ctx.X.RootWin(), ctx.Config.TaskbarSlideRight, true)
+	if err != nil {
+		return err
+	}
+
 	return err
 }
