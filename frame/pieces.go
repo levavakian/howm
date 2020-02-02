@@ -9,6 +9,120 @@ import (
 	"github.com/BurntSushi/xgbutil/mousebind"
 )
 
+func GeneratePieces(ctx *Context, c *Container) error {
+	// Create Decorations
+	var err error
+	c.Decorations.Grab, err = CreateDecoration(
+		ctx,
+		GrabShape(ctx, c.Shape),
+		ctx.Config.GrabColor,
+		0,
+	)
+	ext.Logerr(err)
+
+	c.Decorations.Top, err = CreateDecoration(
+		ctx,
+		TopShape(ctx, c.Shape),
+		ctx.Config.SeparatorColor,
+		uint32(ctx.Cursors[xcursor.TopSide]),
+	)
+	ext.Logerr(err)
+
+	c.Decorations.Bottom, err = CreateDecoration(
+		ctx,
+		BottomShape(ctx, c.Shape),
+		ctx.Config.SeparatorColor,
+		uint32(ctx.Cursors[xcursor.BottomSide]),
+	)
+	ext.Logerr(err)
+
+	c.Decorations.Left, err = CreateDecoration(
+		ctx,
+		LeftShape(ctx, c.Shape),
+		ctx.Config.SeparatorColor,
+		uint32(ctx.Cursors[xcursor.LeftSide]),
+	)
+	ext.Logerr(err)
+
+	c.Decorations.Right, err = CreateDecoration(
+		ctx,
+		RightShape(ctx, c.Shape),
+		ctx.Config.SeparatorColor,
+		uint32(ctx.Cursors[xcursor.RightSide]),
+	)
+	ext.Logerr(err)
+
+	c.Decorations.BottomRight, err = CreateDecoration(
+		ctx,
+		BottomRightShape(ctx, c.Shape),
+		ctx.Config.ResizeColor,
+		uint32(ctx.Cursors[xcursor.BottomRightCorner]),
+	)
+	ext.Logerr(err)
+
+	c.Decorations.BottomLeft, err = CreateDecoration(
+		ctx,
+		BottomLeftShape(ctx, c.Shape),
+		ctx.Config.ResizeColor,
+		uint32(ctx.Cursors[xcursor.BottomLeftCorner]),
+	)
+	ext.Logerr(err)
+
+	c.Decorations.TopRight, err = CreateDecoration(
+		ctx,
+		TopRightShape(ctx, c.Shape),
+		ctx.Config.ResizeColor,
+		uint32(ctx.Cursors[xcursor.TopRightCorner]),
+	)
+	ext.Logerr(err)
+
+	c.Decorations.TopLeft, err = CreateDecoration(
+		ctx,
+		TopLeftShape(ctx, c.Shape),
+		ctx.Config.ResizeColor,
+		uint32(ctx.Cursors[xcursor.TopLeftCorner]),
+	)
+	ext.Logerr(err)
+
+	c.Decorations.Close, err = CreateDecoration(
+		ctx,
+		CloseShape(ctx, c.Shape),
+		ctx.Config.CloseColor,
+		uint32(ctx.Cursors[xcursor.DiamondCross]),
+	)
+	ext.Logerr(err)
+
+	c.Decorations.Maximize, err = CreateDecoration(
+		ctx,
+		MaximizeShape(ctx, c.Shape),
+		ctx.Config.MaximizeColor,
+		uint32(ctx.Cursors[xcursor.Plus]),
+	)
+	ext.Logerr(err)
+
+	c.Decorations.Minimize, err = CreateDecoration(
+		ctx,
+		MinimizeShape(ctx, c.Shape),
+		ctx.Config.MinimizeColor,
+		uint32(ctx.Cursors[xcursor.BottomTee]),
+	)
+	ext.Logerr(err)
+
+	// Add hooks
+	err = c.AddCloseHook(ctx)
+	ext.Logerr(err)
+	c.AddTopHook(ctx)
+	c.AddBottomHook(ctx)
+	c.AddLeftHook(ctx)
+	c.AddRightHook(ctx)
+	c.AddBottomRightHook(ctx)
+	c.AddBottomLeftHook(ctx)
+	c.AddTopRightHook(ctx)
+	c.AddTopLeftHook(ctx)
+	c.AddGrabHook(ctx)
+	return err
+}
+
 func (c *Container) AddGrabHook(ctx *Context) {
 	mousebind.Drag(
 		ctx.X, c.Decorations.Grab.Window.Id, c.Decorations.Grab.Window.Id, ctx.Config.ButtonDrag, true,
@@ -271,7 +385,7 @@ func GrabShape(context *Context, cShape Rect) Rect {
 	return Rect{
 		X: cShape.X,
 		Y: cShape.Y,
-		W: cShape.W - context.Config.ElemSize,
+		W: cShape.W - 3*context.Config.ElemSize,
 		H: context.Config.ElemSize,
 	}
 }
@@ -279,6 +393,24 @@ func GrabShape(context *Context, cShape Rect) Rect {
 func CloseShape(context *Context, cShape Rect) Rect {
 	return Rect{
 		X: cShape.X + cShape.W - context.Config.ElemSize,
+		Y: cShape.Y,
+		W: context.Config.ElemSize,
+		H: context.Config.ElemSize,
+	}
+}
+
+func MaximizeShape(context *Context, cShape Rect) Rect {
+	return Rect{
+		X: cShape.X + cShape.W - 2*context.Config.ElemSize,
+		Y: cShape.Y,
+		W: context.Config.ElemSize,
+		H: context.Config.ElemSize,
+	}
+}
+
+func MinimizeShape(context *Context, cShape Rect) Rect {
+	return Rect{
+		X: cShape.X + cShape.W - 3*context.Config.ElemSize,
 		Y: cShape.Y,
 		W: context.Config.ElemSize,
 		H: context.Config.ElemSize,

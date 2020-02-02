@@ -24,13 +24,15 @@ type Decoration struct {
 
 type ContainerDecorations struct {
 	Hidden bool
-	Close, Grab Decoration
+	Close, Maximize, Minimize, Grab Decoration
 	Top, Left, Bottom, Right Decoration
 	TopRight, TopLeft, BottomRight, BottomLeft Decoration
 }
 
 func (cd *ContainerDecorations) ForEach(f func(*Decoration)) {
 	f(&cd.Close)
+	f(&cd.Minimize)
+	f(&cd.Maximize)
 	f(&cd.Grab)
 	f(&cd.Top)
 	f(&cd.Bottom)
@@ -64,6 +66,8 @@ func (cd *ContainerDecorations) MoveResize(ctx *Context, cShape Rect) {
 	cd.BottomLeft.MoveResize(BottomLeftShape(ctx, cShape))
 	cd.TopRight.MoveResize(TopRightShape(ctx, cShape))
 	cd.TopLeft.MoveResize(TopLeftShape(ctx, cShape))
+	cd.Maximize.MoveResize(MaximizeShape(ctx, cShape))
+	cd.Minimize.MoveResize(MinimizeShape(ctx, cShape))
 }
 
 func (cd *ContainerDecorations) Map() {

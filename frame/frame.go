@@ -243,6 +243,7 @@ func (f *Frame) Destroy(ctx *Context) {
 		par.UnmapSingle()
 		par.Destroy(ctx)
 		oc.MoveResize(ctx)
+		ctx.Taskbar.UpdateContainer(ctx, f.Container)
 	}
 }
 
@@ -379,6 +380,7 @@ func (c *Container) RaiseFindFocus(ctx *Context){
 func (c *Container) Destroy(ctx *Context) {
 	c.Decorations.Destroy(ctx)
 	delete(ctx.Containers, c)
+	ctx.Taskbar.RemoveContainer(ctx, c)
 	xwindow.New(ctx.X, ctx.X.RootWin()).Focus()
 }
 
@@ -502,100 +504,7 @@ func NewWindow(ctx *Context, ev xevent.MapRequestEvent) *Frame {
 	}
 	c.Root = root
 
-	// Create Decorations
-	var err error
-	c.Decorations.Close, err = CreateDecoration(
-		ctx,
-		CloseShape(ctx, c.Shape),
-		ctx.Config.CloseColor,
-		uint32(ctx.Cursors[xcursor.Dot]),
-	)
-	ext.Logerr(err)
-
-	c.Decorations.Grab, err = CreateDecoration(
-		ctx,
-		GrabShape(ctx, c.Shape),
-		ctx.Config.GrabColor,
-		0,
-	)
-	ext.Logerr(err)
-
-	c.Decorations.Top, err = CreateDecoration(
-		ctx,
-		TopShape(ctx, c.Shape),
-		ctx.Config.SeparatorColor,
-		uint32(ctx.Cursors[xcursor.TopSide]),
-	)
-	ext.Logerr(err)
-
-	c.Decorations.Bottom, err = CreateDecoration(
-		ctx,
-		BottomShape(ctx, c.Shape),
-		ctx.Config.SeparatorColor,
-		uint32(ctx.Cursors[xcursor.BottomSide]),
-	)
-	ext.Logerr(err)
-
-	c.Decorations.Left, err = CreateDecoration(
-		ctx,
-		LeftShape(ctx, c.Shape),
-		ctx.Config.SeparatorColor,
-		uint32(ctx.Cursors[xcursor.LeftSide]),
-	)
-	ext.Logerr(err)
-
-	c.Decorations.Right, err = CreateDecoration(
-		ctx,
-		RightShape(ctx, c.Shape),
-		ctx.Config.SeparatorColor,
-		uint32(ctx.Cursors[xcursor.RightSide]),
-	)
-	ext.Logerr(err)
-
-	c.Decorations.BottomRight, err = CreateDecoration(
-		ctx,
-		BottomRightShape(ctx, c.Shape),
-		ctx.Config.ResizeColor,
-		uint32(ctx.Cursors[xcursor.BottomRightCorner]),
-	)
-	ext.Logerr(err)
-
-	c.Decorations.BottomLeft, err = CreateDecoration(
-		ctx,
-		BottomLeftShape(ctx, c.Shape),
-		ctx.Config.ResizeColor,
-		uint32(ctx.Cursors[xcursor.BottomLeftCorner]),
-	)
-	ext.Logerr(err)
-
-	c.Decorations.TopRight, err = CreateDecoration(
-		ctx,
-		TopRightShape(ctx, c.Shape),
-		ctx.Config.ResizeColor,
-		uint32(ctx.Cursors[xcursor.TopRightCorner]),
-	)
-	ext.Logerr(err)
-
-	c.Decorations.TopLeft, err = CreateDecoration(
-		ctx,
-		TopLeftShape(ctx, c.Shape),
-		ctx.Config.ResizeColor,
-		uint32(ctx.Cursors[xcursor.TopLeftCorner]),
-	)
-	ext.Logerr(err)
-
-	// Add hooks
-	err = c.AddCloseHook(ctx)
-	ext.Logerr(err)
-	c.AddTopHook(ctx)
-	c.AddBottomHook(ctx)
-	c.AddLeftHook(ctx)
-	c.AddRightHook(ctx)
-	c.AddBottomRightHook(ctx)
-	c.AddBottomLeftHook(ctx)
-	c.AddTopRightHook(ctx)
-	c.AddTopLeftHook(ctx)
-	c.AddGrabHook(ctx)
+	err := GeneratePieces(ctx, c)
 	err = AddWindowHook(ctx, window)
 	ext.Logerr(err)
 
@@ -608,6 +517,7 @@ func NewWindow(ctx *Context, ev xevent.MapRequestEvent) *Frame {
 	c.Map()
 	ctx.Tracked[window] = c.Root
 	ctx.Containers[c] = struct{}{}
+	ctx.Taskbar.UpdateContainer(ctx, c)
 	c.Root.Focus(ctx)
 	return c.Root
 }

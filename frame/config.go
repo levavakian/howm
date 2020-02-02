@@ -43,6 +43,8 @@ type Config struct {
 	SeparatorColor uint32
 	GrabColor uint32
 	CloseColor uint32
+	MaximizeColor uint32
+	MinimizeColor uint32
 	ResizeColor uint32
 	TaskbarBaseColor uint32
 	TaskbarTextColor uint32
@@ -56,6 +58,7 @@ type Config struct {
 	TaskbarXPad int
 	TaskbarYPad int
 	TaskbarTimeFormat string
+	TaskbarElementShape Rect
 }
 
 func HomeDir() string {
@@ -110,6 +113,8 @@ func DefaultConfig() Config {
 		TaskbarBaseColor: 0x222222,
 		TaskbarTextColor: 0xbbbbbb,
 		CloseColor: 0xff0000,
+		MaximizeColor: 0x00ff00,
+		MinimizeColor: 0xfdfd96,
 		InternalPadding: 0,
 		BackgroundImagePath: path.Join(HomeDir(), ".config/howm/bg.png"),
 		ScreenPoll: time.Second * 2,
@@ -124,6 +129,12 @@ func DefaultConfig() Config {
 		TaskbarXPad: 5,
 		TaskbarYPad: 5,
 		TaskbarTimeFormat: "2006 Mon Jan 2 - 15:04:05 (MST)",
+		TaskbarElementShape: Rect{
+			X: 2,
+			Y: 2,
+			W: 16,
+			H: 16,
+		},
 	}
 }
 

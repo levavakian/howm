@@ -16,38 +16,95 @@ type Taskbar struct {
 	Base Decoration
 	TimeWin *xwindow.Window
 	Hidden bool
+	Elements map[*Container]*Element
 }
 
-func TaskbarShape(ctx *Context) Rect {
-	if len(ctx.Screens) == 0 {
-		return Rect{
-			X: 0,
-			Y: 0,
-			W: ctx.Config.ElemSize,
-			H: ctx.Config.ElemSize,
+type Element struct {
+	Container *Container
+	Window *xwindow.Window
+	Shape Rect
+}
+
+func (e *Element) MoveResize(ctx *Context, shape Rect) {
+	e.Shape = shape
+	e.Window.MoveResize(shape.X, shape.Y, shape.W, shape.H)
+}
+
+func (t *Taskbar) UpdateContainer(ctx *Context, c *Container) {
+	elem, ok := t.Elements[c]
+	if !ok {
+		elem = &Element{
+			Container: c,
+			Shape: ElementShape(ctx, len(t.Elements), 0),
+		}
+
+		win, err := xwindow.Generate(ctx.X)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		win.Create(ctx.X.RootWin(), elem.Shape.X, elem.Shape.Y, elem.Shape.W, elem.Shape.H, 0)
+		elem.Window = win
+		t.Elements[c] = elem
+	}
+
+	f := c.Root.Find(func(fr *Frame)bool{
+		return fr.IsLeaf()
+	})
+	if f == nil {
+		log.Println("could not find representative leaf")
+		return
+	}
+
+	ximg, err := xgraphics.FindIcon(ctx.X, f.Window.Id, elem.Shape.W, elem.Shape.H)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	ximg.XSurfaceSet(elem.Window.Id)
+	ximg.XDraw()
+	ximg.XPaint(elem.Window.Id)
+
+	if !t.Hidden {
+		elem.Window.Map()
+	}
+}
+
+func (t *Taskbar) RemoveContainer(ctx *Context, c *Container) {
+	elem, ok := t.Elements[c]
+	if !ok {
+		return
+	}
+	elem.Window.Unmap()
+	elem.Window.Destroy()
+
+	delete(t.Elements, c)
+	combWidth := ctx.Config.TaskbarElementShape.X *2 + ctx.Config.TaskbarElementShape.W
+	for _, e := range(t.Elements) {
+		if e.Shape.X >= elem.Shape.X {
+			s := e.Shape
+			s.X = s.X - combWidth
+			e.MoveResize(ctx, s)
 		}
 	}
-	return Rect{
-		X: ctx.Screens[0].X,
-		Y: ctx.Screens[0].Y + ctx.Screens[0].H - ctx.Config.TaskbarHeight,
-		W: ctx.Screens[0].W,
-		H: ctx.Config.TaskbarHeight,
-	}
 }
 
-func TimeShape(ctx *Context, time time.Time) Rect {
-	ew, eh := xgraphics.Extents(prompt.DefaultInputTheme.Font, ctx.Config.TaskbarFontSize, time.Format(ctx.Config.TaskbarTimeFormat))
-	s := TaskbarShape(ctx)
+func ElementShape(ctx *Context, index int, offset int) Rect {
+	tb := TaskbarShape(ctx)
+	combWidth := ctx.Config.TaskbarElementShape.X *2 + ctx.Config.TaskbarElementShape.W
 	return Rect{
-		X: s.X + s.W - ew - ctx.Config.TaskbarXPad,
-		Y: s.Y + s.H - eh - ctx.Config.TaskbarYPad,
-		W: ew,
-		H: eh,
+		X: tb.X + (combWidth*index + ctx.Config.TaskbarElementShape.X) + offset,
+		Y: tb.Y + ctx.Config.TaskbarElementShape.Y,
+		W: ctx.Config.TaskbarElementShape.W,
+		H: ctx.Config.TaskbarElementShape.H,
 	}
 }
 
 func NewTaskbar(ctx *Context) *Taskbar {
-	t := &Taskbar{}
+	t := &Taskbar{
+		Elements: make(map[*Container]*Element),
+	}
 	var err error
 
 	// Base background
@@ -99,19 +156,59 @@ func (t *Taskbar) Update(ctx *Context) {
 func (t *Taskbar) Map() {
 	t.Base.Window.Map()
 	t.TimeWin.Map()
+	for _, e := range(t.Elements) {
+		e.Window.Map()
+	}
 }
 
 func (t *Taskbar) Unmap() {
 	t.Base.Window.Unmap()
 	t.TimeWin.Unmap()
+	for _, e := range(t.Elements) {
+		e.Window.Unmap()
+	}
 }
 
 func (t *Taskbar) Raise(ctx *Context) {
 	t.Base.Window.Stack(xproto.StackModeAbove)
 	t.TimeWin.Stack(xproto.StackModeAbove)
+	for _, e := range(t.Elements) {
+		e.Window.Stack(xproto.StackModeAbove)
+	}
 }
 
 func (t *Taskbar) Lower(ctx *Context) {
 	t.Base.Window.Stack(xproto.StackModeBelow)
 	t.TimeWin.Stack(xproto.StackModeBelow)
+	for _, e := range(t.Elements) {
+		e.Window.Stack(xproto.StackModeBelow)
+	}
+}
+
+func TaskbarShape(ctx *Context) Rect {
+	if len(ctx.Screens) == 0 {
+		return Rect{
+			X: 0,
+			Y: 0,
+			W: ctx.Config.ElemSize,
+			H: ctx.Config.ElemSize,
+		}
+	}
+	return Rect{
+		X: ctx.Screens[0].X,
+		Y: ctx.Screens[0].Y + ctx.Screens[0].H - ctx.Config.TaskbarHeight,
+		W: ctx.Screens[0].W,
+		H: ctx.Config.TaskbarHeight,
+	}
+}
+
+func TimeShape(ctx *Context, time time.Time) Rect {
+	ew, eh := xgraphics.Extents(prompt.DefaultInputTheme.Font, ctx.Config.TaskbarFontSize, time.Format(ctx.Config.TaskbarTimeFormat))
+	s := TaskbarShape(ctx)
+	return Rect{
+		X: s.X + s.W - ew - ctx.Config.TaskbarXPad,
+		Y: s.Y + s.H - eh - ctx.Config.TaskbarYPad,
+		W: ew,
+		H: eh,
+	}
 }
