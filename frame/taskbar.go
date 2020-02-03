@@ -1,42 +1,41 @@
 package frame
 
 import (
+	"github.com/BurntSushi/wingo/prompt"
+	"github.com/BurntSushi/wingo/render"
+	"github.com/BurntSushi/wingo/text"
+	"github.com/BurntSushi/xgb/xproto"
+	"github.com/BurntSushi/xgbutil"
+	"github.com/BurntSushi/xgbutil/mousebind"
+	"github.com/BurntSushi/xgbutil/xevent"
+	"github.com/BurntSushi/xgbutil/xgraphics"
+	"github.com/BurntSushi/xgbutil/xwindow"
+	"howm/ext"
 	"log"
 	"time"
-	"howm/ext"
-	"github.com/BurntSushi/xgb/xproto"
-	"github.com/BurntSushi/xgbutil/xgraphics"
-	"github.com/BurntSushi/xgbutil"
-	"github.com/BurntSushi/xgbutil/xevent"
-	"github.com/BurntSushi/xgbutil/mousebind"
-	"github.com/BurntSushi/xgbutil/xwindow"
-	"github.com/BurntSushi/wingo/prompt"
-	"github.com/BurntSushi/wingo/text"
-	"github.com/BurntSushi/wingo/render"
 )
 
-
 type Taskbar struct {
-	Base Decoration
-	TimeWin *xwindow.Window
-	Hidden bool
+	Base     Decoration
+	TimeWin  *xwindow.Window
+	Hidden   bool
 	Scroller *ElementScroller
 }
 
 type Element struct {
-	Container *Container
-	Window *xwindow.Window
-	MinWin *xwindow.Window
+	Container  *Container
+	Window     *xwindow.Window
+	MinWin     *xwindow.Window
 	Prev, Next *Element
-	Active bool
+	Active     bool
 }
 
 type ElementScroller struct {
-	Elements map[*Container]*Element
-	Back *Element
-	Front *Element
-	StartingIdx int
-	CanFit int
+	Elements                                                                 map[*Container]*Element
+	Back                                                                     *Element
+	Front                                                                    *Element
+	StartingIdx                                                              int
+	CanFit                                                                   int
 	ShiftLeftInactive, ShiftRightInactive, ShiftLeftActive, ShiftRightActive *xwindow.Window
 }
 
@@ -102,7 +101,7 @@ func (t *Taskbar) UpdateContainer(ctx *Context, c *Container) {
 		}
 	}
 
-	f := c.Root.Find(func(fr *Frame)bool{
+	f := c.Root.Find(func(fr *Frame) bool {
 		return fr.IsLeaf()
 	})
 	if f == nil {
@@ -154,7 +153,7 @@ func NewElementScroller(ctx *Context) *ElementScroller {
 	canFit := CalcCanFit(ctx)
 	es := &ElementScroller{
 		Elements: make(map[*Container]*Element),
-		CanFit: canFit,
+		CanFit:   canFit,
 	}
 	var err error
 	dec, err := CreateDecoration(ctx, LeftSelectorShape(ctx), ctx.Config.TaskbarSlideInactiveColor, 0)
@@ -222,10 +221,10 @@ func (es *ElementScroller) ForEach(f func(*Element, int)) {
 
 func (es *ElementScroller) ShiftAndActivate(ctx *Context) {
 	if len(es.Elements) < (es.StartingIdx + es.CanFit) {
-		es.StartingIdx = ext.IMax(len(es.Elements) - es.CanFit, 0)
+		es.StartingIdx = ext.IMax(len(es.Elements)-es.CanFit, 0)
 	}
 
-	es.ForEach(func(e *Element, idx int){
+	es.ForEach(func(e *Element, idx int) {
 		active := ShouldActivate(idx, es.StartingIdx, es.CanFit)
 		if !active && !e.Active {
 			return
@@ -246,7 +245,7 @@ func (es *ElementScroller) UpdateMappings(ctx *Context) {
 		es.ShiftLeftInactive.Unmap()
 		es.ShiftRightActive.Unmap()
 		es.ShiftRightInactive.Unmap()
-		es.ForEach(func(e *Element, idx int){
+		es.ForEach(func(e *Element, idx int) {
 			e.UpdateMapping(ctx)
 		})
 		return
@@ -265,7 +264,7 @@ func (es *ElementScroller) UpdateMappings(ctx *Context) {
 		es.ShiftRightInactive.Map()
 		es.ShiftRightActive.Unmap()
 	}
-	es.ForEach(func(e *Element, idx int){
+	es.ForEach(func(e *Element, idx int) {
 		e.UpdateMapping(ctx)
 	})
 }
@@ -275,7 +274,7 @@ func (es *ElementScroller) Raise(ctx *Context) {
 	es.ShiftLeftInactive.Stack(xproto.StackModeAbove)
 	es.ShiftRightActive.Stack(xproto.StackModeAbove)
 	es.ShiftRightInactive.Stack(xproto.StackModeAbove)
-	es.ForEach(func(e *Element, idx int){
+	es.ForEach(func(e *Element, idx int) {
 		e.Window.Stack(xproto.StackModeAbove)
 		e.MinWin.Stack(xproto.StackModeAbove)
 	})
@@ -286,7 +285,7 @@ func (es *ElementScroller) Lower(ctx *Context) {
 	es.ShiftLeftInactive.Stack(xproto.StackModeBelow)
 	es.ShiftRightActive.Stack(xproto.StackModeBelow)
 	es.ShiftRightInactive.Stack(xproto.StackModeBelow)
-	es.ForEach(func(e *Element, idx int){
+	es.ForEach(func(e *Element, idx int) {
 		e.Window.Stack(xproto.StackModeBelow)
 		e.MinWin.Stack(xproto.StackModeBelow)
 	})
@@ -311,7 +310,7 @@ func NewElement(ctx *Context, c *Container, idx int) *Element {
 	}
 	elem.MinWin = dec.Window
 	elem.AddIconHooks(ctx)
-	
+
 	return elem
 }
 
@@ -350,7 +349,7 @@ func (e *Element) Destroy() {
 }
 
 func (e *Element) MoveResize(ctx *Context, idx int) {
-	shape := ElementShape(ctx, idx - ctx.Taskbar.Scroller.StartingIdx)
+	shape := ElementShape(ctx, idx-ctx.Taskbar.Scroller.StartingIdx)
 	e.Window.MoveResize(shape.X, shape.Y, shape.W, shape.H)
 	mwShape := MinWinShape(ctx, shape)
 	e.MinWin.MoveResize(mwShape.X, mwShape.Y, mwShape.W, mwShape.H)
@@ -369,7 +368,7 @@ func (e *Element) AddIconHooks(ctx *Context) error {
 				return
 			}
 		}
-		
+
 		e.Container.ChangeMinimizationState(ctx)
 	}).Connect(ctx.X, e.Window.Id, ctx.Config.ButtonClick, false, true)
 	if err != nil {
@@ -383,7 +382,7 @@ func (es *ElementScroller) SlideLeft(ctx *Context) {
 		return
 	}
 
-	es.StartingIdx = ext.IMax(es.StartingIdx - 1, 0)
+	es.StartingIdx = ext.IMax(es.StartingIdx-1, 0)
 	es.UpdateMappings(ctx)
 	es.ShiftAndActivate(ctx)
 }
@@ -395,8 +394,8 @@ func (es *ElementScroller) SlideRight(ctx *Context) {
 
 	if (es.StartingIdx + es.CanFit) > len(es.Elements) {
 		return
-	} 
-	es.StartingIdx = ext.IMin(es.StartingIdx + 1, ext.IMax(len(es.Elements) - 1, 0))
+	}
+	es.StartingIdx = ext.IMin(es.StartingIdx+1, ext.IMax(len(es.Elements)-1, 0))
 	es.UpdateMappings(ctx)
 	es.ShiftAndActivate(ctx)
 }
@@ -493,7 +492,7 @@ func (t *Taskbar) Lower(ctx *Context) {
 
 func CalcCanFit(ctx *Context) int {
 	tshape := TaskbarShape(ctx)
-	iconwidth := ctx.Config.TaskbarElementShape.X *2 + ctx.Config.TaskbarElementShape.W
+	iconwidth := ctx.Config.TaskbarElementShape.X*2 + ctx.Config.TaskbarElementShape.W
 	selectorwidth := ctx.Config.TaskbarSlideWidth
 	timeshape := TimeShape(ctx)
 	rightpad := tshape.W - (timeshape.X - tshape.X) - ctx.Config.TaskbarXPad

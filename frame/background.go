@@ -1,30 +1,30 @@
 package frame
 
 import (
-	"log"
 	"bytes"
-	"image"
-	"howm/ext"
-	"github.com/disintegration/imaging"
-	"github.com/BurntSushi/xgbutil/xwindow"
-	"github.com/BurntSushi/xgbutil/gopher"
 	"github.com/BurntSushi/xgb/xproto"
-	"github.com/BurntSushi/xgbutil/xgraphics"
-	"github.com/BurntSushi/xgbutil/xevent"
+	"github.com/BurntSushi/xgbutil/ewmh"
+	"github.com/BurntSushi/xgbutil/gopher"
+	"github.com/BurntSushi/xgbutil/icccm"
 	"github.com/BurntSushi/xgbutil/keybind"
 	"github.com/BurntSushi/xgbutil/mousebind"
-	"github.com/BurntSushi/xgbutil/icccm"
-	"github.com/BurntSushi/xgbutil/ewmh"
+	"github.com/BurntSushi/xgbutil/xevent"
+	"github.com/BurntSushi/xgbutil/xgraphics"
+	"github.com/BurntSushi/xgbutil/xwindow"
+	"github.com/disintegration/imaging"
+	"howm/ext"
+	"image"
+	"log"
 )
 
 func GenerateBackgrounds(ctx *Context) error {
-	for _, v := range(ctx.Backgrounds) {
+	for _, v := range ctx.Backgrounds {
 		v.Unmap()
 		v.Destroy()
 	}
 	ctx.Backgrounds = make(map[xproto.Window]*xwindow.Window)
 
-	img, err := func()(image.Image, error){
+	img, err := func() (image.Image, error) {
 		img, err := imaging.Open(ctx.Config.BackgroundImagePath)
 		ext.Logerr(err)
 		if err == nil {

@@ -1,18 +1,18 @@
 package main
 
 import (
-	"howm/frame"
+	"github.com/BurntSushi/wingo/prompt"
 	"github.com/BurntSushi/xgbutil"
 	"github.com/BurntSushi/xgbutil/ewmh"
 	"github.com/BurntSushi/xgbutil/keybind"
 	"github.com/BurntSushi/xgbutil/xevent"
 	"github.com/BurntSushi/xgbutil/xgraphics"
 	"github.com/BurntSushi/xgbutil/xwindow"
-	"github.com/BurntSushi/wingo/prompt"
+	"howm/frame"
 )
 
 type CycleWrap struct {
-	Cycle *prompt.Cycle
+	Cycle   *prompt.Cycle
 	Choices []*prompt.CycleItem
 }
 
@@ -23,7 +23,7 @@ func (c *CycleWrap) Destroy() {
 }
 
 type Choice struct {
-	Win *xwindow.Window
+	Win     *xwindow.Window
 	Context *frame.Context
 	Wrapper *CycleWrap
 }
@@ -67,7 +67,7 @@ func (c *Choice) CycleSelected() {
 func RegisterChooseHooks(ctx *frame.Context) {
 	wrapper := &CycleWrap{}
 
-	cycle := func(cycleDir string){
+	cycle := func(cycleDir string) {
 		if ctx.Locked {
 			return
 		}
@@ -82,7 +82,7 @@ func RegisterChooseHooks(ctx *frame.Context) {
 		}
 	}
 
-	register := func(cycleDir string){
+	register := func(cycleDir string) {
 		if ctx.Locked {
 			return
 		}
@@ -101,7 +101,7 @@ func RegisterChooseHooks(ctx *frame.Context) {
 
 		wrapper.Choices = make([]*prompt.CycleItem, 0)
 		if ctx.Config.TabByFrame {
-			for _, f := range(ctx.Tracked) {
+			for _, f := range ctx.Tracked {
 				if !f.IsLeaf() {
 					continue
 				}
@@ -109,8 +109,8 @@ func RegisterChooseHooks(ctx *frame.Context) {
 				wrapper.Choices = append(wrapper.Choices, item)
 			}
 		} else {
-			for c, _ := range(ctx.Containers) {
-				if f := c.Root.Find(func(fr *frame.Frame)bool{ return fr.IsLeaf() }); f != nil {
+			for c, _ := range ctx.Containers {
+				if f := c.Root.Find(func(fr *frame.Frame) bool { return fr.IsLeaf() }); f != nil {
 					item := wrapper.Cycle.AddChoice(&Choice{f.Window, ctx, wrapper})
 					wrapper.Choices = append(wrapper.Choices, item)
 				}
@@ -120,19 +120,19 @@ func RegisterChooseHooks(ctx *frame.Context) {
 		cycle(cycleDir)
 	}
 
-	keybind.KeyPressFun(func(X *xgbutil.XUtil, ev xevent.KeyPressEvent){
+	keybind.KeyPressFun(func(X *xgbutil.XUtil, ev xevent.KeyPressEvent) {
 		register(ctx.Config.TabForward)
 	}).Connect(ctx.X, ctx.X.RootWin(), ctx.Config.TabForward, true)
 
-	keybind.KeyPressFun(func(X *xgbutil.XUtil, ev xevent.KeyPressEvent){
+	keybind.KeyPressFun(func(X *xgbutil.XUtil, ev xevent.KeyPressEvent) {
 		cycle(ctx.Config.TabForward)
 	}).Connect(ctx.X, ctx.X.Dummy(), ctx.Config.TabForward, true)
 
-	keybind.KeyPressFun(func(X *xgbutil.XUtil, ev xevent.KeyPressEvent){
+	keybind.KeyPressFun(func(X *xgbutil.XUtil, ev xevent.KeyPressEvent) {
 		register(ctx.Config.TabBackward)
 	}).Connect(ctx.X, ctx.X.RootWin(), ctx.Config.TabBackward, true)
 
-	keybind.KeyPressFun(func(X *xgbutil.XUtil, ev xevent.KeyPressEvent){
+	keybind.KeyPressFun(func(X *xgbutil.XUtil, ev xevent.KeyPressEvent) {
 		cycle(ctx.Config.TabBackward)
 	}).Connect(ctx.X, ctx.X.Dummy(), ctx.Config.TabBackward, true)
 }

@@ -1,17 +1,17 @@
 package frame
 
 import (
-	"log"
 	"container/list"
-	"howm/ext"
 	"github.com/BurntSushi/xgb/xproto"
 	"github.com/BurntSushi/xgbutil"
-	"github.com/BurntSushi/xgbutil/xcursor"
-	"github.com/BurntSushi/xgbutil/xwindow"
-	"github.com/BurntSushi/xgbutil/mousebind"
 	"github.com/BurntSushi/xgbutil/keybind"
+	"github.com/BurntSushi/xgbutil/mousebind"
+	"github.com/BurntSushi/xgbutil/xcursor"
 	"github.com/BurntSushi/xgbutil/xevent"
 	"github.com/BurntSushi/xgbutil/xprop"
+	"github.com/BurntSushi/xgbutil/xwindow"
+	"howm/ext"
+	"log"
 )
 
 const (
@@ -25,32 +25,32 @@ const (
 
 type DragOrigin struct {
 	Container Rect
-	Frame Rect
-	MouseX int
-	MouseY int
+	Frame     Rect
+	MouseX    int
+	MouseY    int
 }
 
 type Container struct {
-	Shape Rect
-	Root *Frame
-	Expanded *Frame
+	Shape       Rect
+	Root        *Frame
+	Expanded    *Frame
 	DragContext DragOrigin
 	Decorations ContainerDecorations
-	Hidden bool
+	Hidden      bool
 }
 
 type Frame struct {
-	Shape Rect
-	Window *xwindow.Window
-	Container *Container
+	Shape                  Rect
+	Window                 *xwindow.Window
+	Container              *Container
 	Parent, ChildA, ChildB *Frame
-	Separator Partition
-	Mapped bool
+	Separator              Partition
+	Mapped                 bool
 }
 
 type AttachTarget struct {
 	Target *Frame
-	Type PartitionType
+	Type   PartitionType
 }
 
 func (f *Frame) Traverse(fun func(*Frame)) {
@@ -63,7 +63,7 @@ func (f *Frame) Traverse(fun func(*Frame)) {
 	}
 }
 
-func (f *Frame) Find(fun func(*Frame)bool) *Frame {
+func (f *Frame) Find(fun func(*Frame) bool) *Frame {
 	if f == nil || fun(f) {
 		return f
 	}
@@ -75,11 +75,11 @@ func (f *Frame) Find(fun func(*Frame)bool) *Frame {
 	if fB := f.ChildB.Find(fun); fB != nil {
 		return fB
 	}
-	
+
 	return nil
 }
 
-func (f *Frame) FindNearest(fun func(*Frame)bool) *Frame {
+func (f *Frame) FindNearest(fun func(*Frame) bool) *Frame {
 	visited := make(map[*Frame]bool)
 	nbrs := list.New()
 
@@ -129,7 +129,7 @@ func (f *Frame) Root() *Frame {
 
 func (f *Frame) Map() {
 	f.Traverse(
-		func(ft *Frame){
+		func(ft *Frame) {
 			if ft.Mapped {
 				return
 			}
@@ -162,7 +162,7 @@ func (f *Frame) UnmapSingle() {
 }
 
 func (f *Frame) Unmap() {
-	f.Traverse(func(ft *Frame){
+	f.Traverse(func(ft *Frame) {
 		ft.UnmapSingle()
 	})
 }
@@ -180,7 +180,7 @@ func (f *Frame) Close(ctx *Context) {
 		return
 	}
 
-	f.Traverse(func(ft *Frame){
+	f.Traverse(func(ft *Frame) {
 		if ft.IsLeaf() {
 			cm, err := xevent.NewClientMessage(32, ft.Window.Id, wm_protocols, int(wm_del_win))
 			if err != nil {
@@ -219,7 +219,7 @@ func (f *Frame) Destroy(ctx *Context) {
 	}
 
 	if f.IsLeaf() {
-		oc := func()*Frame{
+		oc := func() *Frame {
 			if f.Parent.ChildA == f {
 				return f.Parent.ChildB
 			} else {
@@ -260,7 +260,7 @@ func (f *Frame) RaiseDecoration(ctx *Context) {
 }
 
 func (f *Frame) Focus(ctx *Context) {
-	leaf := f.Find(func(ff *Frame)bool{
+	leaf := f.Find(func(ff *Frame) bool {
 		return ff.IsLeaf()
 	})
 	if leaf != nil {
@@ -276,14 +276,14 @@ func (f *Frame) FocusRaise(ctx *Context) {
 }
 
 func (f *Frame) MoveResize(ctx *Context) {
-	f.Traverse(func(ft *Frame){
+	f.Traverse(func(ft *Frame) {
 		ft.Shape = ft.CalcShape(ctx)
-		if (ft.Shape.W == 0 || ft.Shape.H == 0) {
+		if ft.Shape.W == 0 || ft.Shape.H == 0 {
 			if ft.Mapped {
 				ft.Unmap()
 			}
 		} else {
-			if !ft.Mapped{
+			if !ft.Mapped {
 				ft.Map()
 			}
 		}
@@ -307,7 +307,7 @@ func (f *Frame) CreateSeparatorDecoration(ctx *Context) {
 	var err error
 	f.Separator.Decoration, err = CreateDecoration(
 		ctx, s, ctx.Config.SeparatorColor, uint32(cursor))
-	
+
 	if err != nil {
 		log.Println(err)
 		return
@@ -327,9 +327,9 @@ func (f *Frame) CreateSeparatorDecoration(ctx *Context) {
 		},
 		func(X *xgbutil.XUtil, rX, rY, eX, eY int) {
 			if f.Separator.Type == HORIZONTAL {
-				f.Separator.Ratio = ext.Clamp((float64(rX) - float64(f.Shape.X)) / float64(f.Shape.W), 0, 1)
+				f.Separator.Ratio = ext.Clamp((float64(rX)-float64(f.Shape.X))/float64(f.Shape.W), 0, 1)
 			} else {
-				f.Separator.Ratio = ext.Clamp((float64(rY) - float64(f.Shape.Y)) / float64(f.Shape.H), 0, 1)
+				f.Separator.Ratio = ext.Clamp((float64(rY)-float64(f.Shape.Y))/float64(f.Shape.H), 0, 1)
 			}
 			f.MoveResize(ctx)
 		},
@@ -338,15 +338,15 @@ func (f *Frame) CreateSeparatorDecoration(ctx *Context) {
 	)
 }
 
-func (c *Container) Raise(ctx *Context){
-	c.Decorations.ForEach(func(d *Decoration){
+func (c *Container) Raise(ctx *Context) {
+	c.Decorations.ForEach(func(d *Decoration) {
 		d.Window.Stack(xproto.StackModeAbove)
 	})
-	c.Root.Traverse(func(f *Frame){
+	c.Root.Traverse(func(f *Frame) {
 		f.Raise(ctx)
 	})
 	// Raise decorations separately so we can do overpadding
-	c.Root.Traverse(func(f *Frame){
+	c.Root.Traverse(func(f *Frame) {
 		f.RaiseDecoration(ctx)
 	})
 	ctx.Taskbar.Raise(ctx)
@@ -359,14 +359,14 @@ func (c *Container) ActiveRoot() *Frame {
 	return c.Root
 }
 
-func (c *Container) RaiseFindFocus(ctx *Context){
+func (c *Container) RaiseFindFocus(ctx *Context) {
 	c.Raise(ctx)
 	if ff := ctx.GetFocusedFrame(); ff != nil && ff.Container == c {
 		ff.Focus(ctx)
 		return
 	}
 
-    focusFrame := c.ActiveRoot().Find(func(ff *Frame)bool{
+	focusFrame := c.ActiveRoot().Find(func(ff *Frame) bool {
 		return ff.IsLeaf()
 	})
 	if focusFrame == nil {
@@ -434,7 +434,7 @@ func (c *Container) MoveResizeShape(ctx *Context, shape Rect) {
 }
 
 func AttachWindow(ctx *Context, ev xevent.MapRequestEvent) *Frame {
-	defer func(){ ctx.AttachPoint = nil }()
+	defer func() { ctx.AttachPoint = nil }()
 	window := ev.Window
 
 	if !ctx.AttachPoint.Target.IsLeaf() {
@@ -449,8 +449,8 @@ func AttachWindow(ctx *Context, ev xevent.MapRequestEvent) *Frame {
 
 	// Move current window to child A
 	ca := &Frame{
-		Window: ap.Window,
-		Parent: ap,
+		Window:    ap.Window,
+		Parent:    ap,
 		Container: ap.Container,
 	}
 	ap.ChildA = ca
@@ -460,8 +460,8 @@ func AttachWindow(ctx *Context, ev xevent.MapRequestEvent) *Frame {
 
 	// Add new window as child B
 	cb := &Frame{
-		Window: xwindow.New(ctx.X, window),
-		Parent: ap,
+		Window:    xwindow.New(ctx.X, window),
+		Parent:    ap,
 		Container: ap.Container,
 	}
 	ap.ChildB = cb
@@ -500,8 +500,8 @@ func NewWindow(ctx *Context, ev xevent.MapRequestEvent) *Frame {
 	}
 
 	root := &Frame{
-		Shape: RootShape(ctx, c),
-		Window: xwindow.New(ctx.X, window),
+		Shape:     RootShape(ctx, c),
+		Window:    xwindow.New(ctx.X, window),
 		Container: c,
 	}
 	root.Window.MoveResize(root.Shape.X, root.Shape.Y, root.Shape.W, root.Shape.H)
@@ -529,7 +529,7 @@ func NewWindow(ctx *Context, ev xevent.MapRequestEvent) *Frame {
 	return c.Root
 }
 
-func RootShape(ctx *Context, c* Container) Rect {
+func RootShape(ctx *Context, c *Container) Rect {
 	if c.Decorations.Hidden {
 		return c.Shape
 	}
@@ -562,7 +562,7 @@ func AnchorShape(ctx *Context, screen Rect, anchor int) Rect {
 
 	if anchor == BOTTOM {
 		origYEnd := screen.Y + screen.H
-		screen.Y = screen.Y + screen.H / 2
+		screen.Y = screen.Y + screen.H/2
 		screen.H = origYEnd - screen.Y
 		return screen
 	}
@@ -574,7 +574,7 @@ func AnchorShape(ctx *Context, screen Rect, anchor int) Rect {
 
 	if anchor == RIGHT {
 		origXEnd := screen.X + screen.W
-		screen.X = screen.X + screen.W / 2
+		screen.X = screen.X + screen.W/2
 		screen.W = origXEnd - screen.X
 		return screen
 	}
@@ -587,7 +587,7 @@ func (f *Frame) CalcShape(ctx *Context) Rect {
 		return RootShape(ctx, f.Container)
 	}
 
-	pShape := func()Rect{
+	pShape := func() Rect {
 		if f.Parent != nil && f.Container.Expanded == f.Parent {
 			return RootShape(ctx, f.Container)
 		} else {
@@ -597,11 +597,11 @@ func (f *Frame) CalcShape(ctx *Context) Rect {
 
 	isChildA := (f.Parent.ChildA == f)
 
-	WidthA := func()int{
-		return ext.IMax(int(float64(pShape.W) * f.Parent.Separator.Ratio), ctx.Config.ElemSize) - ctx.Config.ElemSize
+	WidthA := func() int {
+		return ext.IMax(int(float64(pShape.W)*f.Parent.Separator.Ratio), ctx.Config.ElemSize) - ctx.Config.ElemSize
 	}
-	HeightA := func()int{
-		return ext.IMax(int(float64(pShape.H) * f.Parent.Separator.Ratio), ctx.Config.ElemSize) - ctx.Config.ElemSize
+	HeightA := func() int {
+		return ext.IMax(int(float64(pShape.H)*f.Parent.Separator.Ratio), ctx.Config.ElemSize) - ctx.Config.ElemSize
 	}
 
 	if isChildA {
@@ -640,18 +640,18 @@ func (f *Frame) CalcShape(ctx *Context) Rect {
 }
 
 func (f *Frame) SeparatorShape(ctx *Context) Rect {
-	WidthA := func()int{
-		return ext.IMax(int(float64(f.Shape.W) * f.Separator.Ratio), ctx.Config.ElemSize) - ctx.Config.ElemSize
+	WidthA := func() int {
+		return ext.IMax(int(float64(f.Shape.W)*f.Separator.Ratio), ctx.Config.ElemSize) - ctx.Config.ElemSize
 	}
-	HeightA := func()int{
-		return ext.IMax(int(float64(f.Shape.H) * f.Separator.Ratio), ctx.Config.ElemSize) - ctx.Config.ElemSize
+	HeightA := func() int {
+		return ext.IMax(int(float64(f.Shape.H)*f.Separator.Ratio), ctx.Config.ElemSize) - ctx.Config.ElemSize
 	}
 	if f.Separator.Type == HORIZONTAL {
 		return Rect{
 			X: f.Shape.X + WidthA() - ctx.Config.InternalPadding,
 			Y: f.Shape.Y - ctx.Config.InternalPadding,
-			W: ctx.Config.ElemSize +ctx.Config.InternalPadding,
-			H: f.Shape.H  + ctx.Config.InternalPadding,
+			W: ctx.Config.ElemSize + ctx.Config.InternalPadding,
+			H: f.Shape.H + ctx.Config.InternalPadding,
 		}
 	} else {
 		return Rect{
@@ -659,7 +659,7 @@ func (f *Frame) SeparatorShape(ctx *Context) Rect {
 			Y: f.Shape.Y + HeightA() - ctx.Config.InternalPadding,
 			W: f.Shape.W + ctx.Config.InternalPadding,
 			H: ctx.Config.ElemSize + ctx.Config.InternalPadding,
-		}	
+		}
 	}
 }
 
@@ -681,13 +681,13 @@ func AddWindowHook(ctx *Context, window xproto.Window) error {
 				f.MoveResize(ctx)
 			}
 			ctx.RaiseLock()
-	}).Connect(ctx.X, window)
+		}).Connect(ctx.X, window)
 
 	xevent.DestroyNotifyFun(
 		func(X *xgbutil.XUtil, ev xevent.DestroyNotifyEvent) {
 			f := ctx.Get(window)
 			if ctx.GetFocusedFrame() == f {
-				nf := f.FindNearest(func(fr *Frame)bool{
+				nf := f.FindNearest(func(fr *Frame) bool {
 					return fr != f && fr.Mapped && fr.IsLeaf()
 				})
 				if nf != nil {
@@ -698,7 +698,7 @@ func AddWindowHook(ctx *Context, window xproto.Window) error {
 			delete(ctx.Tracked, window)
 			ctx.RaiseLock()
 		}).Connect(ctx.X, window)
-	
+
 	err := mousebind.ButtonPressFun(
 		func(X *xgbutil.XUtil, ev xevent.ButtonPressEvent) {
 			if ctx.Locked {
@@ -711,7 +711,7 @@ func AddWindowHook(ctx *Context, window xproto.Window) error {
 	ext.Logerr(err)
 
 	err = keybind.KeyReleaseFun(
-		func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent){
+		func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent) {
 			if ctx.Locked {
 				return
 			}
@@ -719,14 +719,14 @@ func AddWindowHook(ctx *Context, window xproto.Window) error {
 			if f.IsLeaf() {
 				f.Close(ctx)
 			}
-	  }).Connect(ctx.X, window, ctx.Config.CloseFrame, true)
+		}).Connect(ctx.X, window, ctx.Config.CloseFrame, true)
 	ext.Logerr(err)
 
-	err = keybind.KeyReleaseFun(func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent){
-        if ctx.Locked {
-            return
+	err = keybind.KeyReleaseFun(func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent) {
+		if ctx.Locked {
+			return
 		}
-		
+
 		f := ctx.Get(window)
 		if !f.Container.Hidden {
 			f.Container.ChangeMinimizationState(ctx)
@@ -735,7 +735,7 @@ func AddWindowHook(ctx *Context, window xproto.Window) error {
 	ext.Logerr(err)
 
 	err = keybind.KeyReleaseFun(
-		func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent){
+		func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent) {
 			if ctx.Locked {
 				return
 			}
@@ -752,7 +752,7 @@ func AddWindowHook(ctx *Context, window xproto.Window) error {
 	ext.Logerr(err)
 
 	err = keybind.KeyReleaseFun(
-		func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent){
+		func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent) {
 			if ctx.Locked {
 				return
 			}
@@ -760,22 +760,22 @@ func AddWindowHook(ctx *Context, window xproto.Window) error {
 			f.Container.Decorations.Hidden = !f.Container.Decorations.Hidden
 			f.Container.UpdateFrameMappings()
 			f.Container.MoveResizeShape(ctx, f.Container.Shape)
-	  }).Connect(ctx.X, window, ctx.Config.ToggleExternalDecorator, true)
+		}).Connect(ctx.X, window, ctx.Config.ToggleExternalDecorator, true)
 	ext.Logerr(err)
 
 	err = keybind.KeyReleaseFun(
-		func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent){
+		func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent) {
 			if ctx.Locked {
 				return
 			}
 			f := ctx.Get(window)
 			screen, _, _ := ctx.GetScreenForShape(f.Container.Shape)
 			f.Container.MoveResizeShape(ctx, ctx.DefaultShapeForScreen(screen))
-	  }).Connect(ctx.X, window, ctx.Config.ResetSize, true)
+		}).Connect(ctx.X, window, ctx.Config.ResetSize, true)
 	ext.Logerr(err)
 
 	err = keybind.KeyReleaseFun(
-		func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent){
+		func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent) {
 			if ctx.Locked {
 				return
 			}
@@ -787,7 +787,7 @@ func AddWindowHook(ctx *Context, window xproto.Window) error {
 			} else if f.Container.Shape == AnchorShape(ctx, screen, TOP) {
 				raised := screen
 				raised.Y = raised.Y - raised.H
-				if nscreen, overlap, _ := ctx.GetScreenForShape(raised); overlap > 0 && nscreen != screen  {
+				if nscreen, overlap, _ := ctx.GetScreenForShape(raised); overlap > 0 && nscreen != screen {
 					f.Container.MoveResizeShape(ctx, AnchorShape(ctx, nscreen, BOTTOM))
 				}
 			} else if f.Container.Shape == AnchorShape(ctx, screen, BOTTOM) {
@@ -795,11 +795,11 @@ func AddWindowHook(ctx *Context, window xproto.Window) error {
 			} else {
 				f.Container.MoveResizeShape(ctx, AnchorShape(ctx, screen, FULL))
 			}
-	  }).Connect(ctx.X, window, ctx.Config.WindowUp, true)
+		}).Connect(ctx.X, window, ctx.Config.WindowUp, true)
 	ext.Logerr(err)
 
 	err = keybind.KeyReleaseFun(
-		func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent){
+		func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent) {
 			if ctx.Locked {
 				return
 			}
@@ -810,17 +810,17 @@ func AddWindowHook(ctx *Context, window xproto.Window) error {
 			} else if f.Container.Shape == AnchorShape(ctx, screen, BOTTOM) {
 				lowered := screen
 				lowered.Y = lowered.Y + lowered.H
-				if nscreen, overlap, _ := ctx.GetScreenForShape(lowered); overlap > 0 && nscreen != screen  {
+				if nscreen, overlap, _ := ctx.GetScreenForShape(lowered); overlap > 0 && nscreen != screen {
 					f.Container.MoveResizeShape(ctx, AnchorShape(ctx, nscreen, TOP))
 				}
 			} else {
 				f.Container.MoveResizeShape(ctx, AnchorShape(ctx, screen, BOTTOM))
 			}
-	  }).Connect(ctx.X, window, ctx.Config.WindowDown, true)
+		}).Connect(ctx.X, window, ctx.Config.WindowDown, true)
 	ext.Logerr(err)
 
 	err = keybind.KeyReleaseFun(
-		func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent){
+		func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent) {
 			if ctx.Locked {
 				return
 			}
@@ -837,11 +837,11 @@ func AddWindowHook(ctx *Context, window xproto.Window) error {
 			} else {
 				f.Container.MoveResizeShape(ctx, AnchorShape(ctx, screen, LEFT))
 			}
-	  }).Connect(ctx.X, window, ctx.Config.WindowLeft, true)
+		}).Connect(ctx.X, window, ctx.Config.WindowLeft, true)
 	ext.Logerr(err)
 
 	err = keybind.KeyReleaseFun(
-		func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent){
+		func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent) {
 			if ctx.Locked {
 				return
 			}
@@ -858,7 +858,7 @@ func AddWindowHook(ctx *Context, window xproto.Window) error {
 			} else {
 				f.Container.MoveResizeShape(ctx, AnchorShape(ctx, screen, RIGHT))
 			}
-	  }).Connect(ctx.X, window, ctx.Config.WindowRight, true)
+		}).Connect(ctx.X, window, ctx.Config.WindowRight, true)
 	ext.Logerr(err)
 
 	return err

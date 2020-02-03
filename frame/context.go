@@ -1,41 +1,41 @@
 package frame
 
 import (
-	"log"
-	"fmt"
 	"bytes"
-	"os/user"
-	"os/exec"
-	"howm/ext"
+	"fmt"
 	"github.com/BurntSushi/wingo/misc"
 	"github.com/BurntSushi/wingo/prompt"
-	"github.com/BurntSushi/xgb/xproto"
 	"github.com/BurntSushi/xgb/xinerama"
+	"github.com/BurntSushi/xgb/xproto"
 	"github.com/BurntSushi/xgbutil"
-	"github.com/BurntSushi/xgbutil/xgraphics"
 	"github.com/BurntSushi/xgbutil/xcursor"
+	"github.com/BurntSushi/xgbutil/xgraphics"
 	"github.com/BurntSushi/xgbutil/xwindow"
+	"howm/ext"
+	"log"
+	"os/exec"
+	"os/user"
 )
 
 var NoFont = xgraphics.MustFont(xgraphics.ParseFont(
 	bytes.NewBuffer(misc.DataFile("write-your-password-with-this-font.ttf"))))
 
 type Context struct {
-	X *xgbutil.XUtil
-	AttachPoint *AttachTarget
-	Tracked map[xproto.Window]*Frame
-	Containers map[*Container]struct{}
-	Cursors map[int]xproto.Cursor
-	DummyIcon *xgraphics.Image
-	Backgrounds map[xproto.Window]*xwindow.Window
-	Config Config
-	Screens []Rect
-	LastKnownFocused xproto.Window
+	X                      *xgbutil.XUtil
+	AttachPoint            *AttachTarget
+	Tracked                map[xproto.Window]*Frame
+	Containers             map[*Container]struct{}
+	Cursors                map[int]xproto.Cursor
+	DummyIcon              *xgraphics.Image
+	Backgrounds            map[xproto.Window]*xwindow.Window
+	Config                 Config
+	Screens                []Rect
+	LastKnownFocused       xproto.Window
 	LastKnownFocusedScreen int
-	SplitPrompt *prompt.Input
-	Locked bool
-	LockPrompt *prompt.Input
-	Taskbar *Taskbar
+	SplitPrompt            *prompt.Input
+	Locked                 bool
+	LockPrompt             *prompt.Input
+	Taskbar                *Taskbar
 }
 
 func NewContext(x *xgbutil.XUtil) (*Context, error) {
@@ -43,12 +43,12 @@ func NewContext(x *xgbutil.XUtil) (*Context, error) {
 
 	var err error
 	c := &Context{
-		X: x,
-		Tracked: make(map[xproto.Window]*Frame),
-		Cursors: make(map[int]xproto.Cursor),
+		X:          x,
+		Tracked:    make(map[xproto.Window]*Frame),
+		Cursors:    make(map[int]xproto.Cursor),
 		Containers: make(map[*Container]struct{}),
-		Config: conf,
-		DummyIcon: xgraphics.New(x, conf.TaskbarElementShape.ToImageRect()),
+		Config:     conf,
+		DummyIcon:  xgraphics.New(x, conf.TaskbarElementShape.ToImageRect()),
 	}
 	c.UpdateScreens()
 	c.Taskbar = NewTaskbar(c)
@@ -69,12 +69,12 @@ func (ctx *Context) GenerateLockPrompt() {
 	theme := *prompt.DefaultInputTheme
 	theme.Font = NoFont
 	ctx.LockPrompt = prompt.NewInput(ctx.X, &theme, prompt.DefaultInputConfig)
-	
-	canc := func (inp *prompt.Input) {
+
+	canc := func(inp *prompt.Input) {
 		ctx.RaiseLock()
 	}
 
-	resp := func (inp *prompt.Input, text string) {
+	resp := func(inp *prompt.Input, text string) {
 		usr, err := user.Current()
 		if err != nil {
 			log.Println(err)
@@ -103,7 +103,7 @@ func (ctx *Context) RaiseLock() {
 		return
 	}
 
-	for _, bg := range(ctx.Backgrounds) {
+	for _, bg := range ctx.Backgrounds {
 		bg.Stack(xproto.StackModeAbove)
 	}
 
@@ -115,7 +115,7 @@ func (ctx *Context) LowerLock() {
 		return
 	}
 
-	for _, bg := range(ctx.Backgrounds) {
+	for _, bg := range ctx.Backgrounds {
 		bg.Stack(xproto.StackModeBelow)
 	}
 }
@@ -129,7 +129,7 @@ func (ctx *Context) DetectScreensChange() (bool, []Rect, error) {
 	}
 
 	screens := make([]Rect, 0, len(Xin))
-	for _, xi := range(Xin) {
+	for _, xi := range Xin {
 		screens = append(screens, Rect{
 			X: int(xi.XOrg),
 			Y: int(xi.YOrg),
@@ -156,15 +156,15 @@ func (ctx *Context) UpdateScreens() {
 	if err != nil || !changed {
 		return
 	}
-    log.Println("found", len(screens), "screen(s)", screens)
+	log.Println("found", len(screens), "screen(s)", screens)
 
-    ctx.Screens = screens
-  	GenerateBackgrounds(ctx)
-    for c, _ := range(ctx.Containers) {
-	  topShape := TopShape(ctx, c.Shape)
-      if screen, overlap, _ := ctx.GetScreenForShape(topShape); topShape.Area() > overlap {
-        c.MoveResizeShape(ctx, ctx.DefaultShapeForScreen(screen))
-      }
+	ctx.Screens = screens
+	GenerateBackgrounds(ctx)
+	for c, _ := range ctx.Containers {
+		topShape := TopShape(ctx, c.Shape)
+		if screen, overlap, _ := ctx.GetScreenForShape(topShape); topShape.Area() > overlap {
+			c.MoveResizeShape(ctx, ctx.DefaultShapeForScreen(screen))
+		}
 	}
 
 	if ctx.Taskbar != nil {
@@ -182,15 +182,15 @@ func (ctx *Context) MinShape() Rect {
 	return Rect{
 		X: 0,
 		Y: 0,
-		W: 5*ctx.Config.ElemSize,
-		H: 5*ctx.Config.ElemSize,
+		W: 5 * ctx.Config.ElemSize,
+		H: 5 * ctx.Config.ElemSize,
 	}
 }
 
 func (ctx *Context) DefaultShapeForScreen(screen Rect) Rect {
 	return Rect{
-		X: screen.X + int(ctx.Config.DefaultShapeRatio.X * float64(screen.W)),
-		Y: screen.Y + int(ctx.Config.DefaultShapeRatio.Y * float64(screen.H)),
+		X: screen.X + int(ctx.Config.DefaultShapeRatio.X*float64(screen.W)),
+		Y: screen.Y + int(ctx.Config.DefaultShapeRatio.Y*float64(screen.H)),
 		W: int(ctx.Config.DefaultShapeRatio.W * float64(screen.W)),
 		H: int(ctx.Config.DefaultShapeRatio.H * float64(screen.H)),
 	}
@@ -200,7 +200,7 @@ func (ctx *Context) GetScreenForShape(shape Rect) (Rect, int, int) {
 	max_overlap := 0
 	max_i := 0
 	screen := ctx.Screens[0]
-	for i, s := range(ctx.Screens) {
+	for i, s := range ctx.Screens {
 		overlap := AreaOfIntersection(shape, s)
 		if overlap > max_overlap {
 			max_overlap = overlap

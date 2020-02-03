@@ -1,12 +1,12 @@
 package frame
 
 import (
-	"howm/ext"
 	"github.com/BurntSushi/xgb/xproto"
 	"github.com/BurntSushi/xgbutil"
-	"github.com/BurntSushi/xgbutil/xevent"
-	"github.com/BurntSushi/xgbutil/xcursor"
 	"github.com/BurntSushi/xgbutil/mousebind"
+	"github.com/BurntSushi/xgbutil/xcursor"
+	"github.com/BurntSushi/xgbutil/xevent"
+	"howm/ext"
 )
 
 func GeneratePieces(ctx *Context, c *Container) error {
@@ -136,7 +136,7 @@ func (c *Container) AddGrabHook(ctx *Context) {
 		func(X *xgbutil.XUtil, rX, rY, eX, eY int) {
 			dX := rX - c.DragContext.MouseX
 			dY := rY - c.DragContext.MouseY
-			c.MoveResize(ctx, c.DragContext.Container.X + dX, c.DragContext.Container.Y + dY, c.Shape.W, c.Shape.H)
+			c.MoveResize(ctx, c.DragContext.Container.X+dX, c.DragContext.Container.Y+dY, c.Shape.W, c.Shape.H)
 		},
 		func(X *xgbutil.XUtil, rX, rY, eX, eY int) {
 			c.RaiseFindFocus(ctx)
@@ -181,7 +181,7 @@ func (c *Container) AddTopHook(ctx *Context) {
 		},
 		func(X *xgbutil.XUtil, rX, rY, eX, eY int) {
 			origYEnd := c.DragContext.Container.Y + c.DragContext.Container.H
-			h := ext.IMax(origYEnd - rY, ctx.MinShape().H)
+			h := ext.IMax(origYEnd-rY, ctx.MinShape().H)
 			y := origYEnd - h
 			c.MoveResize(ctx, c.DragContext.Container.X, y, c.DragContext.Container.W, h)
 		},
@@ -200,7 +200,7 @@ func (c *Container) AddBottomHook(ctx *Context) {
 			return true, ctx.Cursors[xcursor.Circle]
 		},
 		func(X *xgbutil.XUtil, rX, rY, eX, eY int) {
-			h := ext.IMax(rY - c.DragContext.Container.Y, ctx.MinShape().H)
+			h := ext.IMax(rY-c.DragContext.Container.Y, ctx.MinShape().H)
 			c.MoveResize(ctx, c.DragContext.Container.X, c.DragContext.Container.Y, c.DragContext.Container.W, h)
 		},
 		func(X *xgbutil.XUtil, rX, rY, eX, eY int) {
@@ -218,7 +218,7 @@ func (c *Container) AddRightHook(ctx *Context) {
 			return true, ctx.Cursors[xcursor.Circle]
 		},
 		func(X *xgbutil.XUtil, rX, rY, eX, eY int) {
-			w := ext.IMax(rX - c.DragContext.Container.X, ctx.MinShape().W)
+			w := ext.IMax(rX-c.DragContext.Container.X, ctx.MinShape().W)
 			c.MoveResize(ctx, c.DragContext.Container.X, c.DragContext.Container.Y, w, c.DragContext.Container.H)
 		},
 		func(X *xgbutil.XUtil, rX, rY, eX, eY int) {
@@ -237,7 +237,7 @@ func (c *Container) AddLeftHook(ctx *Context) {
 		},
 		func(X *xgbutil.XUtil, rX, rY, eX, eY int) {
 			origXEnd := c.DragContext.Container.X + c.DragContext.Container.W
-			w := ext.IMax(origXEnd - rX, ctx.MinShape().W)
+			w := ext.IMax(origXEnd-rX, ctx.MinShape().W)
 			x := origXEnd - w
 			c.MoveResize(ctx, x, c.DragContext.Container.Y, w, c.DragContext.Container.H)
 		},
@@ -256,8 +256,8 @@ func (c *Container) AddBottomRightHook(ctx *Context) {
 			return true, ctx.Cursors[xcursor.Circle]
 		},
 		func(X *xgbutil.XUtil, rX, rY, eX, eY int) {
-			w := ext.IMax(rX - c.DragContext.Container.X, ctx.MinShape().W)
-			h := ext.IMax(rY - c.DragContext.Container.Y, ctx.MinShape().H)
+			w := ext.IMax(rX-c.DragContext.Container.X, ctx.MinShape().W)
+			h := ext.IMax(rY-c.DragContext.Container.Y, ctx.MinShape().H)
 			c.MoveResize(ctx, c.DragContext.Container.X, c.DragContext.Container.Y, w, h)
 		},
 		func(X *xgbutil.XUtil, rX, rY, eX, eY int) {
@@ -276,9 +276,9 @@ func (c *Container) AddBottomLeftHook(ctx *Context) {
 		},
 		func(X *xgbutil.XUtil, rX, rY, eX, eY int) {
 			origXEnd := c.DragContext.Container.X + c.DragContext.Container.W
-			w := ext.IMax(origXEnd - rX, ctx.MinShape().W)
+			w := ext.IMax(origXEnd-rX, ctx.MinShape().W)
 			x := origXEnd - w
-			h := ext.IMax(rY - c.DragContext.Container.Y, ctx.MinShape().H)
+			h := ext.IMax(rY-c.DragContext.Container.Y, ctx.MinShape().H)
 			c.MoveResize(ctx, x, c.DragContext.Container.Y, w, h)
 		},
 		func(X *xgbutil.XUtil, rX, rY, eX, eY int) {
@@ -297,8 +297,8 @@ func (c *Container) AddTopRightHook(ctx *Context) {
 		},
 		func(X *xgbutil.XUtil, rX, rY, eX, eY int) {
 			origYEnd := c.DragContext.Container.Y + c.DragContext.Container.H
-			w := ext.IMax(rX - c.DragContext.Container.X, ctx.MinShape().W)
-			h := ext.IMax(origYEnd - rY, ctx.MinShape().H)
+			w := ext.IMax(rX-c.DragContext.Container.X, ctx.MinShape().W)
+			h := ext.IMax(origYEnd-rY, ctx.MinShape().H)
 			y := origYEnd - h
 			c.MoveResize(ctx, c.DragContext.Container.X, y, w, h)
 		},
@@ -319,8 +319,8 @@ func (c *Container) AddTopLeftHook(ctx *Context) {
 		func(X *xgbutil.XUtil, rX, rY, eX, eY int) {
 			origYEnd := c.DragContext.Container.Y + c.DragContext.Container.H
 			origXEnd := c.DragContext.Container.X + c.DragContext.Container.W
-			w := ext.IMax(origXEnd - rX, ctx.MinShape().W)
-			h := ext.IMax(origYEnd - rY, ctx.MinShape().H)
+			w := ext.IMax(origXEnd-rX, ctx.MinShape().W)
+			h := ext.IMax(origYEnd-rY, ctx.MinShape().H)
 			y := origYEnd - h
 			x := origXEnd - w
 			c.MoveResize(ctx, x, y, w, h)

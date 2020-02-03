@@ -1,9 +1,9 @@
 package frame
 
 import (
-	"image"
-	"howm/ext"
 	"github.com/BurntSushi/xgbutil/xrect"
+	"howm/ext"
+	"image"
 )
 
 type Rect struct {
@@ -21,13 +21,13 @@ type Rectf struct {
 }
 
 func (r *Rect) Area() int {
-	return r.W*r.H
+	return r.W * r.H
 }
 
 func AreaOfIntersection(shapeA, shapeB Rect) int {
-	xminmax := ext.IMin(shapeA.X + shapeA.W, shapeB.X + shapeB.W)
+	xminmax := ext.IMin(shapeA.X+shapeA.W, shapeB.X+shapeB.W)
 	xmaxmin := ext.IMax(shapeA.X, shapeB.X)
-	yminmax := ext.IMin(shapeA.Y + shapeA.H, shapeB.Y + shapeB.H)
+	yminmax := ext.IMin(shapeA.Y+shapeA.H, shapeB.Y+shapeB.H)
 	ymaxmin := ext.IMax(shapeA.Y, shapeB.Y)
 
 	dx := xminmax - xmaxmin

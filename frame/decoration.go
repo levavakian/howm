@@ -1,20 +1,21 @@
 package frame
 
 import (
-	"log"
-	"github.com/BurntSushi/xgbutil/xwindow"
 	"github.com/BurntSushi/xgb/xproto"
+	"github.com/BurntSushi/xgbutil/xwindow"
+	"log"
 )
 
 type PartitionType int
+
 const (
 	HORIZONTAL PartitionType = iota
 	VERTICAL
 )
 
 type Partition struct {
-	Ratio float64
-	Type PartitionType
+	Ratio      float64
+	Type       PartitionType
 	Decoration Decoration
 }
 
@@ -23,9 +24,9 @@ type Decoration struct {
 }
 
 type ContainerDecorations struct {
-	Hidden bool
-	Close, Maximize, Minimize, Grab Decoration
-	Top, Left, Bottom, Right Decoration
+	Hidden                                     bool
+	Close, Maximize, Minimize, Grab            Decoration
+	Top, Left, Bottom, Right                   Decoration
 	TopRight, TopLeft, BottomRight, BottomLeft Decoration
 }
 
@@ -45,7 +46,7 @@ func (cd *ContainerDecorations) ForEach(f func(*Decoration)) {
 }
 
 func (cd *ContainerDecorations) Destroy(ctx *Context) {
-	cd.ForEach(func(d *Decoration){
+	cd.ForEach(func(d *Decoration) {
 		d.Window.Unmap()
 		d.Window.Destroy()
 	})
@@ -71,13 +72,13 @@ func (cd *ContainerDecorations) MoveResize(ctx *Context, cShape Rect) {
 }
 
 func (cd *ContainerDecorations) Map() {
-	cd.ForEach(func(d *Decoration){
+	cd.ForEach(func(d *Decoration) {
 		d.Window.Map()
 	})
 }
 
 func (cd *ContainerDecorations) Unmap() {
-	cd.ForEach(func(d *Decoration){
+	cd.ForEach(func(d *Decoration) {
 		d.Window.Unmap()
 	})
 }
@@ -94,7 +95,7 @@ func CreateDecoration(c *Context, shape Rect, color uint32, cursor uint32) (Deco
 			log.Println(err)
 		}
 	} else {
-		err := w.CreateChecked(c.X.RootWin(), shape.X, shape.Y, shape.W, shape.H, xproto.CwBackPixel | xproto.CwCursor, color, cursor)
+		err := w.CreateChecked(c.X.RootWin(), shape.X, shape.Y, shape.W, shape.H, xproto.CwBackPixel|xproto.CwCursor, color, cursor)
 		if err != nil {
 			log.Println(err)
 		}

@@ -1,11 +1,11 @@
 package ext
 
 import (
-	"math"
-	"log"
 	"github.com/BurntSushi/xgb/xproto"
-	"github.com/BurntSushi/xgbutil/xwindow"
 	"github.com/BurntSushi/xgbutil"
+	"github.com/BurntSushi/xgbutil/xwindow"
+	"log"
+	"math"
 )
 
 func IMax(a, b int) int {

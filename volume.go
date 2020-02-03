@@ -1,17 +1,17 @@
 package main
 
 import (
+	"github.com/BurntSushi/wingo/prompt"
+	"github.com/BurntSushi/xgbutil"
+	"github.com/BurntSushi/xgbutil/keybind"
+	"github.com/BurntSushi/xgbutil/xevent"
+	"howm/ext"
+	"howm/frame"
 	"log"
-	"time"
-	"strconv"
 	"os/exec"
 	"regexp"
-	"howm/frame"
-	"howm/ext"
-	"github.com/BurntSushi/xgbutil"
-	"github.com/BurntSushi/xgbutil/xevent"
-	"github.com/BurntSushi/xgbutil/keybind"
-	"github.com/BurntSushi/wingo/prompt"
+	"strconv"
+	"time"
 )
 
 func GetCurrentAudio() (int, error) {
@@ -46,7 +46,7 @@ func RegisterVolumeHooks(ctx *frame.Context) error {
 			return
 		}
 		if increment != 0 {
-			target = ext.IClamp(current + increment, 0, 100)
+			target = ext.IClamp(current+increment, 0, 100)
 		}
 
 		if increment == 0 {
@@ -54,11 +54,11 @@ func RegisterVolumeHooks(ctx *frame.Context) error {
 				err = exec.Command("amixer", "sset", "Master", "0%").Run()
 				volumeBeforeMute.Volume = current
 			} else {
-				err = exec.Command("amixer", "sset", "Master", strconv.Itoa(volumeBeforeMute.Volume) + "%").Run()
+				err = exec.Command("amixer", "sset", "Master", strconv.Itoa(volumeBeforeMute.Volume)+"%").Run()
 				volumeBeforeMute.Volume = 0
 			}
 		} else {
-			err = exec.Command("amixer", "sset", "Master", strconv.Itoa(target) + "%").Run()
+			err = exec.Command("amixer", "sset", "Master", strconv.Itoa(target)+"%").Run()
 		}
 		if err != nil {
 			log.Println(err)
@@ -68,32 +68,32 @@ func RegisterVolumeHooks(ctx *frame.Context) error {
 			log.Println(err)
 			return
 		}
-		
+
 		msgPrompt := prompt.NewMessage(ctx.X,
 			prompt.DefaultMessageTheme, prompt.DefaultMessageConfig)
 		timeout := 1 * time.Second
-		msgPrompt.Show(ctx.Screens[0].ToXRect(), strconv.Itoa(current), timeout, func(msg *prompt.Message){})
+		msgPrompt.Show(ctx.Screens[0].ToXRect(), strconv.Itoa(current), timeout, func(msg *prompt.Message) {})
 	}
 
 	var err error
-	err = keybind.KeyReleaseFun(func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent){
-		audioMod(2)	
+	err = keybind.KeyReleaseFun(func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent) {
+		audioMod(2)
 	}).Connect(ctx.X, ctx.X.RootWin(), ctx.Config.VolumeUp, true)
 	if err != nil {
 		log.Println(err)
 		return err
 	}
 
-	err = keybind.KeyReleaseFun(func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent){
-		audioMod(-2)	
+	err = keybind.KeyReleaseFun(func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent) {
+		audioMod(-2)
 	}).Connect(ctx.X, ctx.X.RootWin(), ctx.Config.VolumeDown, true)
 	if err != nil {
 		log.Println(err)
 		return err
 	}
 
-	err = keybind.KeyReleaseFun(func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent){
-		audioMod(0)	
+	err = keybind.KeyReleaseFun(func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent) {
+		audioMod(0)
 	}).Connect(ctx.X, ctx.X.RootWin(), ctx.Config.VolumeMute, true)
 	if err != nil {
 		log.Println(err)

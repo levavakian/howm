@@ -8,13 +8,13 @@ type NoArgFunc func()
 
 type Injector struct {
 	WorkRequest chan struct{}
-	WorkNotify chan struct{}
+	WorkNotify  chan struct{}
 }
 
 func NewInjector() *Injector {
 	return &Injector{
 		WorkRequest: make(chan struct{}),
-		WorkNotify: make(chan struct{}),
+		WorkNotify:  make(chan struct{}),
 	}
 }
 
@@ -25,9 +25,9 @@ func (inj *Injector) Do(f NoArgFunc) {
 }
 
 type Repeater struct {
-	DoneChan chan bool
+	DoneChan    chan bool
 	ConfirmChan chan bool
-	Ticker *time.Ticker
+	Ticker      *time.Ticker
 }
 
 func NewRepeater(f NoArgFunc, d time.Duration, inj *Injector) *Repeater {
@@ -35,11 +35,11 @@ func NewRepeater(f NoArgFunc, d time.Duration, inj *Injector) *Repeater {
 	done := make(chan bool)
 	confirm := make(chan bool)
 	r := &Repeater{
-		DoneChan: done,
+		DoneChan:    done,
 		ConfirmChan: confirm,
-		Ticker: ticker,
+		Ticker:      ticker,
 	}
-	go func(){
+	go func() {
 		for {
 			select {
 			case <-r.DoneChan:
@@ -66,5 +66,5 @@ func NewRepeater(f NoArgFunc, d time.Duration, inj *Injector) *Repeater {
 func (r *Repeater) Stop() {
 	r.Ticker.Stop()
 	r.DoneChan <- true
-	<- r.ConfirmChan
+	<-r.ConfirmChan
 }

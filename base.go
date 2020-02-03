@@ -1,14 +1,14 @@
 package main
 
 import (
-	"howm/frame"
-	"howm/ext"
+	"github.com/BurntSushi/xgb/xproto"
 	"github.com/BurntSushi/xgbutil"
-	"github.com/BurntSushi/xgbutil/xevent"
 	"github.com/BurntSushi/xgbutil/keybind"
 	"github.com/BurntSushi/xgbutil/mousebind"
+	"github.com/BurntSushi/xgbutil/xevent"
 	"github.com/BurntSushi/xgbutil/xwindow"
-	"github.com/BurntSushi/xgb/xproto"
+	"howm/ext"
+	"howm/frame"
 )
 
 func RegisterBaseHooks(ctx *frame.Context) error {
@@ -25,7 +25,7 @@ func RegisterBaseHooks(ctx *frame.Context) error {
 		if ctx.Locked {
 			return
 		}
-	  	ext.Focus(xwindow.New(ctx.X, ctx.X.RootWin()))
+		ext.Focus(xwindow.New(ctx.X, ctx.X.RootWin()))
 		xproto.AllowEvents(ctx.X.Conn(), xproto.AllowReplayPointer, 0)
 	}).Connect(ctx.X, ctx.X.RootWin(), ctx.Config.ButtonClick, true, true)
 	if err != nil {
@@ -41,8 +41,8 @@ func RegisterBaseHooks(ctx *frame.Context) error {
 	}
 
 	xevent.MapRequestFun(func(X *xgbutil.XUtil, ev xevent.MapRequestEvent) {
-	  frame.NewWindow(ctx, ev)
-	  ctx.RaiseLock()
+		frame.NewWindow(ctx, ev)
+		ctx.RaiseLock()
 	}).Connect(ctx.X, ctx.X.RootWin())
 	return nil
 }
