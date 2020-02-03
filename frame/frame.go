@@ -551,7 +551,7 @@ func ContainerShapeFromRoot(ctx *Context, fShape Rect) Rect {
 }
 
 func AnchorShape(ctx *Context, screen Rect, anchor int) Rect {
-	if !ctx.Taskbar.Hidden {
+	if !ctx.Taskbar.Hidden && screen == ctx.Screens[0] {
 		screen.H = screen.H - ctx.Config.TaskbarHeight
 	}
 
