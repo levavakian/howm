@@ -365,7 +365,7 @@ func (e *Element) AddIconHooks(ctx *Context) error {
 		if !e.Container.Hidden {
 			f := ctx.GetFocusedFrame()
 			if f == nil || f.Container != e.Container {
-				f.Container.RaiseFindFocus(ctx)
+				e.Container.RaiseFindFocus(ctx)
 				return
 			}
 		}
