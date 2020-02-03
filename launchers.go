@@ -64,9 +64,6 @@ func RegisterSplitHooks(ctx *frame.Context) error {
                 return
             }
 
-			if ctx.SplitPrompt != nil {
-			  ctx.SplitPrompt.Destroy()
-			}
 			cmd := exec.Command("bash", "-c", ncmd)
 			err := cmd.Start()
 			if err != nil {
