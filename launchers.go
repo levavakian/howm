@@ -31,8 +31,8 @@ func Split(ctx *frame.Context) *frame.Frame {
 
 	canc := func (inp *prompt.Input) {
 		if ctx.SplitPrompt == nprompt {
+			ctx.SplitPrompt.Destroy()
 			ctx.SplitPrompt = nil
-			ctx.AttachPoint = nil
 		}
 	}
 
