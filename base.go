@@ -27,7 +27,7 @@ func RegisterBaseHooks(ctx *frame.Context) error {
 		}
 		ext.Focus(xwindow.New(ctx.X, ctx.X.RootWin()))
 		xproto.AllowEvents(ctx.X.Conn(), xproto.AllowReplayPointer, 0)
-	}).Connect(ctx.X, ctx.X.RootWin(), ctx.Config.ButtonClick, true, true)
+	}).Connect(ctx.X, ctx.X.RootWin(), ctx.Config.ButtonClick, false, false)
 	if err != nil {
 		return err
 	}
