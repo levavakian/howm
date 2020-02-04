@@ -189,15 +189,6 @@ func (ctx *Context) MinShape() Rect {
 	}
 }
 
-func (ctx *Context) DefaultShapeForScreen(screen Rect) Rect {
-	return Rect{
-		X: screen.X + int(ctx.Config.DefaultShapeRatio.X*float64(screen.W)),
-		Y: screen.Y + int(ctx.Config.DefaultShapeRatio.Y*float64(screen.H)),
-		W: int(ctx.Config.DefaultShapeRatio.W * float64(screen.W)),
-		H: int(ctx.Config.DefaultShapeRatio.H * float64(screen.H)),
-	}
-}
-
 func (ctx *Context) GetScreenForShape(shape Rect) (Rect, int, int) {
 	max_overlap := 0
 	max_i := 0
@@ -211,6 +202,42 @@ func (ctx *Context) GetScreenForShape(shape Rect) (Rect, int, int) {
 		}
 	}
 	return screen, max_overlap, max_i
+}
+
+func (ctx *Context) DefaultShapeForScreen(screen Rect) Rect {
+	osize := ctx.Config.ElemSize * 2
+	offset := 0
+	for {
+		s := Rect{
+			X: screen.X + int(ctx.Config.DefaultShapeRatio.X*float64(screen.W)) + offset*osize,
+			Y: screen.Y + int(ctx.Config.DefaultShapeRatio.Y*float64(screen.H)) + offset*osize,
+			W: int(ctx.Config.DefaultShapeRatio.W * float64(screen.W)),
+			H: int(ctx.Config.DefaultShapeRatio.H * float64(screen.H)),
+		}
+		tshape := TopShape(ctx, s)
+		tscreen, overlap, _ := ctx.GetScreenForShape(tshape)
+		if tscreen != screen || overlap < tshape.Area() {
+			break
+		}
+
+		clear := true
+		for c, _ := range ctx.Containers {
+			if c.Shape == s {
+				clear = false
+				break
+			}
+		}
+		if clear {
+			return s
+		}
+		offset++
+	}
+	return Rect{
+		X: screen.X + int(ctx.Config.DefaultShapeRatio.X*float64(screen.W)),
+		Y: screen.Y + int(ctx.Config.DefaultShapeRatio.Y*float64(screen.H)),
+		W: int(ctx.Config.DefaultShapeRatio.W * float64(screen.W)),
+		H: int(ctx.Config.DefaultShapeRatio.H * float64(screen.H)),
+	}
 }
 
 func (ctx *Context) LastFocusedScreen() Rect {
