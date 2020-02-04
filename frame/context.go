@@ -44,13 +44,13 @@ func NewContext(x *xgbutil.XUtil) (*Context, error) {
 
 	var err error
 	c := &Context{
-		X:          x,
-		Tracked:    make(map[xproto.Window]*Frame),
+		X:            x,
+		Tracked:      make(map[xproto.Window]*Frame),
 		UnmapCounter: make(map[xproto.Window]int),
-		Cursors:    make(map[int]xproto.Cursor),
-		Containers: make(map[*Container]struct{}),
-		Config:     conf,
-		DummyIcon:  xgraphics.New(x, conf.TaskbarElementShape.ToImageRect()),
+		Cursors:      make(map[int]xproto.Cursor),
+		Containers:   make(map[*Container]struct{}),
+		Config:       conf,
+		DummyIcon:    xgraphics.New(x, conf.TaskbarElementShape.ToImageRect()),
 	}
 	c.UpdateScreens()
 	c.Taskbar = NewTaskbar(c)

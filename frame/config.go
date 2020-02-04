@@ -25,7 +25,7 @@ type Config struct {
 	ToggleExpandFrame         string
 	ToggleExternalDecorator   string
 	ToggleTaskbar             string
-	PopFrame                 string
+	PopFrame                  string
 	ResetSize                 string
 	Minimize                  string
 	WindowUp                  string

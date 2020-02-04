@@ -505,8 +505,7 @@ func NewWindow(ctx *Context, window xproto.Window) *Frame {
 		Shape: ctx.DefaultShapeForScreen(ctx.LastFocusedScreen()),
 	}
 
-
-	root := func()*Frame{
+	root := func() *Frame {
 		if existing != nil {
 			existing.Container = c
 			existing.Shape = RootShape(ctx, c)
@@ -702,7 +701,7 @@ func AddWindowHook(ctx *Context, window xproto.Window) error {
 			}
 			ctx.RaiseLock()
 		}).Connect(ctx.X, window)
-	
+
 	xevent.UnmapNotifyFun(
 		func(X *xgbutil.XUtil, ev xevent.UnmapNotifyEvent) {
 			if ctx.UnmapCounter[window] > 0 {
