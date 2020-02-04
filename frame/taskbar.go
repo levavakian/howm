@@ -106,6 +106,11 @@ func ShouldActivate(idx int, start int, canfit int) bool {
 
 func (t *Taskbar) UpdateContainer(ctx *Context, c *Container) {
 	var err error
+	if c.Root == nil {
+		log.Println("wanted to update childless container")
+		return
+	}
+
 	elem, ok := t.Scroller.Elements[c]
 	if !ok {
 		active := ShouldActivate(len(t.Scroller.Elements), t.Scroller.StartingIdx, t.Scroller.CanFit)

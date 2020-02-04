@@ -34,7 +34,6 @@ func RegisterBaseHooks(ctx *frame.Context) error {
 
 	err = keybind.KeyReleaseFun(func(X *xgbutil.XUtil, ev xevent.KeyReleaseEvent) {
 		ctx.SetLocked(true)
-		ctx.RaiseLock()
 	}).Connect(ctx.X, ctx.X.RootWin(), ctx.Config.Lock, true)
 	if err != nil {
 		return err

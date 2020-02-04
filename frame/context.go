@@ -11,6 +11,8 @@ import (
 	"github.com/BurntSushi/xgbutil/xcursor"
 	"github.com/BurntSushi/xgbutil/xgraphics"
 	"github.com/BurntSushi/xgbutil/xwindow"
+	"github.com/google/goexpect"
+	"strings"
 	"howm/ext"
 	"howm/sideloop"
 	"log"
@@ -99,11 +101,34 @@ func (ctx *Context) GenerateLockPrompt() {
 			log.Println(err)
 			return
 		}
-		err = exec.Command(ctx.Config.Shell, "-c", fmt.Sprintf("echo %s | sudo -u %s -S", usr.Name, text)).Run()
+
+		e, _, err := expect.Spawn(fmt.Sprintf("su - %s", usr.Name), time.Second*10)
 		if err != nil {
-			ctx.SetLocked(false)
-		} else {
 			log.Println(err)
+			return
+		}
+		defer e.Close()
+
+		outs, err := e.ExpectBatch([]expect.Batcher{
+			&expect.BExp{R: "Password:"},
+			&expect.BSnd{S: text + "\n"},
+			&expect.BExp{R: ".+"},
+		}, time.Second*10)
+
+		ok := true
+		if err != nil {
+			ok = false
+			log.Println(err)
+		} else if len(outs) != 2 {
+			log.Println("wrong amount of outputs")
+			ok = false
+		} else if (!strings.Contains(outs[1].Output, usr.Name)) {
+			log.Println("user name not in login outs")
+			ok = false
+		}
+
+		if ok {
+			ctx.SetLocked(false)
 		}
 
 		ctx.LockPrompt.Destroy()
@@ -125,6 +150,7 @@ func (ctx *Context) RaiseLock() {
 	for _, bg := range ctx.Backgrounds {
 		bg.Stack(xproto.StackModeAbove)
 	}
+	ext.Focus(xwindow.New(ctx.X, ctx.X.Dummy()))
 
 	ctx.GenerateLockPrompt()
 }
@@ -145,14 +171,13 @@ func (ctx *Context) SetLocked(state bool) {
 	}
 	ctx.Locked = state
 	if ctx.Locked {
-		cmd := exec.Command("bash", "-c", ctx.Config.SuspendCommand)
-		err := cmd.Start()
+		ctx.RaiseLock()
+		err := exec.Command("bash", "-c", ctx.Config.SuspendCommand).Run()
 		if err != nil {
 			log.Println(err)
 		}
-		go func() {
-			cmd.Wait()
-		}()
+	} else {
+		ctx.LowerLock()
 	}
 }
 

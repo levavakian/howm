@@ -102,7 +102,7 @@ func RegisterChooseHooks(ctx *frame.Context) {
 		wrapper.Choices = make([]*prompt.CycleItem, 0)
 		if ctx.Config.TabByFrame {
 			for _, f := range ctx.Tracked {
-				if !f.IsLeaf() {
+				if !f.IsLeaf() || f.Container == nil {
 					continue
 				}
 				item := wrapper.Cycle.AddChoice(&Choice{f.Window, ctx, wrapper})
@@ -110,6 +110,9 @@ func RegisterChooseHooks(ctx *frame.Context) {
 			}
 		} else {
 			for c, _ := range ctx.Containers {
+				if c.Root == nil {
+					continue
+				}
 				if f := c.Root.Find(func(fr *frame.Frame) bool { return fr.IsLeaf() }); f != nil {
 					item := wrapper.Cycle.AddChoice(&Choice{f.Window, ctx, wrapper})
 					wrapper.Choices = append(wrapper.Choices, item)
