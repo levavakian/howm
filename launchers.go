@@ -145,5 +145,35 @@ func RegisterSplitHooks(ctx *frame.Context) error {
 	if err != nil {
 		return err
 	}
+
+	for _, v := range ctx.Config.GotoKeys {
+		ref := v // capture separately so we can use in closure
+		err = keybind.KeyReleaseFun(func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent) {
+			if ctx.Locked {
+				return
+			}
+
+			winId, _ := ctx.Gotos[ref]
+			f := ctx.Get(winId)
+			if f == nil || f.Container == nil {
+				return
+			}
+
+			if !f.Container.Hidden {
+				ffoc := ctx.GetFocusedFrame()
+				if ffoc == nil || ffoc.Container != f.Container {
+					f.Container.Raise(ctx)
+					f.Focus(ctx)
+					return
+				}
+			}
+
+			f.Container.ChangeMinimizationState(ctx)
+		}).Connect(ctx.X, ctx.X.RootWin(), ref, true)
+		if err != nil {
+			return err
+		}
+	}
+
 	return err
 }

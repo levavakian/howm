@@ -12,13 +12,13 @@ import (
 	"github.com/BurntSushi/xgbutil/xgraphics"
 	"github.com/BurntSushi/xgbutil/xwindow"
 	"github.com/google/goexpect"
-	"strings"
 	"howm/ext"
 	"howm/sideloop"
 	"log"
-	"time"
 	"os/exec"
 	"os/user"
+	"strings"
+	"time"
 )
 
 var NoFont = xgraphics.MustFont(xgraphics.ParseFont(
@@ -54,6 +54,7 @@ type Context struct {
 	Taskbar                *Taskbar
 	LastLockChange         time.Time
 	Injector               *sideloop.Injector
+	Gotos                  map[string]xproto.Window
 }
 
 func NewContext(x *xgbutil.XUtil, inj *sideloop.Injector) (*Context, error) {
@@ -61,15 +62,16 @@ func NewContext(x *xgbutil.XUtil, inj *sideloop.Injector) (*Context, error) {
 
 	var err error
 	c := &Context{
-		X:            x,
-		Tracked:      make(map[xproto.Window]*Frame),
-		UnmapCounter: make(map[xproto.Window]int),
-		Cursors:      make(map[int]xproto.Cursor),
-		Containers:   make(map[*Container]struct{}),
-		Config:       conf,
-		DummyIcon:    xgraphics.New(x, conf.TaskbarElementShape.ToImageRect()),
+		X:              x,
+		Tracked:        make(map[xproto.Window]*Frame),
+		UnmapCounter:   make(map[xproto.Window]int),
+		Cursors:        make(map[int]xproto.Cursor),
+		Containers:     make(map[*Container]struct{}),
+		Config:         conf,
+		DummyIcon:      xgraphics.New(x, conf.TaskbarElementShape.ToImageRect()),
 		LastLockChange: time.Now(),
-		Injector:      inj,
+		Injector:       inj,
+		Gotos:          make(map[string]xproto.Window),
 	}
 	c.UpdateScreens()
 	c.Taskbar = NewTaskbar(c)
@@ -122,7 +124,7 @@ func (ctx *Context) GenerateLockPrompt() {
 		} else if len(outs) != 2 {
 			log.Println("wrong amount of outputs")
 			ok = false
-		} else if (!strings.Contains(outs[1].Output, usr.Name)) {
+		} else if !strings.Contains(outs[1].Output, usr.Name) {
 			log.Println("user name not in login outs")
 			ok = false
 		}

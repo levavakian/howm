@@ -72,7 +72,8 @@ type Config struct {
 	CutSelectContainer        string
 	CopySelectHorizontal      string
 	CopySelectVertical        string
-	SuspendCommand string
+	SuspendCommand            string
+	GotoKeys                  map[string]string
 }
 
 func HomeDir() string {
@@ -163,6 +164,18 @@ func DefaultConfig() Config {
 		CopySelectHorizontal:      "Mod4-v",
 		CopySelectVertical:        "Mod4-b",
 		SuspendCommand:            "systemctl suspend",
+		GotoKeys: map[string]string{
+			"Mod4-Shift-0": "Mod4-0",
+			"Mod4-Shift-1": "Mod4-1",
+			"Mod4-Shift-2": "Mod4-2",
+			"Mod4-Shift-3": "Mod4-3",
+			"Mod4-Shift-4": "Mod4-4",
+			"Mod4-Shift-5": "Mod4-5",
+			"Mod4-Shift-6": "Mod4-6",
+			"Mod4-Shift-7": "Mod4-7",
+			"Mod4-Shift-8": "Mod4-8",
+			"Mod4-Shift-9": "Mod4-9",
+		},
 	}
 }
 

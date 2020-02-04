@@ -421,6 +421,8 @@ func (c *Container) ChangeMinimizationState(ctx *Context) {
 	c.UpdateFrameMappings(ctx)
 	if !c.Hidden {
 		c.RaiseFindFocus(ctx)
+	} else {
+		ext.Focus(xwindow.New(ctx.X, ctx.X.RootWin()))
 	}
 	ctx.Taskbar.UpdateContainer(ctx, c)
 }
@@ -749,6 +751,8 @@ func AddWindowHook(ctx *Context, window xproto.Window) error {
 				})
 				if nf != nil {
 					nf.Focus(ctx)
+				} else {
+					ext.Focus(xwindow.New(ctx.X, ctx.X.RootWin()))
 				}
 			}
 
@@ -1007,6 +1011,19 @@ func AddWindowHook(ctx *Context, window xproto.Window) error {
 			}
 		}).Connect(ctx.X, window, ctx.Config.WindowRight, true)
 	ext.Logerr(err)
+
+	for k, v := range ctx.Config.GotoKeys {
+		kref := k // capture separately so we can use in closure
+		vref := v // capture separately so we can use in closure
+		err = keybind.KeyReleaseFun(func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent) {
+			if ctx.Locked {
+				return
+			}
+
+			ctx.Gotos[vref] = window
+		}).Connect(ctx.X, window, kref, true)
+		ext.Logerr(err)
+	}
 
 	return err
 }
