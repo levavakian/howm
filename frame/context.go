@@ -20,9 +20,20 @@ import (
 var NoFont = xgraphics.MustFont(xgraphics.ParseFont(
 	bytes.NewBuffer(misc.DataFile("write-your-password-with-this-font.ttf"))))
 
+type AttachTarget struct {
+	Target *Frame
+	Type   PartitionType
+}
+
+type Yank struct {
+	Container *Container
+	Window    xproto.Window
+}
+
 type Context struct {
 	X                      *xgbutil.XUtil
 	AttachPoint            *AttachTarget
+	Yanked                 *Yank
 	Tracked                map[xproto.Window]*Frame
 	UnmapCounter           map[xproto.Window]int
 	Containers             map[*Container]struct{}

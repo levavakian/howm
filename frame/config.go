@@ -67,6 +67,10 @@ type Config struct {
 	TaskbarMinMaxColor        uint32
 	TaskbarSlideLeft          string
 	TaskbarSlideRight         string
+	CutSelectFrame            string
+	CutSelectContainer        string
+	CopySelectHorizontal      string
+	CopySelectVertical        string
 }
 
 func HomeDir() string {
@@ -89,7 +93,7 @@ func DefaultConfig() Config {
 		ButtonClick:             "1",
 		SplitVertical:           "Mod4-r",
 		SplitHorizontal:         "Mod4-e",
-		RunCmd:                  "Mod4-c",
+		RunCmd:                  "Mod4-f",
 		Shutdown:                "Mod4-BackSpace",
 		CloseFrame:              "Mod4-d",
 		ToggleExpandFrame:       "Mod4-x",
@@ -151,6 +155,10 @@ func DefaultConfig() Config {
 		TaskbarMinMaxColor:        0x999999,
 		TaskbarSlideLeft:          "Mod4-Shift-left",
 		TaskbarSlideRight:         "Mod4-Shift-right",
+		CutSelectFrame:            "Mod4-c",
+		CutSelectContainer:        "Mod4-Shift-c",
+		CopySelectHorizontal:      "Mod4-v",
+		CopySelectVertical:        "Mod4-b",
 	}
 }
 

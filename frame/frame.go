@@ -48,11 +48,6 @@ type Frame struct {
 	Mapped                 bool
 }
 
-type AttachTarget struct {
-	Target *Frame
-	Type   PartitionType
-}
-
 func (f *Frame) Traverse(fun func(*Frame)) {
 	fun(f)
 	if f.ChildA != nil {
@@ -205,45 +200,66 @@ func (f *Frame) IsRoot() bool {
 }
 
 func (f *Frame) Orphan(ctx *Context) {
+	if f.Container == nil {
+		log.Println("orphan called on already orphaned frame")
+		return
+	}
+	if !f.IsLeaf() {
+		log.Println("can't orphan non leaf frame")
+		return
+	}
 	f.UnmapSingle(ctx)
+	defer func() {
+		f.Parent = nil
+		f.Container = nil
+	}()
 
-	if f.IsRoot() && f.IsLeaf() && f.Container != nil {
+	if f.IsRoot() {
 		f.Container.Destroy(ctx)
+		return
 	}
 
-	if !f.IsRoot() && f.IsLeaf() && f.Container != nil {
-		oc := func() *Frame {
-			if f.Parent.ChildA == f {
-				return f.Parent.ChildB
-			} else {
-				return f.Parent.ChildA
-			}
-		}()
-
-		par := oc.Parent
-		oc.Parent = par.Parent
-		if oc.Parent != nil {
-			if oc.Parent.ChildA == par {
-				oc.Parent.ChildA = oc
-			}
-			if oc.Parent.ChildB == par {
-				oc.Parent.ChildB = oc
-			}
-		}
-		if par.IsRoot() {
-			oc.Container.Root = oc
-		}
-		par.UnmapSingle(ctx)
-		par.Destroy(ctx)
-		oc.MoveResize(ctx)
-		ctx.Taskbar.UpdateContainer(ctx, f.Container)
+	if f.Container.Expanded == f {
+		f.Container.Expanded = nil
+		f.Container.UpdateFrameMappings(ctx)
 	}
 
+	oc := func() *Frame {
+		if f.Parent.ChildA == f {
+			return f.Parent.ChildB
+		} else {
+			return f.Parent.ChildA
+		}
+	}()
+
+	par := oc.Parent
+	oc.Parent = par.Parent
+	if oc.Parent != nil {
+		if oc.Parent.ChildA == par {
+			oc.Parent.ChildA = oc
+		}
+		if oc.Parent.ChildB == par {
+			oc.Parent.ChildB = oc
+		}
+	}
+	if par.IsRoot() {
+		oc.Container.Root = oc
+	}
+	par.Isolate(ctx)
+	par.Destroy(ctx)
+	oc.MoveResize(ctx)
+	ctx.Taskbar.UpdateContainer(ctx, f.Container)
+}
+
+func (f *Frame) Isolate(ctx *Context) {
 	f.Parent = nil
+	f.ChildA = nil
+	f.ChildB = nil
 	f.Container = nil
 }
 
 func (f *Frame) Destroy(ctx *Context) {
+	f.UnmapSingle(ctx)
 	f.Orphan(ctx)
 	if f.Window != nil {
 		f.Window.Destroy()
@@ -386,6 +402,10 @@ func (c *Container) RaiseFindFocus(ctx *Context) {
 
 func (c *Container) Destroy(ctx *Context) {
 	c.Decorations.Destroy(ctx)
+	c.Root.Traverse(func(ft *Frame) {
+		ft.Container = nil
+	})
+	c.Root = nil
 	delete(ctx.Containers, c)
 	ctx.Taskbar.RemoveContainer(ctx, c)
 	xwindow.New(ctx.X, ctx.X.RootWin()).Focus()
@@ -440,16 +460,14 @@ func (c *Container) MoveResizeShape(ctx *Context, shape Rect) {
 	c.Decorations.MoveResize(ctx, c.Shape)
 }
 
-func AttachWindow(ctx *Context, window xproto.Window) *Frame {
-	defer func() { ctx.AttachPoint = nil }()
-
-	if !ctx.AttachPoint.Target.IsLeaf() {
+func AttachWindow(ctx *Context, target *Frame, partitition PartitionType, window xproto.Window, existing *Frame) *Frame {
+	if !target.IsLeaf() {
 		log.Println("attach point is not leaf")
 		return nil
 	}
 
-	ap := ctx.AttachPoint.Target
-	ap.Separator.Type = ctx.AttachPoint.Type
+	ap := target
+	ap.Separator.Type = partitition
 	ap.Separator.Ratio = .5
 	ap.CreateSeparatorDecoration(ctx)
 
@@ -465,28 +483,42 @@ func AttachWindow(ctx *Context, window xproto.Window) *Frame {
 	ctx.Tracked[ca.Window.Id] = ca
 
 	// Add new window as child B
-	cb := &Frame{
-		Window:    xwindow.New(ctx.X, window),
-		Parent:    ap,
-		Container: ap.Container,
-	}
-	ap.ChildB = cb
-	cb.Shape = cb.CalcShape(ctx)
-	ctx.Tracked[window] = cb
+	cb := func() *Frame {
+		if existing == nil {
+			nf := &Frame{
+				Window:    xwindow.New(ctx.X, window),
+				Parent:    ap,
+				Container: ap.Container,
+			}
+			ap.ChildB = nf
+			nf.Shape = nf.CalcShape(ctx)
+			ctx.Tracked[window] = nf
 
-	if err := ext.MapChecked(cb.Window); err != nil {
-		log.Println("NewContainer:", window, "could not be mapped")
-		return nil
-	}
+			if err := ext.MapChecked(nf.Window); err != nil {
+				log.Println("NewContainer:", window, "could not be mapped")
+				return nil
+			}
 
-	err := AddWindowHook(ctx, window)
-	if err != nil {
-		log.Println("failed to add window hooks", err)
-	}
+			err := AddWindowHook(ctx, window)
+			if err != nil {
+				log.Println("failed to add window hooks", err)
+			}
+			return nf
+		} else {
+			nf := existing
+			nf.Parent = ap
+			ap.ChildB = nf
+			nf.Traverse(func(ft *Frame) {
+				ft.Container = ap.Container
+			})
+			return nf
+		}
+	}()
+	cb.Map()
 
 	ap.MoveResize(ctx)
 	ap.Container.Raise(ctx)
-	cb.Focus(ctx)
+	cb.Find(func(ff *Frame) bool { return ff.IsLeaf() }).Focus(ctx)
 	return cb
 }
 
@@ -497,7 +529,8 @@ func NewWindow(ctx *Context, window xproto.Window) *Frame {
 	}
 
 	if ctx.AttachPoint != nil {
-		return AttachWindow(ctx, window)
+		defer func() { ctx.AttachPoint = nil }()
+		return AttachWindow(ctx, ctx.AttachPoint.Target, ctx.AttachPoint.Type, window, nil)
 	}
 
 	// Create container and root frame
@@ -752,6 +785,74 @@ func AddWindowHook(ctx *Context, window xproto.Window) error {
 				f.Close(ctx)
 			}
 		}).Connect(ctx.X, window, ctx.Config.CloseFrame, true)
+	ext.Logerr(err)
+
+	err = keybind.KeyReleaseFun(
+		func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent) {
+			if ctx.Locked {
+				return
+			}
+			f := ctx.Get(window)
+			ctx.Yanked = &Yank{Window: f.Window.Id, Container: nil}
+		}).Connect(ctx.X, window, ctx.Config.CutSelectFrame, true)
+	ext.Logerr(err)
+
+	err = keybind.KeyReleaseFun(
+		func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent) {
+			if ctx.Locked {
+				return
+			}
+			f := ctx.Get(window)
+			ctx.Yanked = &Yank{Window: 0, Container: f.Container}
+		}).Connect(ctx.X, window, ctx.Config.CutSelectContainer, true)
+	ext.Logerr(err)
+
+	yankAttach := func(window xproto.Window, partition PartitionType) {
+		if ctx.Locked {
+			return
+		}
+
+		if ctx.Yanked == nil {
+			return
+		}
+		defer func() { ctx.Yanked = nil }()
+
+		target := ctx.Get(window)
+		if target == nil {
+			log.Println("could not find target window for yank attach")
+		}
+		source := func() *Frame {
+			if ctx.Yanked.Container != nil && ctx.Yanked.Container.Root != nil {
+				s := ctx.Yanked.Container.Root
+				s.Unmap(ctx)
+				ctx.Yanked.Container.Destroy(ctx)
+				return s
+			} else {
+				s := ctx.Get(ctx.Yanked.Window)
+				if s != nil {
+					s.Orphan(ctx)
+				}
+				return s
+			}
+		}()
+		if source == nil {
+			log.Println("could not find source window for yank attach")
+			return
+		}
+
+		AttachWindow(ctx, target, partition, 0, source)
+	}
+
+	err = keybind.KeyReleaseFun(
+		func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent) {
+			yankAttach(window, HORIZONTAL)
+		}).Connect(ctx.X, window, ctx.Config.CopySelectHorizontal, true)
+	ext.Logerr(err)
+
+	err = keybind.KeyReleaseFun(
+		func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent) {
+			yankAttach(window, VERTICAL)
+		}).Connect(ctx.X, window, ctx.Config.CopySelectVertical, true)
 	ext.Logerr(err)
 
 	err = keybind.KeyReleaseFun(

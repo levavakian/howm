@@ -19,7 +19,7 @@ Some commands have builtin keyboard shortcuts, namely;
 
 More commands can be added to the builtin commands in `config.go`.
 
-`Mod4-c` brings up a dialog to run an arbitrary command.
+`Mod4-f` brings up a dialog to run an arbitrary command.
 
 #### Window controls
 `Mod4-up/left/right/down` will move the window to anchor points around the screen, as well as keep moving them across other screens if they are available.
@@ -29,6 +29,8 @@ More commands can be added to the builtin commands in `config.go`.
 `Mod4-x` will toogle a frame as expanded, making it the same size as its container.
 
 `Mod4-h` will hide the container decorations.
+
+`Mod4-q` will pop out a frame into its own container.
 
 `Alt-Tab`/`Alt-Shift-Tab` works like you'd expect.
 
@@ -44,6 +46,13 @@ Any photo named `$USER/.config/howm/bg.png` will be used as a background image. 
 
 #### Splitting
 To subdivide a window, press `Mod4-e` for a horizontal split or `Mod4-r` for a vertical split. A command window will pop up to take in a command to launch, but you can use the keyboard shortcuts to launch a builtin command, bypassing the command prompt.
+
+To split for existing frames or containers:
+
+`Mod4-c` selects a frame for yanking.
+`Mod4-Shift-c` selects a container for yanking.
+`Mo4-Shift-v` on a different frame will add the selection as a horizontal child.
+`Mo4-Shift-b` on a different frame will add the selection as a vertical child.
 
 #### Volume
 Can be controlled with `Mod4-F1` to mute, and `Mod4-F2/F3` to raise/lower volume.
