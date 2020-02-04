@@ -12,7 +12,9 @@ import (
 	"github.com/BurntSushi/xgbutil/xgraphics"
 	"github.com/BurntSushi/xgbutil/xwindow"
 	"howm/ext"
+	"howm/sideloop"
 	"log"
+	"time"
 	"os/exec"
 	"os/user"
 )
@@ -48,9 +50,11 @@ type Context struct {
 	Locked                 bool
 	LockPrompt             *prompt.Input
 	Taskbar                *Taskbar
+	LastLockChange         time.Time
+	Injector               *sideloop.Injector
 }
 
-func NewContext(x *xgbutil.XUtil) (*Context, error) {
+func NewContext(x *xgbutil.XUtil, inj *sideloop.Injector) (*Context, error) {
 	conf := DefaultConfig()
 
 	var err error
@@ -62,6 +66,8 @@ func NewContext(x *xgbutil.XUtil) (*Context, error) {
 		Containers:   make(map[*Container]struct{}),
 		Config:       conf,
 		DummyIcon:    xgraphics.New(x, conf.TaskbarElementShape.ToImageRect()),
+		LastLockChange: time.Now(),
+		Injector:      inj,
 	}
 	c.UpdateScreens()
 	c.Taskbar = NewTaskbar(c)
@@ -95,7 +101,7 @@ func (ctx *Context) GenerateLockPrompt() {
 		}
 		err = exec.Command(ctx.Config.Shell, "-c", fmt.Sprintf("echo %s | sudo -u %s -S", usr.Name, text)).Run()
 		if err != nil {
-			ctx.Locked = false
+			ctx.SetLocked(false)
 		} else {
 			log.Println(err)
 		}
@@ -130,6 +136,32 @@ func (ctx *Context) LowerLock() {
 
 	for _, bg := range ctx.Backgrounds {
 		bg.Stack(xproto.StackModeBelow)
+	}
+}
+
+func (ctx *Context) SetLocked(state bool) {
+	if state == ctx.Locked {
+		return
+	}
+	ctx.Locked = state
+	if ctx.Locked {
+		go func(){
+			timer := time.NewTimer(ctx.Config.SuspendTimeout)
+			<-timer.C
+
+			ctx.Injector.Do(func(){
+				if ctx.Locked && ((time.Now().Sub(ctx.LastLockChange)) > ctx.Config.SuspendTimeout) {
+					cmd := exec.Command("bash", "-c", ctx.Config.SuspendCommand)
+					err := cmd.Start()
+					if err != nil {
+						log.Println(err)
+					}
+					go func() {
+						cmd.Wait()
+					}()
+				}
+			})
+		}()
 	}
 }
 

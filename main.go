@@ -62,7 +62,7 @@ func ConfigRoot(X *xgbutil.XUtil, inj *sideloop.Injector) error {
 
 	// Create context
 	exec.Command("xrandr", "--auto").Run()
-	ctx, err := frame.NewContext(X)
+	ctx, err := frame.NewContext(X, inj)
 	if err != nil {
 		log.Fatal(err)
 	}
