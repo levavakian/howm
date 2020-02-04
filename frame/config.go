@@ -72,7 +72,6 @@ type Config struct {
 	CutSelectContainer        string
 	CopySelectHorizontal      string
 	CopySelectVertical        string
-	SuspendTimeout            time.Duration
 	SuspendCommand string
 }
 
@@ -163,7 +162,6 @@ func DefaultConfig() Config {
 		CutSelectContainer:        "Mod4-Shift-c",
 		CopySelectHorizontal:      "Mod4-v",
 		CopySelectVertical:        "Mod4-b",
-		SuspendTimeout:            time.Second * 5,
 		SuspendCommand:            "systemctl suspend",
 	}
 }

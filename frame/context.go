@@ -145,22 +145,13 @@ func (ctx *Context) SetLocked(state bool) {
 	}
 	ctx.Locked = state
 	if ctx.Locked {
-		go func(){
-			timer := time.NewTimer(ctx.Config.SuspendTimeout)
-			<-timer.C
-
-			ctx.Injector.Do(func(){
-				if ctx.Locked && ((time.Now().Sub(ctx.LastLockChange)) > ctx.Config.SuspendTimeout) {
-					cmd := exec.Command("bash", "-c", ctx.Config.SuspendCommand)
-					err := cmd.Start()
-					if err != nil {
-						log.Println(err)
-					}
-					go func() {
-						cmd.Wait()
-					}()
-				}
-			})
+		cmd := exec.Command("bash", "-c", ctx.Config.SuspendCommand)
+		err := cmd.Start()
+		if err != nil {
+			log.Println(err)
+		}
+		go func() {
+			cmd.Wait()
 		}()
 	}
 }
