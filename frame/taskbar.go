@@ -1,6 +1,7 @@
 package frame
 
 import (
+	"fmt"
 	"github.com/BurntSushi/wingo/prompt"
 	"github.com/BurntSushi/wingo/render"
 	"github.com/BurntSushi/wingo/text"
@@ -10,16 +11,24 @@ import (
 	"github.com/BurntSushi/xgbutil/xevent"
 	"github.com/BurntSushi/xgbutil/xgraphics"
 	"github.com/BurntSushi/xgbutil/xwindow"
+	"github.com/distatus/battery"
 	"howm/ext"
 	"log"
 	"time"
 )
 
+type History struct {
+	LastBattery      int
+	LastBatteryState string
+}
+
 type Taskbar struct {
 	Base     Decoration
 	TimeWin  *xwindow.Window
+	BatWin   *xwindow.Window
 	Hidden   bool
 	Scroller *ElementScroller
+	History  History
 }
 
 type Element struct {
@@ -40,7 +49,12 @@ type ElementScroller struct {
 }
 
 func NewTaskbar(ctx *Context) *Taskbar {
-	t := &Taskbar{}
+	t := &Taskbar{
+		History: History{
+			LastBattery:      100,
+			LastBatteryState: "∘",
+		},
+	}
 	var err error
 
 	// Base background
@@ -60,6 +74,17 @@ func NewTaskbar(ctx *Context) *Taskbar {
 	win.Create(ctx.X.RootWin(), s.X, s.Y, s.W, s.H, 0)
 	win.Map()
 	t.TimeWin = win
+
+	// Battery
+	s = BatShape(ctx)
+	win, err = xwindow.Generate(ctx.X)
+	if err != nil {
+		log.Fatal(err)
+		return nil
+	}
+	win.Create(ctx.X.RootWin(), s.X, s.Y, s.W, s.H, 0)
+	win.Map()
+	t.BatWin = win
 
 	// Scroller
 	t.Scroller = NewElementScroller(ctx)
@@ -429,9 +454,9 @@ func LeftSelectorShape(ctx *Context) Rect {
 }
 
 func RightSelectorShape(ctx *Context) Rect {
-	timeshape := TimeShape(ctx)
+	bs := BarrierElementShape(ctx)
 	return Rect{
-		X: timeshape.X - ctx.Config.TaskbarSlideWidth - ctx.Config.TaskbarXPad,
+		X: bs.X - ctx.Config.TaskbarSlideWidth - ctx.Config.TaskbarXPad,
 		Y: TaskbarShape(ctx).Y,
 		W: ctx.Config.TaskbarSlideWidth,
 		H: ctx.Config.TaskbarHeight,
@@ -452,6 +477,8 @@ func (t *Taskbar) MoveResize(ctx *Context) {
 	t.Base.Window.MoveResize(s.X, s.Y, s.W, s.H)
 	st := TimeShape(ctx)
 	t.TimeWin.MoveResize(st.X, st.Y, st.W, st.H)
+	sb := BatShape(ctx)
+	t.BatWin.MoveResize(sb.X, sb.Y, sb.W, sb.H)
 	t.Scroller.MoveResize(ctx)
 }
 
@@ -465,15 +492,48 @@ func (t *Taskbar) Update(ctx *Context) {
 		render.NewColor(int(ctx.Config.TaskbarBaseColor)),
 		now.Format(ctx.Config.TaskbarTimeFormat),
 	)
+
+	batteries, err := battery.GetAll()
+	bat, charging := func() (int, string) {
+		if err != nil || len(batteries) == 0 {
+			return t.History.LastBattery, t.History.LastBatteryState
+		}
+
+		lowest_bat := 100
+		state := "∘"
+		for _, bat := range batteries {
+			per := int(batteries[0].Current / batteries[0].Full * 100)
+			if per < lowest_bat {
+				lowest_bat = per
+				if bat.State == battery.Charging {
+					state = "⇡"
+				}
+			}
+		}
+		t.History.LastBattery = lowest_bat
+		t.History.LastBatteryState = state
+		return lowest_bat, state
+	}()
+
+	text.DrawText(
+		t.BatWin,
+		prompt.DefaultInputTheme.Font,
+		ctx.Config.TaskbarFontSize,
+		render.NewColor(int(ctx.Config.TaskbarTextColor)),
+		render.NewColor(int(ctx.Config.TaskbarBaseColor)),
+		fmt.Sprintf(ctx.Config.TaskbarBatFormat, charging, bat),
+	)
 }
 
 func (t *Taskbar) UpdateMapping(ctx *Context) {
 	if t.Hidden {
 		t.Base.Window.Unmap()
 		t.TimeWin.Unmap()
+		t.BatWin.Unmap()
 	} else {
 		t.Base.Window.Map()
 		t.TimeWin.Map()
+		t.BatWin.Unmap()
 	}
 	t.Scroller.UpdateMappings(ctx)
 }
@@ -481,12 +541,14 @@ func (t *Taskbar) UpdateMapping(ctx *Context) {
 func (t *Taskbar) Raise(ctx *Context) {
 	t.Base.Window.Stack(xproto.StackModeAbove)
 	t.TimeWin.Stack(xproto.StackModeAbove)
+	t.BatWin.Stack(xproto.StackModeAbove)
 	t.Scroller.Raise(ctx)
 }
 
 func (t *Taskbar) Lower(ctx *Context) {
 	t.Base.Window.Stack(xproto.StackModeBelow)
 	t.TimeWin.Stack(xproto.StackModeBelow)
+	t.BatWin.Stack(xproto.StackModeBelow)
 	t.Scroller.Lower(ctx)
 }
 
@@ -494,8 +556,8 @@ func CalcCanFit(ctx *Context) int {
 	tshape := TaskbarShape(ctx)
 	iconwidth := ctx.Config.TaskbarElementShape.X*2 + ctx.Config.TaskbarElementShape.W
 	selectorwidth := ctx.Config.TaskbarSlideWidth
-	timeshape := TimeShape(ctx)
-	rightpad := tshape.W - (timeshape.X - tshape.X) - ctx.Config.TaskbarXPad
+	bs := BarrierElementShape(ctx)
+	rightpad := tshape.W - (bs.X - tshape.X) - ctx.Config.TaskbarXPad
 	return (tshape.W - selectorwidth*2 - rightpad) / iconwidth
 }
 
@@ -530,8 +592,23 @@ func TaskbarShape(ctx *Context) Rect {
 	}
 }
 
+func BarrierElementShape(ctx *Context) Rect {
+	return TimeShape(ctx)
+}
+
 func TimeShape(ctx *Context) Rect {
 	ew, eh := xgraphics.Extents(prompt.DefaultInputTheme.Font, ctx.Config.TaskbarFontSize, ctx.Config.TaskbarTimeFormat)
+	s := BatShape(ctx)
+	return Rect{
+		X: s.X - ew - 2*ctx.Config.TaskbarXPad,
+		Y: s.Y,
+		W: ew,
+		H: eh,
+	}
+}
+
+func BatShape(ctx *Context) Rect {
+	ew, eh := xgraphics.Extents(prompt.DefaultInputTheme.Font, ctx.Config.TaskbarFontSize, fmt.Sprintf(ctx.Config.TaskbarBatFormat, "∘", 50))
 	s := TaskbarShape(ctx)
 	return Rect{
 		X: s.X + s.W - ew - ctx.Config.TaskbarXPad,

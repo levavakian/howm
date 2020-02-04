@@ -62,6 +62,7 @@ type Config struct {
 	TaskbarXPad               int
 	TaskbarYPad               int
 	TaskbarTimeFormat         string
+	TaskbarBatFormat          string
 	TaskbarElementShape       Rect
 	TaskbarMinMaxHeight       int
 	TaskbarMinMaxColor        uint32
@@ -142,6 +143,7 @@ func DefaultConfig() Config {
 		TaskbarXPad:          5,
 		TaskbarYPad:          5,
 		TaskbarTimeFormat:    "2006 Mon Jan 02 - 15:04:05 (MST)",
+		TaskbarBatFormat:     "%s%3d%%",
 		TaskbarElementShape: Rect{
 			X: 2,
 			Y: 0,
