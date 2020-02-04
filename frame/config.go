@@ -25,6 +25,7 @@ type Config struct {
 	ToggleExpandFrame         string
 	ToggleExternalDecorator   string
 	ToggleTaskbar             string
+	PopFrame                 string
 	ResetSize                 string
 	Minimize                  string
 	WindowUp                  string
@@ -98,6 +99,7 @@ func DefaultConfig() Config {
 		WindowDown:              "Mod4-down",
 		WindowLeft:              "Mod4-left",
 		WindowRight:             "Mod4-right",
+		PopFrame:                "Mod4-q",
 		ResetSize:               "Mod4-Shift-up",
 		Minimize:                "Mod4-Shift-down",
 		VolumeUp:                "Mod4-F3",

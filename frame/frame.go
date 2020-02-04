@@ -239,6 +239,7 @@ func (f *Frame) Orphan(ctx *Context) {
 		ctx.Taskbar.UpdateContainer(ctx, f.Container)
 	}
 
+	f.Parent = nil
 	f.Container = nil
 }
 
@@ -439,9 +440,8 @@ func (c *Container) MoveResizeShape(ctx *Context, shape Rect) {
 	c.Decorations.MoveResize(ctx, c.Shape)
 }
 
-func AttachWindow(ctx *Context, ev xevent.MapRequestEvent) *Frame {
+func AttachWindow(ctx *Context, window xproto.Window) *Frame {
 	defer func() { ctx.AttachPoint = nil }()
-	window := ev.Window
 
 	if !ctx.AttachPoint.Target.IsLeaf() {
 		log.Println("attach point is not leaf")
@@ -490,15 +490,14 @@ func AttachWindow(ctx *Context, ev xevent.MapRequestEvent) *Frame {
 	return cb
 }
 
-func NewWindow(ctx *Context, ev xevent.MapRequestEvent) *Frame {
-	window := ev.Window
+func NewWindow(ctx *Context, window xproto.Window) *Frame {
 	existing := ctx.Get(window)
 	if existing != nil && existing.Container != nil {
 		return existing
 	}
 
 	if ctx.AttachPoint != nil {
-		return AttachWindow(ctx, ev)
+		return AttachWindow(ctx, window)
 	}
 
 	// Create container and root frame
@@ -754,6 +753,20 @@ func AddWindowHook(ctx *Context, window xproto.Window) error {
 				f.Close(ctx)
 			}
 		}).Connect(ctx.X, window, ctx.Config.CloseFrame, true)
+	ext.Logerr(err)
+
+	err = keybind.KeyReleaseFun(
+		func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent) {
+			if ctx.Locked {
+				return
+			}
+
+			f := ctx.Get(window)
+			if f.IsLeaf() && !f.IsRoot() {
+				f.Orphan(ctx)
+				NewWindow(ctx, f.Window.Id)
+			}
+		}).Connect(ctx.X, window, ctx.Config.PopFrame, true)
 	ext.Logerr(err)
 
 	err = keybind.KeyReleaseFun(func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent) {

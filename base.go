@@ -41,7 +41,7 @@ func RegisterBaseHooks(ctx *frame.Context) error {
 	}
 
 	xevent.MapRequestFun(func(X *xgbutil.XUtil, ev xevent.MapRequestEvent) {
-		frame.NewWindow(ctx, ev)
+		frame.NewWindow(ctx, ev.Window)
 		ctx.RaiseLock()
 	}).Connect(ctx.X, ctx.X.RootWin())
 	return nil
