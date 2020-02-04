@@ -24,6 +24,7 @@ type Context struct {
 	X                      *xgbutil.XUtil
 	AttachPoint            *AttachTarget
 	Tracked                map[xproto.Window]*Frame
+	UnmapCounter           map[xproto.Window]int
 	Containers             map[*Container]struct{}
 	Cursors                map[int]xproto.Cursor
 	DummyIcon              *xgraphics.Image
@@ -45,6 +46,7 @@ func NewContext(x *xgbutil.XUtil) (*Context, error) {
 	c := &Context{
 		X:          x,
 		Tracked:    make(map[xproto.Window]*Frame),
+		UnmapCounter: make(map[xproto.Window]int),
 		Cursors:    make(map[int]xproto.Cursor),
 		Containers: make(map[*Container]struct{}),
 		Config:     conf,

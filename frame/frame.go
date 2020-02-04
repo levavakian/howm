@@ -146,13 +146,14 @@ func (f *Frame) Map() {
 	)
 }
 
-func (f *Frame) UnmapSingle() {
+func (f *Frame) UnmapSingle(ctx *Context) {
 	if !f.Mapped {
 		return
 	}
 
 	if f.Window != nil {
 		f.Window.Unmap()
+		ctx.UnmapCounter[f.Window.Id]++
 	}
 	if f.Separator.Decoration.Window != nil {
 		f.Separator.Decoration.Window.Unmap()
@@ -161,9 +162,9 @@ func (f *Frame) UnmapSingle() {
 	f.Mapped = false
 }
 
-func (f *Frame) Unmap() {
+func (f *Frame) Unmap(ctx *Context) {
 	f.Traverse(func(ft *Frame) {
-		ft.UnmapSingle()
+		ft.UnmapSingle(ctx)
 	})
 }
 
@@ -203,22 +204,14 @@ func (f *Frame) IsRoot() bool {
 	return f.Parent == nil
 }
 
-func (f *Frame) Destroy(ctx *Context) {
-	f.UnmapSingle()
-	if f.Window != nil {
-		f.Window.Destroy()
-		delete(ctx.Tracked, f.Window.Id)
-	}
-	if f.Separator.Decoration.Window != nil {
-		f.Separator.Decoration.Window.Destroy()
-	}
+func (f *Frame) Orphan(ctx *Context) {
+	f.UnmapSingle(ctx)
 
 	if f.IsRoot() && f.IsLeaf() && f.Container != nil {
 		f.Container.Destroy(ctx)
-		return
 	}
 
-	if f.IsLeaf() {
+	if !f.IsRoot() && f.IsLeaf() && f.Container != nil {
 		oc := func() *Frame {
 			if f.Parent.ChildA == f {
 				return f.Parent.ChildB
@@ -240,10 +233,23 @@ func (f *Frame) Destroy(ctx *Context) {
 		if par.IsRoot() {
 			oc.Container.Root = oc
 		}
-		par.UnmapSingle()
+		par.UnmapSingle(ctx)
 		par.Destroy(ctx)
 		oc.MoveResize(ctx)
 		ctx.Taskbar.UpdateContainer(ctx, f.Container)
+	}
+
+	f.Container = nil
+}
+
+func (f *Frame) Destroy(ctx *Context) {
+	f.Orphan(ctx)
+	if f.Window != nil {
+		f.Window.Destroy()
+		delete(ctx.Tracked, f.Window.Id)
+	}
+	if f.Separator.Decoration.Window != nil {
+		f.Separator.Decoration.Window.Destroy()
 	}
 }
 
@@ -280,7 +286,7 @@ func (f *Frame) MoveResize(ctx *Context) {
 		ft.Shape = ft.CalcShape(ctx)
 		if ft.Shape.W == 0 || ft.Shape.H == 0 {
 			if ft.Mapped {
-				ft.Unmap()
+				ft.Unmap(ctx)
 			}
 		} else {
 			if !ft.Mapped {
@@ -391,16 +397,16 @@ func (c *Container) Map() {
 
 func (c *Container) ChangeMinimizationState(ctx *Context) {
 	c.Hidden = !c.Hidden
-	c.UpdateFrameMappings()
+	c.UpdateFrameMappings(ctx)
 	if !c.Hidden {
 		c.RaiseFindFocus(ctx)
 	}
 	ctx.Taskbar.UpdateContainer(ctx, c)
 }
 
-func (c *Container) UpdateFrameMappings() {
+func (c *Container) UpdateFrameMappings(ctx *Context) {
 	if c.Hidden {
-		c.Root.Unmap()
+		c.Root.Unmap(ctx)
 		c.Decorations.Unmap()
 		return
 	}
@@ -412,7 +418,7 @@ func (c *Container) UpdateFrameMappings() {
 	}
 
 	if c.Root != c.ActiveRoot() {
-		c.Root.Unmap()
+		c.Root.Unmap(ctx)
 	}
 	c.ActiveRoot().Map()
 }
@@ -486,7 +492,8 @@ func AttachWindow(ctx *Context, ev xevent.MapRequestEvent) *Frame {
 
 func NewWindow(ctx *Context, ev xevent.MapRequestEvent) *Frame {
 	window := ev.Window
-	if existing := ctx.Get(window); existing != nil {
+	existing := ctx.Get(window)
+	if existing != nil && existing.Container != nil {
 		return existing
 	}
 
@@ -499,20 +506,33 @@ func NewWindow(ctx *Context, ev xevent.MapRequestEvent) *Frame {
 		Shape: ctx.DefaultShapeForScreen(ctx.LastFocusedScreen()),
 	}
 
-	root := &Frame{
-		Shape:     RootShape(ctx, c),
-		Window:    xwindow.New(ctx.X, window),
-		Container: c,
-	}
+
+	root := func()*Frame{
+		if existing != nil {
+			existing.Container = c
+			existing.Shape = RootShape(ctx, c)
+			return existing
+		}
+		return &Frame{
+			Shape:     RootShape(ctx, c),
+			Window:    xwindow.New(ctx.X, window),
+			Container: c,
+		}
+	}()
 	root.Window.MoveResize(root.Shape.X, root.Shape.Y, root.Shape.W, root.Shape.H)
 	if err := ext.MapChecked(root.Window); err != nil {
 		log.Println("NewWindow:", window, "could not be mapped")
-		return nil
 	}
+	if existing == nil {
+		err := AddWindowHook(ctx, window)
+		if err != nil {
+			log.Println(err)
+		}
+	}
+
 	c.Root = root
 
 	err := GeneratePieces(ctx, c)
-	err = AddWindowHook(ctx, window)
 	ext.Logerr(err)
 
 	if err != nil {
@@ -525,6 +545,7 @@ func NewWindow(ctx *Context, ev xevent.MapRequestEvent) *Frame {
 	ctx.Tracked[window] = c.Root
 	ctx.Containers[c] = struct{}{}
 	ctx.Taskbar.UpdateContainer(ctx, c)
+	c.Raise(ctx)
 	c.Root.Focus(ctx)
 	return c.Root
 }
@@ -667,7 +688,7 @@ func AddWindowHook(ctx *Context, window xproto.Window) error {
 	xevent.ConfigureRequestFun(
 		func(X *xgbutil.XUtil, ev xevent.ConfigureRequestEvent) {
 			f := ctx.Get(window)
-			if f != nil && f.IsRoot() && f.IsLeaf() {
+			if f != nil && f.Container != nil && f.IsRoot() && f.IsLeaf() {
 				fShape := f.Shape
 				fShape.X = int(ev.X)
 				fShape.Y = int(ev.Y)
@@ -677,14 +698,19 @@ func AddWindowHook(ctx *Context, window xproto.Window) error {
 				cShape.X = ext.IMax(cShape.X, 0)
 				cShape.Y = ext.IMax(cShape.Y, 0)
 				f.Container.MoveResize(ctx, cShape.X, cShape.Y, cShape.W, cShape.H)
-			} else {
+			} else if f.Container != nil {
 				f.MoveResize(ctx)
 			}
 			ctx.RaiseLock()
 		}).Connect(ctx.X, window)
+	
+	xevent.UnmapNotifyFun(
+		func(X *xgbutil.XUtil, ev xevent.UnmapNotifyEvent) {
+			if ctx.UnmapCounter[window] > 0 {
+				ctx.UnmapCounter[window]--
+				return
+			}
 
-	xevent.DestroyNotifyFun(
-		func(X *xgbutil.XUtil, ev xevent.DestroyNotifyEvent) {
 			f := ctx.Get(window)
 			if ctx.GetFocusedFrame() == f {
 				nf := f.FindNearest(func(fr *Frame) bool {
@@ -694,6 +720,14 @@ func AddWindowHook(ctx *Context, window xproto.Window) error {
 					nf.Focus(ctx)
 				}
 			}
+
+			f.Orphan(ctx)
+			ctx.RaiseLock()
+		}).Connect(ctx.X, window)
+
+	xevent.DestroyNotifyFun(
+		func(X *xgbutil.XUtil, ev xevent.DestroyNotifyEvent) {
+			f := ctx.Get(window)
 			f.Destroy(ctx)
 			delete(ctx.Tracked, window)
 			ctx.RaiseLock()
@@ -745,7 +779,7 @@ func AddWindowHook(ctx *Context, window xproto.Window) error {
 			} else {
 				f.Container.Expanded = f
 			}
-			f.Container.UpdateFrameMappings()
+			f.Container.UpdateFrameMappings(ctx)
 			f.Focus(ctx)
 			f.Container.MoveResizeShape(ctx, f.Container.Shape)
 		}).Connect(ctx.X, window, ctx.Config.ToggleExpandFrame, true)
@@ -758,7 +792,7 @@ func AddWindowHook(ctx *Context, window xproto.Window) error {
 			}
 			f := ctx.Get(window)
 			f.Container.Decorations.Hidden = !f.Container.Decorations.Hidden
-			f.Container.UpdateFrameMappings()
+			f.Container.UpdateFrameMappings(ctx)
 			f.Container.MoveResizeShape(ctx, f.Container.Shape)
 		}).Connect(ctx.X, window, ctx.Config.ToggleExternalDecorator, true)
 	ext.Logerr(err)
