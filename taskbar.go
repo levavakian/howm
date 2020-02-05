@@ -20,13 +20,6 @@ func RegisterTaskbarHooks(ctx *frame.Context) error {
 			return
 		}
 
-		options := []int{
-			frame.FULL,
-			frame.TOP,
-			frame.LEFT,
-			frame.RIGHT,
-			frame.BOTTOM,
-		}
 		updates := make(map[*frame.Container]AnchorTo)
 		for c, _ := range ctx.Containers {
 			anchor := func() AnchorTo {
@@ -34,12 +27,11 @@ func RegisterTaskbarHooks(ctx *frame.Context) error {
 				if index != 0 {
 					return AnchorTo{frame.NONE, frame.Rect{}}
 				}
-				for _, opt := range options {
-					if c.Shape == frame.AnchorShape(ctx, screen, opt) {
-						return AnchorTo{opt, screen}
-					}
+				if opt := frame.AnchorMatch(ctx, screen, c.Shape); opt == frame.NONE {
+					return AnchorTo{frame.NONE, frame.Rect{}}
+				} else {
+					return AnchorTo{opt, screen}
 				}
-				return AnchorTo{frame.NONE, frame.Rect{}}
 			}()
 			if anchor.Anchor != frame.NONE {
 				updates[c] = anchor

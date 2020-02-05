@@ -37,6 +37,7 @@ type Container struct {
 	DragContext DragOrigin
 	Decorations ContainerDecorations
 	Hidden      bool
+	LastUnanchoredShape   Rect
 }
 
 type Frame struct {
@@ -357,6 +358,7 @@ func (f *Frame) CreateSeparatorDecoration(ctx *Context) {
 			f.MoveResize(ctx)
 		},
 		func(X *xgbutil.XUtil, rX, rY, eX, eY int) {
+			f.Container.RaiseFindFocus(ctx)
 		},
 	)
 }
@@ -398,6 +400,15 @@ func (c *Container) RaiseFindFocus(ctx *Context) {
 	}
 
 	focusFrame.Focus(ctx)
+}
+
+func (c *Container) RestingShape(ctx *Context, screen Rect) Rect {
+	restingScreen, _, _ := ctx.GetScreenForShape(c.LastUnanchoredShape)
+	if c.LastUnanchoredShape != (Rect{}) &&  restingScreen == screen {
+		return c.LastUnanchoredShape
+	} else {
+		return ctx.DefaultShapeForScreen(screen)
+	}
 }
 
 func (c *Container) Destroy(ctx *Context) {
@@ -453,6 +464,11 @@ func (c *Container) MoveResize(ctx *Context, x, y, w, h int) {
 		W: w,
 		H: h,
 	}
+	screen, _, _ := ctx.GetScreenForShape(c.Shape)
+	if opt := AnchorMatch(ctx, screen, c.Shape); opt == NONE {
+		c.LastUnanchoredShape = c.Shape
+	}
+
 	c.MoveResizeShape(ctx, shape)
 }
 
@@ -634,6 +650,22 @@ func AnchorShape(ctx *Context, screen Rect, anchor int) Rect {
 	}
 
 	return screen
+}
+
+func AnchorMatch(ctx *Context, screen Rect, shape Rect) int {
+	options := []int{
+		FULL,
+		TOP,
+		LEFT,
+		RIGHT,
+		BOTTOM,
+	}
+	for _, opt := range options {
+		if shape == AnchorShape(ctx, screen, opt) {
+			return opt
+		}
+	}
+	return NONE
 }
 
 func (f *Frame) CalcShape(ctx *Context) Rect {
@@ -942,7 +974,7 @@ func AddWindowHook(ctx *Context, window xproto.Window) error {
 					f.Container.MoveResizeShape(ctx, AnchorShape(ctx, nscreen, BOTTOM))
 				}
 			} else if f.Container.Shape == AnchorShape(ctx, screen, BOTTOM) {
-				f.Container.MoveResizeShape(ctx, ctx.DefaultShapeForScreen(screen))
+				f.Container.MoveResizeShape(ctx, f.Container.RestingShape(ctx, screen))
 			} else {
 				f.Container.MoveResizeShape(ctx, AnchorShape(ctx, screen, FULL))
 			}
@@ -957,7 +989,7 @@ func AddWindowHook(ctx *Context, window xproto.Window) error {
 			f := ctx.Get(window)
 			screen, _, _ := ctx.GetScreenForShape(f.Container.Shape)
 			if f.Container.Shape == AnchorShape(ctx, screen, FULL) || f.Container.Shape == AnchorShape(ctx, screen, TOP) {
-				f.Container.MoveResizeShape(ctx, ctx.DefaultShapeForScreen(screen))
+				f.Container.MoveResizeShape(ctx, f.Container.RestingShape(ctx, screen))
 			} else if f.Container.Shape == AnchorShape(ctx, screen, BOTTOM) {
 				lowered := screen
 				lowered.Y = lowered.Y + lowered.H
@@ -978,7 +1010,7 @@ func AddWindowHook(ctx *Context, window xproto.Window) error {
 			f := ctx.Get(window)
 			screen, _, _ := ctx.GetScreenForShape(f.Container.Shape)
 			if f.Container.Shape == AnchorShape(ctx, screen, RIGHT) {
-				f.Container.MoveResizeShape(ctx, ctx.DefaultShapeForScreen(screen))
+				f.Container.MoveResizeShape(ctx, f.Container.RestingShape(ctx, screen))
 			} else if f.Container.Shape == AnchorShape(ctx, screen, LEFT) {
 				lefted := screen
 				lefted.X = lefted.X - lefted.W
@@ -999,7 +1031,7 @@ func AddWindowHook(ctx *Context, window xproto.Window) error {
 			f := ctx.Get(window)
 			screen, _, _ := ctx.GetScreenForShape(f.Container.Shape)
 			if f.Container.Shape == AnchorShape(ctx, screen, LEFT) {
-				f.Container.MoveResizeShape(ctx, ctx.DefaultShapeForScreen(screen))
+				f.Container.MoveResizeShape(ctx, f.Container.RestingShape(ctx, screen))
 			} else if f.Container.Shape == AnchorShape(ctx, screen, RIGHT) {
 				righted := screen
 				righted.X = righted.X + righted.W
