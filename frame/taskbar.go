@@ -538,7 +538,7 @@ func (t *Taskbar) UpdateMapping(ctx *Context) {
 	} else {
 		t.Base.Window.Map()
 		t.TimeWin.Map()
-		t.BatWin.Unmap()
+		t.BatWin.Map()
 	}
 	t.Scroller.UpdateMappings(ctx)
 }

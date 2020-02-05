@@ -138,6 +138,7 @@ func DefaultConfig() Config {
 			"Mod4-t": "x-terminal-emulator",
 			"Mod4-w": "google-chrome",
 			"Mod4-p": "XDG_CURRENT_DESKTOP=GNOME gnome-control-center",
+			"Mod4-o": "xdg-open .",
 		},
 		TaskbarHeight:        20,
 		TaskbarFontSize:      12,
