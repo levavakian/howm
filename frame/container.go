@@ -15,13 +15,13 @@ type DragOrigin struct {
 }
 
 type Container struct {
-	Shape       Rect
-	Root        *Frame
-	Expanded    *Frame
-	DragContext DragOrigin
-	Decorations ContainerDecorations
-	Hidden      bool
-	LastUnanchoredShape   Rect
+	Shape               Rect
+	Root                *Frame
+	Expanded            *Frame
+	DragContext         DragOrigin
+	Decorations         ContainerDecorations
+	Hidden              bool
+	LastUnanchoredShape Rect
 }
 
 func (c *Container) Raise(ctx *Context) {
@@ -65,7 +65,7 @@ func (c *Container) RaiseFindFocus(ctx *Context) {
 
 func (c *Container) RestingShape(ctx *Context, screen Rect) Rect {
 	restingScreen, _, _ := ctx.GetScreenForShape(c.LastUnanchoredShape)
-	if c.LastUnanchoredShape != (Rect{}) &&  restingScreen == screen {
+	if c.LastUnanchoredShape != (Rect{}) && restingScreen == screen {
 		return c.LastUnanchoredShape
 	} else {
 		return ctx.DefaultShapeForScreen(screen)

@@ -174,6 +174,10 @@ func (f *Frame) IsRoot() bool {
 	return f.Parent == nil
 }
 
+func (f *Frame) IsOrphan() bool {
+	return f.Container == nil
+}
+
 func (f *Frame) Orphan(ctx *Context) {
 	if f.Container == nil {
 		log.Println("orphan called on already orphaned frame")
@@ -269,11 +273,19 @@ func (f *Frame) Focus(ctx *Context) {
 }
 
 func (f *Frame) FocusRaise(ctx *Context) {
+	if f.IsOrphan() {
+		log.Println("tried to raise an orphan")
+		return
+	}
 	f.Container.Raise(ctx)
 	f.Focus(ctx)
 }
 
 func (f *Frame) MoveResize(ctx *Context) {
+	if f.IsOrphan() && f.IsRoot() {
+		log.Println("tried to move resize orphaned root")
+		return
+	}
 	f.Traverse(func(ft *Frame) {
 		ft.Shape = ft.CalcShape(ctx)
 		if ft.Shape.W == 0 || ft.Shape.H == 0 {
@@ -422,7 +434,7 @@ func AddWindowHook(ctx *Context, window xproto.Window) error {
 	xevent.ConfigureRequestFun(
 		func(X *xgbutil.XUtil, ev xevent.ConfigureRequestEvent) {
 			f := ctx.Get(window)
-			if f != nil && f.Container != nil && f.IsRoot() && f.IsLeaf() {
+			if f != nil && !f.IsOrphan() && f.IsRoot() && f.IsLeaf() {
 				fShape := f.Shape
 				fShape.X = int(ev.X)
 				fShape.Y = int(ev.Y)
@@ -432,7 +444,7 @@ func AddWindowHook(ctx *Context, window xproto.Window) error {
 				cShape.X = ext.IMax(cShape.X, 0)
 				cShape.Y = ext.IMax(cShape.Y, 0)
 				f.Container.MoveResize(ctx, cShape.X, cShape.Y, cShape.W, cShape.H)
-			} else if f.Container != nil {
+			} else if !f.IsOrphan() {
 				f.MoveResize(ctx)
 			}
 			ctx.RaiseLock()
@@ -508,6 +520,9 @@ func AddWindowHook(ctx *Context, window xproto.Window) error {
 				return
 			}
 			f := ctx.Get(window)
+			if f.IsOrphan() {
+				return
+			}
 			ctx.Yanked = &Yank{Window: 0, Container: f.Container}
 		}).Connect(ctx.X, window, ctx.Config.CutSelectContainer, true)
 	ext.Logerr(err)
@@ -580,6 +595,9 @@ func AddWindowHook(ctx *Context, window xproto.Window) error {
 		}
 
 		f := ctx.Get(window)
+		if f.IsOrphan() {
+			return
+		}
 		if !f.Container.Hidden {
 			f.Container.ChangeMinimizationState(ctx)
 		}
@@ -592,6 +610,9 @@ func AddWindowHook(ctx *Context, window xproto.Window) error {
 				return
 			}
 			f := ctx.Get(window)
+			if f.IsOrphan() {
+				return
+			}
 			if f.Container.Expanded == f || f.IsRoot() {
 				f.Container.Expanded = nil
 			} else {
@@ -609,6 +630,9 @@ func AddWindowHook(ctx *Context, window xproto.Window) error {
 				return
 			}
 			f := ctx.Get(window)
+			if f.IsOrphan() {
+				return
+			}
 			f.Container.Decorations.Hidden = !f.Container.Decorations.Hidden
 			f.Container.UpdateFrameMappings(ctx)
 			f.Container.MoveResizeShape(ctx, f.Container.Shape)
@@ -621,6 +645,9 @@ func AddWindowHook(ctx *Context, window xproto.Window) error {
 				return
 			}
 			f := ctx.Get(window)
+			if f.IsOrphan() {
+				return
+			}
 			screen, _, _ := ctx.GetScreenForShape(f.Container.Shape)
 			f.Container.MoveResizeShape(ctx, ctx.DefaultShapeForScreen(screen))
 		}).Connect(ctx.X, window, ctx.Config.ResetSize, true)
@@ -632,6 +659,9 @@ func AddWindowHook(ctx *Context, window xproto.Window) error {
 				return
 			}
 			f := ctx.Get(window)
+			if f.IsOrphan() {
+				return
+			}
 			screen, _, _ := ctx.GetScreenForShape(f.Container.Shape)
 			if f.Container.Shape == AnchorShape(ctx, screen, FULL) {
 				s := AnchorShape(ctx, screen, TOP)
@@ -656,6 +686,9 @@ func AddWindowHook(ctx *Context, window xproto.Window) error {
 				return
 			}
 			f := ctx.Get(window)
+			if f.IsOrphan() {
+				return
+			}
 			screen, _, _ := ctx.GetScreenForShape(f.Container.Shape)
 			if f.Container.Shape == AnchorShape(ctx, screen, FULL) || f.Container.Shape == AnchorShape(ctx, screen, TOP) {
 				f.Container.MoveResizeShape(ctx, f.Container.RestingShape(ctx, screen))
@@ -677,6 +710,9 @@ func AddWindowHook(ctx *Context, window xproto.Window) error {
 				return
 			}
 			f := ctx.Get(window)
+			if f.IsOrphan() {
+				return
+			}
 			screen, _, _ := ctx.GetScreenForShape(f.Container.Shape)
 			if f.Container.Shape == AnchorShape(ctx, screen, RIGHT) {
 				f.Container.MoveResizeShape(ctx, f.Container.RestingShape(ctx, screen))
@@ -698,6 +734,9 @@ func AddWindowHook(ctx *Context, window xproto.Window) error {
 				return
 			}
 			f := ctx.Get(window)
+			if f.IsOrphan() {
+				return
+			}
 			screen, _, _ := ctx.GetScreenForShape(f.Container.Shape)
 			if f.Container.Shape == AnchorShape(ctx, screen, LEFT) {
 				f.Container.MoveResizeShape(ctx, f.Container.RestingShape(ctx, screen))

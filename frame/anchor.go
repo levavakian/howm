@@ -1,6 +1,7 @@
 package frame
 
 type AnchorType int
+
 const (
 	NONE AnchorType = iota
 	FULL

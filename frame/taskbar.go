@@ -40,12 +40,13 @@ type Element struct {
 }
 
 type ElementScroller struct {
-	Elements                                                                 map[*Container]*Element
-	Back                                                                     *Element
-	Front                                                                    *Element
-	StartingIdx                                                              int
-	CanFit                                                                   int
-	ShiftLeftInactive, ShiftRightInactive, ShiftLeftActive, ShiftRightActive *xwindow.Window
+	Elements                              map[*Container]*Element
+	Back                                  *Element
+	Front                                 *Element
+	StartingIdx                           int
+	CanFit                                int
+	ShiftLeftInactive, ShiftRightInactive *xwindow.Window
+	ShiftLeftActive, ShiftRightActive     *xwindow.Window
 }
 
 func NewTaskbar(ctx *Context) *Taskbar {
