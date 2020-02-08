@@ -8,7 +8,7 @@ import (
 )
 
 type AnchorTo struct {
-	Anchor int
+	Anchor frame.AnchorType
 	Screen frame.Rect
 }
 

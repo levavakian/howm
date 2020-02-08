@@ -30,6 +30,33 @@ type ContainerDecorations struct {
 	TopRight, TopLeft, BottomRight, BottomLeft Decoration
 }
 
+func CreateDecoration(c *Context, shape Rect, color uint32, cursor uint32) (Decoration, error) {
+	w, err := xwindow.Generate(c.X)
+	if err != nil {
+		log.Println("CreateDecoration: failed to create xwindow")
+		return Decoration{}, err
+	}
+	if cursor == 0 {
+		err := w.CreateChecked(c.X.RootWin(), shape.X, shape.Y, shape.W, shape.H, xproto.CwBackPixel, color)
+		if err != nil {
+			log.Println(err)
+		}
+	} else {
+		err := w.CreateChecked(c.X.RootWin(), shape.X, shape.Y, shape.W, shape.H, xproto.CwBackPixel|xproto.CwCursor, color, cursor)
+		if err != nil {
+			log.Println(err)
+		}
+	}
+
+	return Decoration{
+		Window: w,
+	}, nil
+}
+
+func (d *Decoration) MoveResize(r Rect) {
+	d.Window.MoveResize(r.X, r.Y, r.W, r.H)
+}
+
 func (cd *ContainerDecorations) ForEach(f func(*Decoration)) {
 	f(&cd.Close)
 	f(&cd.Minimize)
@@ -50,10 +77,6 @@ func (cd *ContainerDecorations) Destroy(ctx *Context) {
 		d.Window.Unmap()
 		d.Window.Destroy()
 	})
-}
-
-func (d *Decoration) MoveResize(r Rect) {
-	d.Window.MoveResize(r.X, r.Y, r.W, r.H)
 }
 
 func (cd *ContainerDecorations) MoveResize(ctx *Context, cShape Rect) {
@@ -81,27 +104,4 @@ func (cd *ContainerDecorations) Unmap() {
 	cd.ForEach(func(d *Decoration) {
 		d.Window.Unmap()
 	})
-}
-
-func CreateDecoration(c *Context, shape Rect, color uint32, cursor uint32) (Decoration, error) {
-	w, err := xwindow.Generate(c.X)
-	if err != nil {
-		log.Println("CreateDecoration: failed to create xwindow")
-		return Decoration{}, err
-	}
-	if cursor == 0 {
-		err := w.CreateChecked(c.X.RootWin(), shape.X, shape.Y, shape.W, shape.H, xproto.CwBackPixel, color)
-		if err != nil {
-			log.Println(err)
-		}
-	} else {
-		err := w.CreateChecked(c.X.RootWin(), shape.X, shape.Y, shape.W, shape.H, xproto.CwBackPixel|xproto.CwCursor, color, cursor)
-		if err != nil {
-			log.Println(err)
-		}
-	}
-
-	return Decoration{
-		Window: w,
-	}, nil
 }

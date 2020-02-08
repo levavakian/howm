@@ -85,6 +85,15 @@ func HomeDir() string {
 	return usr.HomeDir
 }
 
+func (c *Config) MinShape() Rect {
+	return Rect{
+		X: 0,
+		Y: 0,
+		W: 5 * c.ElemSize,
+		H: 5 * c.ElemSize,
+	}
+}
+
 func DefaultConfig() Config {
 	return Config{
 		Shell:                   "/bin/bash",

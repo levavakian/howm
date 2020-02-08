@@ -241,15 +241,6 @@ func (c *Context) Get(w xproto.Window) *Frame {
 	return f
 }
 
-func (ctx *Context) MinShape() Rect {
-	return Rect{
-		X: 0,
-		Y: 0,
-		W: 5 * ctx.Config.ElemSize,
-		H: 5 * ctx.Config.ElemSize,
-	}
-}
-
 func (ctx *Context) GetScreenForShape(shape Rect) (Rect, int, int) {
 	max_overlap := 0
 	max_i := 0
