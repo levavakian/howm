@@ -2,11 +2,7 @@
 
 rowm is a hybrid tiling/floating window manager, aiming to replicate the ergonamics of `terminator` terminal emulator, but applied to all windows.
 
-![Demo 1](https://imgur.com/4ixsJxO.gif)
-
-![Demo 2](https://imgur.com/yPLKcir.gif)
-
-Non super compressed video [here](https://i.imgur.com/Bk5N5MY.mp4).
+A short video of what it looks like [here](https://i.imgur.com/Bk5N5MY.mp4).
 
 # Installation
 While I use rowm in my day to day, there is no guarantee of stability so use at your own risk!
