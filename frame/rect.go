@@ -2,7 +2,7 @@ package frame
 
 import (
 	"github.com/BurntSushi/xgbutil/xrect"
-	"howm/ext"
+	"rowm/ext"
 	"image"
 )
 

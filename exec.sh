@@ -1,1 +1,1 @@
-docker exec -it howmc bash
+docker exec -it rowmc bash

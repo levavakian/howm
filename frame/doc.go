@@ -1,5 +1,5 @@
 /*
-frame is the package that contains the definition of the tree window structure and decoration handling that drives howm.
+frame is the package that contains the definition of the tree window structure and decoration handling that drives rowm.
 
 place.go - entrypoint for when a new window is created either standalone or as part of a split
 frame.go - defines the tree structure and traversal of windows

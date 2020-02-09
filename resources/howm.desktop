@@ -1,9 +1,9 @@
 [Desktop Entry]
-Name=howm
+Name=rowm
 Comment=is where the heart is
-Exec=howm
-TryExec=howm
+Exec=rowm
+TryExec=rowm
 Type=Application
-X-LightDM-DesktopName=howm
-DesktopNames=howm
+X-LightDM-DesktopName=rowm
+DesktopNames=rowm
 Keywords=tiling;floating;wm;windowmanager;window;manager;

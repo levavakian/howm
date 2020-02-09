@@ -141,7 +141,7 @@ func DefaultConfig() Config {
 		MaximizeColor:       0x00ff00,
 		MinimizeColor:       0xfdfd96,
 		InternalPadding:     0,
-		BackgroundImagePath: path.Join(HomeDir(), ".config/howm/bg.png"),
+		BackgroundImagePath: path.Join(HomeDir(), ".config/rowm/bg.png"),
 		ScreenPoll:          time.Second * 2,
 		BuiltinCommands: map[string]string{
 			"Mod4-t": "x-terminal-emulator",

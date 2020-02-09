@@ -5,8 +5,8 @@ import (
 	"github.com/BurntSushi/xgbutil"
 	"github.com/BurntSushi/xgbutil/keybind"
 	"github.com/BurntSushi/xgbutil/xevent"
-	"howm/ext"
-	"howm/frame"
+	"rowm/ext"
+	"rowm/frame"
 	"io/ioutil"
 	"log"
 	"os/exec"
@@ -56,7 +56,7 @@ func RegisterBrightnessHooks(ctx *frame.Context) error {
 
 		newBright := ext.IClamp(int(ext.Clamp(toPercent(current, max)+increment, 0.0, 1.0)*float64(max)), 1, max)
 
-		err = exec.Command("howmbright", ctx.Config.Backlight, strconv.Itoa(newBright)).Run()
+		err = exec.Command("rowmbright", ctx.Config.Backlight, strconv.Itoa(newBright)).Run()
 
 		current, max, err = GetBrightnessAndMaxBrightness(ctx)
 		if err != nil {

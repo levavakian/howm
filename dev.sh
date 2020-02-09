@@ -1,1 +1,1 @@
-docker run -itd --network=host --name howmc -v $(pwd)/../howm:/go/src/howm/ golang:latest bash
+docker run -itd --network=host --name rowmc -v $(pwd)/../rowm:/go/src/rowm/ golang:latest bash

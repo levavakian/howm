@@ -10,7 +10,7 @@ import (
 	"github.com/BurntSushi/xgbutil/xevent"
 	"github.com/BurntSushi/xgbutil/xprop"
 	"github.com/BurntSushi/xgbutil/xwindow"
-	"howm/ext"
+	"rowm/ext"
 	"log"
 )
 

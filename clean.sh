@@ -1,1 +1,1 @@
-docker rm -f howmc
+docker rm -f rowmc
