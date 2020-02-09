@@ -18,7 +18,7 @@ import (
 
 func main() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
-	log.Println("HOme Window Manager")
+	log.Println("RoWM Window Manager")
 	log.Println("Hybrid Floating and Tiling Window Manager")
 	log.Println("Carbonated for your pleasure")
 
