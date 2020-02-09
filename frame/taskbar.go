@@ -12,7 +12,7 @@ import (
 	"github.com/BurntSushi/xgbutil/xgraphics"
 	"github.com/BurntSushi/xgbutil/xwindow"
 	"github.com/distatus/battery"
-	"rowm/ext"
+	"github.com/levavakian/rowm/ext"
 	"log"
 	"time"
 )

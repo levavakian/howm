@@ -3,7 +3,7 @@ package frame
 import (
 	"github.com/BurntSushi/xgb/xproto"
 	"github.com/BurntSushi/xgbutil/xwindow"
-	"rowm/ext"
+	"github.com/levavakian/rowm/ext"
 	"log"
 )
 

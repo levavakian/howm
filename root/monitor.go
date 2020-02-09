@@ -3,8 +3,8 @@ package root
 import (
 	"github.com/BurntSushi/xgb/randr"
 	"github.com/BurntSushi/xgbutil"
-	"rowm/frame"
-	"rowm/sideloop"
+	"github.com/levavakian/rowm/frame"
+	"github.com/levavakian/rowm/sideloop"
 	"log"
 	"os/exec"
 )

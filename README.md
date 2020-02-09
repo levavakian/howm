@@ -7,7 +7,7 @@ You can see a short demo [here](https://i.imgur.com/Bk5N5MY.mp4).
 # Installation
 While I use rowm in my day to day, there is no guarantee of stability so use at your own risk!
 
-To install, run `sudo ./install.sh`. It's generally not wise to run random shell scripts with sudo but this one should be pretty easy to inspect. Dokcer is a prerequisite for the script, but if you already have go installed it should be fairly easy to do it without docker. After installing, restart your computer (logging out may not be enough), and the option to use rowm as your window manager should show up as a setting in your login screen.
+To install, run `sudo ./install.sh`. It's generally not wise to run random shell scripts with sudo but this one should be pretty easy to inspect. Docker is a prerequisite for the script, but if you already have go installed it should be fairly easy to do it without docker. After installing, restart your computer (logging out may not be enough), and the option to use rowm as your window manager should show up as a setting in your login screen.
 
 # Default Configuration
 All key combinations described here are easily editable in `config.go`. `Mod4` is used a lot, which is commonly assigned to the Windows key.

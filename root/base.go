@@ -7,8 +7,8 @@ import (
 	"github.com/BurntSushi/xgbutil/mousebind"
 	"github.com/BurntSushi/xgbutil/xevent"
 	"github.com/BurntSushi/xgbutil/xwindow"
-	"rowm/ext"
-	"rowm/frame"
+	"github.com/levavakian/rowm/ext"
+	"github.com/levavakian/rowm/frame"
 )
 
 func RegisterBaseHooks(ctx *frame.Context) error {

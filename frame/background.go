@@ -12,7 +12,7 @@ import (
 	"github.com/BurntSushi/xgbutil/xgraphics"
 	"github.com/BurntSushi/xgbutil/xwindow"
 	"github.com/disintegration/imaging"
-	"rowm/ext"
+	"github.com/levavakian/rowm/ext"
 	"image"
 	"log"
 )

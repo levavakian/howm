@@ -5,7 +5,7 @@ import (
 	"github.com/BurntSushi/xgbutil"
 	"github.com/BurntSushi/xgbutil/keybind"
 	"github.com/BurntSushi/xgbutil/xevent"
-	"rowm/frame"
+	"github.com/levavakian/rowm/frame"
 	"log"
 	"os/exec"
 	"time"

@@ -6,7 +6,7 @@ import (
 	"github.com/BurntSushi/xgbutil/mousebind"
 	"github.com/BurntSushi/xgbutil/xcursor"
 	"github.com/BurntSushi/xgbutil/xevent"
-	"rowm/ext"
+	"github.com/levavakian/rowm/ext"
 )
 
 func GeneratePieces(ctx *Context, c *Container) error {

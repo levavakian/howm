@@ -20,7 +20,7 @@ rm -rf /usr/share/xsessions/rowm.desktop
 mkdir -p  /usr/local/share/wingo/
 cp $(pwd)/rowm /usr/bin/rowm
 cp $(pwd)/cmd/rowmbright/rowmbright /usr/bin/rowmbright
-cp $(pwd)/resources/dejavu/DejaVuSans.ttf  /usr/local/share/wingo/DejaVuSans.ttf
+cp $(pwd)/resources/dejavu/DejaVuSans.ttf /usr/local/share/wingo/DejaVuSans.ttf
 cp $(pwd)/resources/nofont/write-your-password-with-this-font.ttf  /usr/local/share/wingo/write-your-password-with-this-font.ttf
 cp $(pwd)/resources/rowm.desktop /usr/share/xsessions/rowm.desktop
 chmod u+s /usr/bin/rowmbright
