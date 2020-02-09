@@ -1,3 +1,5 @@
+// howmbright is a utility to modify the backlight power.
+// It is meant to be given root SUID so that the backlight can be changed without root privileges.
 package main
 
 import (

@@ -5,6 +5,8 @@ howm is a hybrid tiling/floating window manager, aiming to replicate the ergonam
 You can see a short demo [here](https://i.imgur.com/Bk5N5MY.mp4).
 
 # Installation
+While I use howm in my day to day, there is no guarantee of stability so use at your own risk!
+
 To install, run `sudo ./install.sh`. It's generally not wise to run random shell scripts with sudo but this one should be pretty easy to inspect. Dokcer is a prerequisite for the script, but if you already have go installed it should be fairly easy to do it without docker. After installing, restart your computer (logging out may not be enough), and the option to use howm as your window manager should show up as a setting in your login screen.
 
 # Default Configuration

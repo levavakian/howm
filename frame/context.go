@@ -21,6 +21,9 @@ import (
 	"time"
 )
 
+// NoFont is a font where all the characters are a circle.
+// This is because I am lazy and didn't want to modify the wingo prompt
+// for password related stuff, so instead we show passwords with a uniform font.
 var NoFont = xgraphics.MustFont(xgraphics.ParseFont(
 	bytes.NewBuffer(misc.DataFile("write-your-password-with-this-font.ttf"))))
 
@@ -34,29 +37,31 @@ type Yank struct {
 	Window    xproto.Window
 }
 
+// Context represents all non-trivial state stored by the window manager.
 type Context struct {
-	X                      *xgbutil.XUtil
-	AttachPoint            *AttachTarget
-	Yanked                 *Yank
-	Tracked                map[xproto.Window]*Frame
-	UnmapCounter           map[xproto.Window]int
-	Containers             map[*Container]struct{}
-	Cursors                map[int]xproto.Cursor
-	DummyIcon              *xgraphics.Image
-	Backgrounds            map[xproto.Window]*xwindow.Window
-	Config                 Config
-	Screens                []Rect
-	LastKnownFocused       xproto.Window
-	LastKnownFocusedScreen int
-	SplitPrompt            *prompt.Input
-	Locked                 bool
-	LockPrompt             *prompt.Input
-	Taskbar                *Taskbar
-	LastLockChange         time.Time
-	Injector               *sideloop.Injector
-	Gotos                  map[string]xproto.Window
+	X                      *xgbutil.XUtil  // The connection to X
+	AttachPoint            *AttachTarget  // The frame to split when adding the next window (if any)
+	Yanked                 *Yank  // The window or container selected to transfer (if any)
+	Tracked                map[xproto.Window]*Frame  // All known user windows
+	UnmapCounter           map[xproto.Window]int  // Tracking of unmap notifications to distinguish internal from external
+	Containers             map[*Container]struct{}  // All known containers
+	Cursors                map[int]xproto.Cursor  // X cursor cache
+	DummyIcon              *xgraphics.Image  // Icon to use for no icon
+	Backgrounds            map[xproto.Window]*xwindow.Window // Background windows
+	Config                 Config  // All user provided preferences
+	Screens                []Rect  // All heads (aka monitors) and their shapes
+	LastKnownFocused       xproto.Window  // Last window we knew of that had input focus
+	LastKnownFocusedScreen int  // Last screen/head/monitor that had a focused window that we know of
+	SplitPrompt            *prompt.Input  // Prompt for splitting windows (if any active)
+	Locked                 bool  // Whether we should be in a lock screen
+	LockPrompt             *prompt.Input  // Prompt for unlocking screen (if any)
+	Taskbar                *Taskbar  // The taskbar, doesn't need a comment but it felt lonely
+	LastLockChange         time.Time  // Last time we went from locked->unlocked or reverse
+	Injector               *sideloop.Injector  // Utility for inserting work between X events
+	Gotos                  map[string]xproto.Window  // Mapping of shortcut minimize/focus keys for windows
 }
 
+// NewContext will create a new context but also populate screen backgrounds, create the taskbar, and generate the cursor cache
 func NewContext(x *xgbutil.XUtil, inj *sideloop.Injector) (*Context, error) {
 	conf := DefaultConfig()
 
@@ -91,9 +96,14 @@ func NewContext(x *xgbutil.XUtil, inj *sideloop.Injector) (*Context, error) {
 func (ctx *Context) GenerateLockPrompt() {
 	theme := *prompt.DefaultInputTheme
 	theme.Font = NoFont
-	ctx.LockPrompt = prompt.NewInput(ctx.X, &theme, prompt.DefaultInputConfig)
+	lockPrompt := prompt.NewInput(ctx.X, &theme, prompt.DefaultInputConfig)
+	ctx.LockPrompt = lockPrompt
 
 	canc := func(inp *prompt.Input) {
+		// Only regenerate the lock if it's us, so we don't get into infinite loops
+		if ctx.LockPrompt != lockPrompt {
+			return
+		}
 		ctx.RaiseLock()
 	}
 
@@ -111,6 +121,7 @@ func (ctx *Context) GenerateLockPrompt() {
 		}
 		defer e.Close()
 
+		// Try to log in with the user provided password, if it succeeds, lift the lock
 		outs, err := e.ExpectBatch([]expect.Batcher{
 			&expect.BExp{R: "Password:"},
 			&expect.BSnd{S: text + "\n"},

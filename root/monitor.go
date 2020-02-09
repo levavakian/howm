@@ -1,4 +1,4 @@
-package main
+package root
 
 import (
 	"github.com/BurntSushi/xgb/randr"
@@ -9,6 +9,8 @@ import (
 	"os/exec"
 )
 
+// MonitorScreens runs an X event loop on the side just listening to whether the root geometry has changed.
+// Once we notice a change, we pause the main event loop to update the screens, and then start monitoring again.
 func MonitorScreens(ctx *frame.Context, inj *sideloop.Injector) {
 	go func() {
 		XR, _ := xgbutil.NewConn()

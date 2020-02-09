@@ -14,6 +14,9 @@ import (
 	"log"
 )
 
+// Frame represents a node in the tree like structure of panels in each container.
+// A frame can either be a leaf node, which has a user created window to display,
+// or it can display a seperator decoration that allows the resizing of its child frames.
 type Frame struct {
 	Shape                  Rect
 	Window                 *xwindow.Window
@@ -23,6 +26,7 @@ type Frame struct {
 	Mapped                 bool
 }
 
+// Traverse will visit every frame in the tree starting at the input frame.
 func (f *Frame) Traverse(fun func(*Frame)) {
 	fun(f)
 	if f.ChildA != nil {
@@ -33,6 +37,7 @@ func (f *Frame) Traverse(fun func(*Frame)) {
 	}
 }
 
+// Find will find the first frame that fulfills the predicate and is a descendent of the input frame.
 func (f *Frame) Find(fun func(*Frame) bool) *Frame {
 	if f == nil || fun(f) {
 		return f
@@ -49,6 +54,7 @@ func (f *Frame) Find(fun func(*Frame) bool) *Frame {
 	return nil
 }
 
+// FindNearest will run BFS on the tree the input frame is in to find a frame that fulfills the predicate.
 func (f *Frame) FindNearest(fun func(*Frame) bool) *Frame {
 	visited := make(map[*Frame]bool)
 	nbrs := list.New()
@@ -123,6 +129,8 @@ func (f *Frame) UnmapSingle(ctx *Context) {
 
 	if f.Window != nil {
 		f.Window.Unmap()
+		// Keep track of how many unmaps we've sent since we get a notification
+		// every time we unmap something internally, but we only care about external ones.
 		ctx.UnmapCounter[f.Window.Id]++
 	}
 	if f.Separator.Decoration.Window != nil {
@@ -178,6 +186,7 @@ func (f *Frame) IsOrphan() bool {
 	return f.Container == nil
 }
 
+// Orphan removes a frame from its container and reorganizes the tree to fill the gap.
 func (f *Frame) Orphan(ctx *Context) {
 	if f.Container == nil {
 		log.Println("orphan called on already orphaned frame")
@@ -281,6 +290,7 @@ func (f *Frame) FocusRaise(ctx *Context) {
 	f.Focus(ctx)
 }
 
+// MoveResize will cascade down changes in shape down the tree.
 func (f *Frame) MoveResize(ctx *Context) {
 	if f.IsOrphan() && f.IsRoot() {
 		log.Println("tried to move resize orphaned root")
@@ -349,6 +359,7 @@ func (f *Frame) CreateSeparatorDecoration(ctx *Context) {
 	)
 }
 
+// CalcShape returns the shape a frame should be based off of its container and parent
 func (f *Frame) CalcShape(ctx *Context) Rect {
 	if f == f.Container.ActiveRoot() {
 		return RootShape(ctx, f.Container)
@@ -430,6 +441,7 @@ func (f *Frame) SeparatorShape(ctx *Context) Rect {
 	}
 }
 
+// AddWindowHook registers callbacks for window related events.
 func AddWindowHook(ctx *Context, window xproto.Window) error {
 	xevent.ConfigureRequestFun(
 		func(X *xgbutil.XUtil, ev xevent.ConfigureRequestEvent) {
@@ -452,6 +464,8 @@ func AddWindowHook(ctx *Context, window xproto.Window) error {
 
 	xevent.UnmapNotifyFun(
 		func(X *xgbutil.XUtil, ev xevent.UnmapNotifyEvent) {
+			// Keep track of how many unmaps we've received since we get a notification
+			// every time we unmap something internally, but we only care about external ones.
 			if ctx.UnmapCounter[window] > 0 {
 				ctx.UnmapCounter[window]--
 				return

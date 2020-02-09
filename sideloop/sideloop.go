@@ -1,3 +1,4 @@
+// sideloop provides utilities for inserting either one-time or repeating work into the X event loop.
 package sideloop
 
 import (

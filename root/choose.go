@@ -1,4 +1,4 @@
-package main
+package root
 
 import (
 	"github.com/BurntSushi/wingo/prompt"
@@ -16,16 +16,16 @@ type CycleWrap struct {
 	Choices []*prompt.CycleItem
 }
 
-func (c *CycleWrap) Destroy() {
-	c.Cycle.Destroy()
-	c.Cycle = nil
-	c.Choices = make([]*prompt.CycleItem, 0)
-}
-
 type Choice struct {
 	Win     *xwindow.Window
 	Context *frame.Context
 	Wrapper *CycleWrap
+}
+
+func (c *CycleWrap) Destroy() {
+	c.Cycle.Destroy()
+	c.Cycle = nil
+	c.Choices = make([]*prompt.CycleItem, 0)
 }
 
 func (c *Choice) CycleIsActive() bool {

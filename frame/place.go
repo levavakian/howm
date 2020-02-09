@@ -110,6 +110,7 @@ func NewWindow(ctx *Context, window xproto.Window) *Frame {
 
 	c.Root = root
 
+	// Create window decorations and hook up callbacks
 	err := GeneratePieces(ctx, c)
 	ext.Logerr(err)
 
@@ -118,7 +119,6 @@ func NewWindow(ctx *Context, window xproto.Window) *Frame {
 		return nil
 	}
 
-	// Yay
 	c.Map()
 	ctx.Tracked[window] = c.Root
 	ctx.Containers[c] = struct{}{}

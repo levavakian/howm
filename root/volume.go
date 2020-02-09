@@ -1,4 +1,4 @@
-package main
+package root
 
 import (
 	"github.com/BurntSushi/wingo/prompt"
@@ -14,6 +14,10 @@ import (
 	"time"
 )
 
+type VolumeContext struct {
+	Volume int
+}
+
 func GetCurrentAudio() (int, error) {
 	out, err := exec.Command("amixer", "sget", "Master").Output()
 	if err != nil {
@@ -26,10 +30,6 @@ func GetCurrentAudio() (int, error) {
 		return strconv.Atoi("")
 	}
 	return strconv.Atoi(intstr[1])
-}
-
-type VolumeContext struct {
-	Volume int
 }
 
 func RegisterVolumeHooks(ctx *frame.Context) error {

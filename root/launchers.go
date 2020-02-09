@@ -1,4 +1,4 @@
-package main
+package root
 
 import (
 	"github.com/BurntSushi/wingo/prompt"
@@ -78,7 +78,7 @@ func RegisterSplitHooks(ctx *frame.Context) error {
 		}
 	}
 
-	// Shitty standalone launchers
+	// Standalone launchers, not great not terrible
 	err = keybind.KeyReleaseFun(func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent) {
 		if ctx.Locked {
 			return

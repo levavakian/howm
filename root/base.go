@@ -1,4 +1,4 @@
-package main
+package root
 
 import (
 	"github.com/BurntSushi/xgb/xproto"

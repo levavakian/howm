@@ -10,6 +10,7 @@ import (
 	"github.com/BurntSushi/xgbutil/xwindow"
 	"howm/frame"
 	"howm/sideloop"
+	"howm/root"
 	"log"
 	"os/exec"
 	"time"
@@ -73,6 +74,7 @@ func ConfigRoot(X *xgbutil.XUtil, inj *sideloop.Injector) error {
 		log.Fatal(err)
 	}
 
+	// Listen for events we're interested in
 	evMasks := xproto.EventMaskPropertyChange |
 		xproto.EventMaskFocusChange |
 		xproto.EventMaskButtonPress |
@@ -87,37 +89,37 @@ func ConfigRoot(X *xgbutil.XUtil, inj *sideloop.Injector) error {
 	}
 
 	// Start monitor for screens
-	MonitorScreens(ctx, inj)
+	root.MonitorScreens(ctx, inj)
 
 	// Add base control hooks
-	err = RegisterBaseHooks(ctx)
+	err = root.RegisterBaseHooks(ctx)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	// Add splitting hooks
-	err = RegisterSplitHooks(ctx)
+	err = root.RegisterSplitHooks(ctx)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	// Add volume hooks
-	err = RegisterVolumeHooks(ctx)
+	err = root.RegisterVolumeHooks(ctx)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	// Add backlight hooks
-	err = RegisterBrightnessHooks(ctx)
+	err = root.RegisterBrightnessHooks(ctx)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	// Add alttab-like hooks
-	RegisterChooseHooks(ctx)
+	root.RegisterChooseHooks(ctx)
 
-	// Taskbar hooks
-	err = RegisterTaskbarHooks(ctx)
+	// Add taskbar hooks
+	err = root.RegisterTaskbarHooks(ctx)
 	if err != nil {
 		log.Fatal(err)
 	}

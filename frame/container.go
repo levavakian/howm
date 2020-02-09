@@ -14,6 +14,8 @@ type DragOrigin struct {
 	MouseY    int
 }
 
+// Container represents the wrapping decorations around a frame tree.
+// It keeps track of size, position, and minimzation state for the tree.
 type Container struct {
 	Shape               Rect
 	Root                *Frame
@@ -63,6 +65,7 @@ func (c *Container) RaiseFindFocus(ctx *Context) {
 	focusFrame.Focus(ctx)
 }
 
+// Returns the last shape the container had when it was unanchored
 func (c *Container) RestingShape(ctx *Context, screen Rect) Rect {
 	restingScreen, _, _ := ctx.GetScreenForShape(c.LastUnanchoredShape)
 	if c.LastUnanchoredShape != (Rect{}) && restingScreen == screen {
