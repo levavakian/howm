@@ -22,10 +22,14 @@ All key combinations described here are easily editable in `config.go`. `Mod4` i
 Press `Mod4-Backspace`
 
 #### Builtin Commands
-Some commands have builtin keyboard shortcuts, namely;
+Some commands have builtin keyboard shortcuts, namely:
+
 `Mod4-t: x-terminal-emulator`
+
 `Mod4-w: google-chrome`
+
 `Mod4-p: XDG_CURRENT_DESKTOP=GNOME gnome-control-center`
+
 `Mod4-i: xdg-open .`
 
 More commands can be added to the builtin commands in `config.go`.
