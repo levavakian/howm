@@ -30,7 +30,7 @@ Some commands have builtin keyboard shortcuts, namely:
 
 `Mod4-p: XDG_CURRENT_DESKTOP=GNOME gnome-control-center`
 
-`Mod4-i: xdg-open .`
+`Mod4-o: xdg-open .`
 
 More commands can be added to the builtin commands in `config.go`.
 
