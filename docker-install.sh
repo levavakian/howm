@@ -16,9 +16,9 @@ fi
 echo "Compiling..."
 $DIR/compile.sh
 echo "Installing to global directories"
-rm /usr/bin/rowm
-rm /usr/bin/rowmbright
-rm /usr/share/xsessions/rowm.desktop
+rm /usr/bin/rowm || true
+rm /usr/bin/rowmbright || true
+rm /usr/share/xsessions/rowm.desktop || true
 mkdir -p /usr/local/share/wingo/
 mkdir -p /usr/share/xsessions
 cp $DIR/rowm /usr/bin/rowm
