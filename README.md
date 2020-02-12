@@ -22,11 +22,15 @@ All key combinations described here are easily editable in `config.go`. `Mod4` i
 Press `Mod4-Backspace`
 
 #### Builtin Commands
-Some commands have builtin keyboard shortcuts, namely;
+Some commands have builtin keyboard shortcuts, namely:
+
 `Mod4-t: x-terminal-emulator`
+
 `Mod4-w: google-chrome`
+
 `Mod4-p: XDG_CURRENT_DESKTOP=GNOME gnome-control-center`
-`Mod4-i: xdg-open .`
+
+`Mod4-o: xdg-open .`
 
 More commands can be added to the builtin commands in `config.go`.
 
@@ -63,9 +67,11 @@ To subdivide a window, press `Mod4-e` for a horizontal split or `Mod4-r` for a v
 To split for existing frames or containers:
 
 `Mod4-c` selects a frame for yanking.
+
 `Mod4-Shift-c` selects a container for yanking.
-`Mo4-Shift-v` on a different frame will add the selection as a horizontal child.
-`Mo4-Shift-b` on a different frame will add the selection as a vertical child.
+
+`Mod4-v` on a different frame will add the selection as a horizontal child.
+`Mod4-b` on a different frame will add the selection as a vertical child.
 
 #### Volume
 Can be controlled with `Mod4-F1` to mute, and `Mod4-F2/F3` to raise/lower volume.
