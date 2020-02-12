@@ -235,7 +235,9 @@ func (f *Frame) Orphan(ctx *Context) {
 	}
 	par.Isolate(ctx)
 	par.Destroy(ctx)
-	oc.MoveResize(ctx)
+	if oc.Mapped {
+		oc.MoveResize(ctx)
+	}
 	ctx.Taskbar.UpdateContainer(ctx, f.Container)
 }
 
