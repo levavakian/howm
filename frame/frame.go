@@ -559,12 +559,20 @@ func AddWindowHook(ctx *Context, window xproto.Window) error {
 		}
 		source := func() *Frame {
 			if ctx.Yanked.Container != nil && ctx.Yanked.Container.Root != nil {
+				if ctx.Yanked.Container == target.Container {
+					log.Println("tried to yank container into itself")
+					return nil
+				}
 				s := ctx.Yanked.Container.Root
 				s.Unmap(ctx)
 				ctx.Yanked.Container.Destroy(ctx)
 				return s
 			} else {
 				s := ctx.Get(ctx.Yanked.Window)
+				if s == target {
+					log.Println("tried to yank frame into itself")
+					return nil
+				}
 				if s != nil {
 					s.Orphan(ctx)
 				}

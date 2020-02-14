@@ -1,6 +1,7 @@
 set -e
 
-DIR=$(dirname $0)
+SCRIPT=$(readlink -f "$0")
+DIR=$(dirname "$SCRIPT")
 
 STARTEDDOWN="false"
 if [ ! "$(docker ps -q -f name=rowmc)" ]; then
@@ -10,7 +11,7 @@ if [ ! "$(docker ps -q -f name=rowmc)" ]; then
         docker rm -f rowmc
     fi
     # run your container
-    docker run -itd --network=host --name rowmc -v $DIR/../rowm:/go/src/rowm/ golang:latest bash
+    docker run -itd --network=host --name rowmc -v $DIR/../rowm:/go/src/github.com/levavakian/rowm/ golang:latest bash
 fi
 
 echo "Compiling..."
