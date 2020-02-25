@@ -92,6 +92,99 @@ func (f *Frame) FindNearest(fun func(*Frame) bool) *Frame {
 	return nil
 }
 
+// Returns the first node in a subtree, root must be a parent of f or nil
+func (f *Frame) GetLeftmostFrameInSubtree() *Frame {
+	curr := f
+	for curr.ChildA != nil {
+		curr = curr.ChildA
+	}
+	return curr
+}
+
+// Returns the last node in a subtree, root must be a parent of f or nil
+func (f *Frame) GetRightmostFrameInSubtree() *Frame {
+	curr := f
+	for curr.ChildB != nil {
+		curr = curr.ChildB
+	}
+	return curr
+}
+
+// FindNext will find the next (top down, left to right) leaf element in the tree that fulfills a predicate
+// You can provide a root frame which will constrain the search to a subtree, must be a parent of f or nil
+// If reversed, it will go backwards through the tree
+func (f *Frame) FindNextLeaf(fun func(*Frame)bool, reversed bool, root *Frame) *Frame {
+	if f.IsOrphan() {
+		return nil
+	}
+
+	start := f
+
+	// Early exit if frame is not a child of root at any point
+	found := func()bool{
+		parfind := start
+		for parfind != nil {
+			if parfind == root {
+				return true
+			}
+
+			parfind = parfind.Parent
+		}
+		return false
+	}()
+	if !found {
+		return nil
+	}
+	// If we're not starting on a leaf, force it to be the first leaf in the tree
+	if !start.IsLeaf() {
+		start = start.GetLeftmostFrameInSubtree()
+	}
+	// Early exit if start satisfies predicate already
+	if start != f && fun(start) {
+		return start
+	}
+
+	leftmost := root.GetLeftmostFrameInSubtree()
+	rightmost := root.GetRightmostFrameInSubtree()
+	nextLeaf := func(fc *Frame)*Frame{
+		if !reversed && fc == rightmost {
+			return leftmost
+		} else if reversed && fc == leftmost {
+			return rightmost
+		}
+
+		for {
+			if fc == nil || (fc == root && !fc.IsLeaf()) {
+				return nil
+			}
+			if !reversed && fc == fc.Parent.ChildA {
+				return fc.Parent.ChildB.GetLeftmostFrameInSubtree()
+			} else if reversed && fc == fc.Parent.ChildB {
+				return fc.Parent.ChildA.GetRightmostFrameInSubtree()
+			}
+			fc = fc.Parent
+		}
+	}
+
+	curr := nextLeaf(start)
+	for {
+		if curr == nil {
+			break
+		}
+
+		if curr == start {
+			break
+		}
+
+		if fun(curr) {
+			return curr
+		}
+
+		curr = nextLeaf(curr)
+	}
+	return nil
+}
+
 func (f *Frame) Root() *Frame {
 	z := f
 	for {

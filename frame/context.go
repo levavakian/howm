@@ -56,6 +56,7 @@ type Context struct {
 	Locked                 bool                              // Whether we should be in a lock screen
 	LockPrompt             *prompt.Input                     // Prompt for unlocking screen (if any)
 	Taskbar                *Taskbar                          // The taskbar, doesn't need a comment but it felt lonely
+	FocusMarker            *xwindow.Window                   // Marker for recently focused windows when cycling
 	LastLockChange         time.Time                         // Last time we went from locked->unlocked or reverse
 	Injector               *sideloop.Injector                // Utility for inserting work between X events
 	Gotos                  map[string]xproto.Window          // Mapping of shortcut minimize/focus keys for windows

@@ -38,11 +38,14 @@ type Config struct {
 	BrightnessDown            string
 	Backlight                 string
 	VolumeMute                string
+	FocusNext string
+	FocusPrev string
 	ElemSize                  int
 	CloseCursor               int
 	DefaultShapeRatio         Rectf
 	SeparatorColor            uint32
 	GrabColor                 uint32
+	FocusColor                uint32
 	CloseColor                uint32
 	MaximizeColor             uint32
 	MinimizeColor             uint32
@@ -52,7 +55,7 @@ type Config struct {
 	InternalPadding           int
 	BackgroundImagePath       string
 	BuiltinCommands           map[string]string
-	ScreenPoll                time.Duration
+	FocusMarkerTime           time.Duration
 	TaskbarHeight             int
 	TaskbarSlideWidth         int
 	TaskbarSlideActiveColor   uint32
@@ -123,6 +126,8 @@ func DefaultConfig() Config {
 		VolumeMute:              "Mod4-F1",
 		BrightnessUp:            "Mod4-F12",
 		BrightnessDown:          "Mod4-F11",
+		FocusNext: "Mod4-Tab",
+		FocusPrev: "Mod4-asciitilde",
 		Backlight:               "intel_backlight",
 		ElemSize:                10,
 		CloseCursor:             xcursor.Dot,
@@ -134,6 +139,7 @@ func DefaultConfig() Config {
 		},
 		SeparatorColor:      0x777777,
 		GrabColor:           0x339999,
+		FocusColor:          0x9932cc,
 		ResizeColor:         0x777777,
 		TaskbarBaseColor:    0x222222,
 		TaskbarTextColor:    0xbbbbbb,
@@ -142,7 +148,7 @@ func DefaultConfig() Config {
 		MinimizeColor:       0xfdfd96,
 		InternalPadding:     0,
 		BackgroundImagePath: path.Join(HomeDir(), ".config/rowm/bg.png"),
-		ScreenPoll:          time.Second * 2,
+		FocusMarkerTime:     time.Millisecond * 350,
 		BuiltinCommands: map[string]string{
 			"Mod4-t": "x-terminal-emulator",
 			"Mod4-w": "google-chrome",

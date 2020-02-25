@@ -9,6 +9,8 @@ import (
 	"github.com/BurntSushi/xgbutil/xwindow"
 	"github.com/levavakian/rowm/ext"
 	"github.com/levavakian/rowm/frame"
+	"time"
+	"log"
 )
 
 func RegisterBaseHooks(ctx *frame.Context) error {
@@ -35,6 +37,65 @@ func RegisterBaseHooks(ctx *frame.Context) error {
 	err = keybind.KeyReleaseFun(func(X *xgbutil.XUtil, ev xevent.KeyReleaseEvent) {
 		ctx.SetLocked(true)
 	}).Connect(ctx.X, ctx.X.RootWin(), ctx.Config.Lock, true)
+	if err != nil {
+		return err
+	}
+
+	focusNext := func(X *xgbutil.XUtil, ev xevent.KeyReleaseEvent, reverse bool){
+		if ctx.Locked {
+			return
+		}
+		ffoc := ctx.GetFocusedFrame()
+		if ffoc == nil || ffoc.IsOrphan() {
+			return
+		}
+		nfoc := ffoc.FindNextLeaf(func(nf *frame.Frame)bool{ return nf.IsLeaf() && nf.Mapped }, reverse, ffoc.Container.ActiveRoot())
+		if nfoc != nil {
+			nfoc.Container.Raise(ctx)
+			nfoc.Focus(ctx)
+
+			// Get the center and show a little square to mark where the thing is
+			if ctx.FocusMarker != nil {
+				ctx.FocusMarker.Unmap()
+				ctx.FocusMarker.Destroy()
+			}
+
+			fshape := nfoc.CalcShape(ctx)
+			dshape := frame.Rect{
+				X: fshape.X + (fshape.W / 2) - (ctx.Config.ElemSize / 2),
+				Y: fshape.Y + (fshape.H / 2) - (ctx.Config.ElemSize / 2),
+				W: ctx.Config.ElemSize,
+				H: ctx.Config.ElemSize,
+			}
+			decoration, err := frame.CreateDecoration(ctx, dshape, ctx.Config.FocusColor, 0)
+			decoration.Window.Map()
+			if err != nil {
+				log.Println(err)
+				return
+			}
+			ctx.FocusMarker = decoration.Window
+			go func(){
+				time.Sleep(ctx.Config.FocusMarkerTime)
+				ctx.Injector.Do(func() {
+						if ctx.FocusMarker != decoration.Window {
+							return
+						}
+						decoration.Window.Unmap()
+						decoration.Window.Destroy()
+					},
+				)
+			}()
+		}
+	}
+	err = keybind.KeyReleaseFun(func(X *xgbutil.XUtil, ev xevent.KeyReleaseEvent) {
+		focusNext(X, ev, false)
+	}).Connect(ctx.X, ctx.X.RootWin(), ctx.Config.FocusNext, true)
+	if err != nil {
+		return err
+	}
+	err = keybind.KeyReleaseFun(func(X *xgbutil.XUtil, ev xevent.KeyReleaseEvent) {
+		focusNext(X, ev, true)
+	}).Connect(ctx.X, ctx.X.RootWin(), ctx.Config.FocusPrev, true)
 	if err != nil {
 		return err
 	}
