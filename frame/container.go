@@ -5,6 +5,7 @@ import (
 	"github.com/BurntSushi/xgbutil/xwindow"
 	"github.com/levavakian/rowm/ext"
 	"log"
+	"time"
 )
 
 type DragOrigin struct {
@@ -24,6 +25,7 @@ type Container struct {
 	Decorations         ContainerDecorations
 	Hidden              bool
 	LastUnanchoredShape Rect
+	LastGrabTime        time.Time
 }
 
 func (c *Container) Raise(ctx *Context) {

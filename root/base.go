@@ -9,8 +9,8 @@ import (
 	"github.com/BurntSushi/xgbutil/xwindow"
 	"github.com/levavakian/rowm/ext"
 	"github.com/levavakian/rowm/frame"
-	"time"
 	"log"
+	"time"
 )
 
 func RegisterBaseHooks(ctx *frame.Context) error {
@@ -41,7 +41,7 @@ func RegisterBaseHooks(ctx *frame.Context) error {
 		return err
 	}
 
-	focusNext := func(X *xgbutil.XUtil, ev xevent.KeyReleaseEvent, reverse bool){
+	focusNext := func(X *xgbutil.XUtil, ev xevent.KeyReleaseEvent, reverse bool) {
 		if ctx.Locked {
 			return
 		}
@@ -49,7 +49,7 @@ func RegisterBaseHooks(ctx *frame.Context) error {
 		if ffoc == nil || ffoc.IsOrphan() {
 			return
 		}
-		nfoc := ffoc.FindNextLeaf(func(nf *frame.Frame)bool{ return nf.IsLeaf() && nf.Mapped }, reverse, ffoc.Container.ActiveRoot())
+		nfoc := ffoc.FindNextLeaf(func(nf *frame.Frame) bool { return nf.IsLeaf() && nf.Mapped }, reverse, ffoc.Container.ActiveRoot())
 		if nfoc != nil {
 			nfoc.Container.Raise(ctx)
 			nfoc.Focus(ctx)
@@ -74,15 +74,15 @@ func RegisterBaseHooks(ctx *frame.Context) error {
 				return
 			}
 			ctx.FocusMarker = decoration.Window
-			go func(){
+			go func() {
 				time.Sleep(ctx.Config.FocusMarkerTime)
 				ctx.Injector.Do(func() {
-						if ctx.FocusMarker != decoration.Window {
-							return
-						}
-						decoration.Window.Unmap()
-						decoration.Window.Destroy()
-					},
+					if ctx.FocusMarker != decoration.Window {
+						return
+					}
+					decoration.Window.Unmap()
+					decoration.Window.Destroy()
+				},
 				)
 			}()
 		}

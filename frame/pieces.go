@@ -7,6 +7,7 @@ import (
 	"github.com/BurntSushi/xgbutil/xcursor"
 	"github.com/BurntSushi/xgbutil/xevent"
 	"github.com/levavakian/rowm/ext"
+	"time"
 )
 
 func GeneratePieces(ctx *Context, c *Container) error {
@@ -139,7 +140,18 @@ func (c *Container) AddGrabHook(ctx *Context) {
 			c.MoveResize(ctx, c.DragContext.Container.X+dX, c.DragContext.Container.Y+dY, c.Shape.W, c.Shape.H)
 		},
 		func(X *xgbutil.XUtil, rX, rY, eX, eY int) {
+			now := time.Now()
+			if now.Sub(c.LastGrabTime) < ctx.Config.DoubleClickTime {
+				screen, _, _ := ctx.GetScreenForShape(c.Shape)
+				fullshape := AnchorShape(ctx, screen, FULL)
+				if c.Shape == fullshape {
+					c.MoveResizeShape(ctx, c.RestingShape(ctx, screen))
+				} else {
+					c.MoveResizeShape(ctx, fullshape)
+				}
+			}
 			c.RaiseFindFocus(ctx)
+			c.LastGrabTime = now
 		},
 	)
 }

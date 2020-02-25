@@ -113,7 +113,7 @@ func (f *Frame) GetRightmostFrameInSubtree() *Frame {
 // FindNext will find the next (top down, left to right) leaf element in the tree that fulfills a predicate
 // You can provide a root frame which will constrain the search to a subtree, must be a parent of f or nil
 // If reversed, it will go backwards through the tree
-func (f *Frame) FindNextLeaf(fun func(*Frame)bool, reversed bool, root *Frame) *Frame {
+func (f *Frame) FindNextLeaf(fun func(*Frame) bool, reversed bool, root *Frame) *Frame {
 	if f.IsOrphan() {
 		return nil
 	}
@@ -121,7 +121,7 @@ func (f *Frame) FindNextLeaf(fun func(*Frame)bool, reversed bool, root *Frame) *
 	start := f
 
 	// Early exit if frame is not a child of root at any point
-	found := func()bool{
+	found := func() bool {
 		parfind := start
 		for parfind != nil {
 			if parfind == root {
@@ -146,7 +146,7 @@ func (f *Frame) FindNextLeaf(fun func(*Frame)bool, reversed bool, root *Frame) *
 
 	leftmost := root.GetLeftmostFrameInSubtree()
 	rightmost := root.GetRightmostFrameInSubtree()
-	nextLeaf := func(fc *Frame)*Frame{
+	nextLeaf := func(fc *Frame) *Frame {
 		if !reversed && fc == rightmost {
 			return leftmost
 		} else if reversed && fc == leftmost {

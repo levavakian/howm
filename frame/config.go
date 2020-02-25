@@ -38,8 +38,8 @@ type Config struct {
 	BrightnessDown            string
 	Backlight                 string
 	VolumeMute                string
-	FocusNext string
-	FocusPrev string
+	FocusNext                 string
+	FocusPrev                 string
 	ElemSize                  int
 	CloseCursor               int
 	DefaultShapeRatio         Rectf
@@ -56,6 +56,7 @@ type Config struct {
 	BackgroundImagePath       string
 	BuiltinCommands           map[string]string
 	FocusMarkerTime           time.Duration
+	DoubleClickTime           time.Duration
 	TaskbarHeight             int
 	TaskbarSlideWidth         int
 	TaskbarSlideActiveColor   uint32
@@ -126,8 +127,8 @@ func DefaultConfig() Config {
 		VolumeMute:              "Mod4-F1",
 		BrightnessUp:            "Mod4-F12",
 		BrightnessDown:          "Mod4-F11",
-		FocusNext: "Mod4-Tab",
-		FocusPrev: "Mod4-asciitilde",
+		FocusNext:               "Mod4-Tab",
+		FocusPrev:               "Mod4-asciitilde",
 		Backlight:               "intel_backlight",
 		ElemSize:                10,
 		CloseCursor:             xcursor.Dot,
@@ -149,6 +150,7 @@ func DefaultConfig() Config {
 		InternalPadding:     0,
 		BackgroundImagePath: path.Join(HomeDir(), ".config/rowm/bg.png"),
 		FocusMarkerTime:     time.Millisecond * 350,
+		DoubleClickTime:     time.Millisecond * 500,
 		BuiltinCommands: map[string]string{
 			"Mod4-t": "x-terminal-emulator",
 			"Mod4-w": "google-chrome",
