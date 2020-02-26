@@ -51,6 +51,8 @@ More commands can be added to the builtin commands in `config.go`.
 
 `Mod-Shift-[0-9]` assigns a goto hotkey to the selected frame, so that when you press the equivalent `Mod4-[0-9]` it will minimize/unminimize that window.
 
+`Mod4-Tab` and `Mod4-asciitilde` will cycle the focus in the frames inside of a window.
+
 If an internal video is being fullscreened, sometimes you may need to resize or move the window a little to have the internal video fill the screen.
 
 #### Taskbar
