@@ -557,6 +557,27 @@ func AddWindowHook(ctx *Context, window xproto.Window) error {
 			ctx.RaiseLock()
 		}).Connect(ctx.X, window)
 
+	xevent.ClientMessageFun(
+		func(X *xgbutil.XUtil, ev xevent.ClientMessageEvent) {
+			name, err := xprop.AtomName(X, ev.Type)
+			if err != nil {
+				log.Println(err)
+				return
+			}
+			switch name {
+			case "_NET_WM_STATE":
+				f := ctx.Get(window)
+				if f.IsOrphan() {
+					return
+				}
+				// TODO: This is a dirty hack, instead of properly implementing ewmh
+				// we toggle minimazation state to get internal media players to resize
+				f.Container.ChangeMinimizationState(ctx)
+				f.Container.ChangeMinimizationState(ctx)
+				ctx.RaiseLock() // in case the fullscreen message happens in background
+			}
+		}).Connect(ctx.X, window)
+
 	xevent.UnmapNotifyFun(
 		func(X *xgbutil.XUtil, ev xevent.UnmapNotifyEvent) {
 			// Keep track of how many unmaps we've received since we get a notification
