@@ -1,3 +1,4 @@
+#!/bin/bash
 set -e
 
 SCRIPT=$(readlink -f "$0")
