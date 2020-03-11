@@ -1,3 +1,4 @@
+#!/bin/sh
 set -e
 $(pwd)/compile.sh
 
