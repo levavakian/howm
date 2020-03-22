@@ -11,6 +11,15 @@ import (
 	"time"
 )
 
+func GenerateHelp(ctx *frame.Context) string {
+   out:="Split Vertical"  + ctx.Config.SplitVertical + "\n"
+   out = out +     "Split Horizontal"  + ctx.Config.SplitHorizontal + "\n"
+   out = out +     "Chrome"  + "Mod4-w" + "\n"
+   out = out+     "Terminal"  + "Mod4-t" + "\n"
+  return out
+
+}
+
 func Split(ctx *frame.Context) *frame.Frame {
 	if ctx.SplitPrompt != nil {
 		ctx.SplitPrompt.Destroy()
@@ -22,7 +31,7 @@ func Split(ctx *frame.Context) *frame.Frame {
 	if attachF == nil {
 		msgPrompt := prompt.NewMessage(ctx.X, prompt.DefaultMessageTheme, prompt.DefaultMessageConfig)
 		timeout := 1 * time.Second
-		msgPrompt.Show(ctx.Screens[0].ToXRect(), "Cannot split when not focused on a window", timeout, func(msg *prompt.Message) {})
+		msgPrompt.Show(ctx.Screens[0].ToXRect(), "Help \n Fuck off \t fuck pff", timeout, func(msg *prompt.Message) {})
 		return nil
 	}
 
@@ -54,6 +63,7 @@ func Split(ctx *frame.Context) *frame.Frame {
 }
 
 func RegisterSplitHooks(ctx *frame.Context) error {
+
 	var err error
 	// Builting shortcuts
 	for k, v := range ctx.Config.BuiltinCommands {
@@ -63,7 +73,6 @@ func RegisterSplitHooks(ctx *frame.Context) error {
 				if ctx.Locked {
 					return
 				}
-
 				cmd := exec.Command("bash", "-c", ncmd)
 				err := cmd.Start()
 				if err != nil {
@@ -77,6 +86,16 @@ func RegisterSplitHooks(ctx *frame.Context) error {
 			return err
 		}
 	}
+
+	// Launch help
+	err = keybind.KeyReleaseFun(
+		func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent) {
+			msgPrompt := prompt.NewMessage(ctx.X, prompt.DefaultMessageTheme, prompt.DefaultMessageConfig)
+		timeout := 1 * time.Second
+		msgPrompt.Show(ctx.Screens[0].ToXRect(), GenerateHelp(ctx), timeout, func(msg *prompt.Message) {})
+
+	}).Connect(ctx.X, ctx.X.RootWin(), ctx.Config.LaunchHelp, true)
+
 
 	// Standalone launchers, not great not terrible
 	err = keybind.KeyReleaseFun(func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent) {
