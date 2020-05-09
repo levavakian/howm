@@ -77,6 +77,8 @@ type Config struct {
 	CopySelectHorizontal      string
 	CopySelectVertical        string
 	SuspendCommand            string
+	BatteryWarningLevels      []int
+	BatteryWarningDuration    time.Duration
 	GotoKeys                  map[string]string
 }
 
@@ -186,6 +188,8 @@ func DefaultConfig() Config {
 		CopySelectHorizontal:      "Mod4-v",
 		CopySelectVertical:        "Mod4-b",
 		SuspendCommand:            "systemctl suspend",
+		BatteryWarningLevels:      []int{20, 10, 5, 1},
+		BatteryWarningDuration:    time.Second * 2,
 		GotoKeys: map[string]string{
 			"Mod4-Shift-0": "Mod4-0",
 			"Mod4-Shift-1": "Mod4-1",
