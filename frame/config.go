@@ -168,7 +168,7 @@ func DefaultConfig() Config {
 			StringWithHelp{Data: "Mod4-F5", Help:"Pause"}: "dbus-send --print-reply --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.PlayPause",
 			StringWithHelp{Data: "Mod4-F4", Help: "Previous"}: "dbus-send --print-reply --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.Previous",
 			StringWithHelp{Data: "Mod4-F6", Help: "Next"}: "dbus-send --print-reply --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.Next",
-			StringWithHelp{Data: "Mod4-p", Help: "Screenshot"}:"gnome-screenshot -i",
+			StringWithHelp{Data: "Print", Help: "Screenshot"}:"gnome-screenshot -i",
 		},
 		TaskbarHeight:        20,
 		TaskbarFontSize:      12,

@@ -7,6 +7,7 @@ import (
 	"github.com/BurntSushi/xgbutil/xevent"
 	"github.com/levavakian/rowm/frame"
 	"fmt"
+	"sort"
 	"log"
 	"os/exec"
 	"time"
@@ -19,17 +20,25 @@ func GenerateHelp(ctx *frame.Context) string {
 	helpString:=""
 	helpMap := make(map[string]string)
 
+	// Add all the fields in Config with help
 	for i := 0; i < v.NumField(); i++ {
 		if v.Field(i).Type() == reflect.TypeOf((*frame.StringWithHelp)(nil)).Elem() {
 			a := v.Field(i).Interface().(frame.StringWithHelp)
 			helpMap[a.Data] = a.Help
 		}
 	}
+
+	// Add all the Builtin Commands
 	for k, _ := range ctx.Config.BuiltinCommands {
 		helpMap[k.Data] = k.Help
 	}
-	for k, v := range helpMap {
-		helpString += fmt.Sprintf("%s = %s\n", k, v)
+	keys := make([]string, 0, len(helpMap))
+	for k := range helpMap {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	for _, k := range keys {
+		helpString += fmt.Sprintf("%s = %s\n", k, helpMap[k])
 	}
 	return helpString
 }
