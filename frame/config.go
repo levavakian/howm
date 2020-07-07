@@ -9,6 +9,12 @@ import (
 	"time"
 )
 
+type StringWithHelp struct {
+	Data	string
+	Help	string
+}
+
+
 type Config struct {
 	Shell                     string
 	Lock                      string
@@ -17,8 +23,8 @@ type Config struct {
 	TabBackward               string
 	ButtonDrag                string
 	ButtonClick               string
-	SplitVertical             string
-	SplitHorizontal           string
+	SplitVertical             StringWithHelp
+	SplitHorizontal           StringWithHelp
 	RunCmd                    string
 	Shutdown                  string
 	CloseFrame                string
@@ -54,7 +60,7 @@ type Config struct {
 	TaskbarTextColor          uint32
 	InternalPadding           int
 	BackgroundImagePath       string
-	BuiltinCommands           map[string]string
+	BuiltinCommands           map[StringWithHelp]string
 	FocusMarkerTime           time.Duration
 	DoubleClickTime           time.Duration
 	TaskbarHeight             int
@@ -110,8 +116,8 @@ func DefaultConfig() Config {
 		TabBackward:             "Mod1-Shift-tab",
 		ButtonDrag:              "1",
 		ButtonClick:             "1",
-		SplitVertical:           "Mod4-r",
-		SplitHorizontal:         "Mod4-e",
+		SplitVertical:           StringWithHelp{Data: "Mod4-r", Help:"Split Vertically"},
+		SplitHorizontal:         StringWithHelp{Data: "Mod4-e", Help:"Split Hoizontally"},
 		RunCmd:                  "Mod4-f",
 		Shutdown:                "Mod4-BackSpace",
 		CloseFrame:              "Mod4-d",
@@ -154,15 +160,15 @@ func DefaultConfig() Config {
 		BackgroundImagePath: path.Join(HomeDir(), ".config/rowm/bg.png"),
 		FocusMarkerTime:     time.Millisecond * 350,
 		DoubleClickTime:     time.Millisecond * 500,
-		BuiltinCommands: map[string]string{
-			"Mod4-t":  "x-terminal-emulator",
-			"Mod4-w":  "google-chrome",
-			"Mod4-p":  "XDG_CURRENT_DESKTOP=GNOME gnome-control-center",
-			"Mod4-o":  "xdg-open .",
-			"Mod4-F5": "dbus-send --print-reply --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.PlayPause",
-			"Mod4-F4": "dbus-send --print-reply --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.Previous",
-			"Mod4-F6": "dbus-send --print-reply --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.Next",
-			"Print":   "gnome-screenshot -i",
+		BuiltinCommands: map[StringWithHelp]string{
+			StringWithHelp{Data: "Mod4-t", Help:"Terminal"}:  "x-terminal-emulator",
+			StringWithHelp{Data: "Mod4-w", Help:"Chrome"}:  "google-chrome",
+			StringWithHelp{Data: "Mod4-p", Help: "Gnome"}:  "XDG_CURRENT_DESKTOP=GNOME gnome-control-center",
+			StringWithHelp{Data: "Mod4-o", Help:" XDG"}:"xdg-open .",
+			StringWithHelp{Data: "Mod4-F5", Help:"Pause"}: "dbus-send --print-reply --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.PlayPause",
+			StringWithHelp{Data: "Mod4-F4", Help: "Previous"}: "dbus-send --print-reply --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.Previous",
+			StringWithHelp{Data: "Mod4-F6", Help: "Next"}: "dbus-send --print-reply --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.Next",
+			StringWithHelp{Data: "Mod4-p", Help: "Screenshot"}:"gnome-screenshot -i",
 		},
 		TaskbarHeight:        20,
 		TaskbarFontSize:      12,

@@ -6,18 +6,28 @@ import (
 	"github.com/BurntSushi/xgbutil/keybind"
 	"github.com/BurntSushi/xgbutil/xevent"
 	"github.com/levavakian/rowm/frame"
+	"fmt"
 	"log"
 	"os/exec"
 	"time"
+	"reflect"
 )
 
 func GenerateHelp(ctx *frame.Context) string {
-   out:="Split Vertical"  + ctx.Config.SplitVertical + "\n"
-   out = out +     "Split Horizontal"  + ctx.Config.SplitHorizontal + "\n"
-   out = out +     "Chrome"  + "Mod4-w" + "\n"
-   out = out+     "Terminal"  + "Mod4-t" + "\n"
-  return out
+	v := reflect.ValueOf(ctx.Config)
 
+	out:=""
+
+	for i := 0; i < v.NumField(); i++ {
+		if v.Field(i).Type() == reflect.TypeOf((*frame.StringWithHelp)(nil)).Elem() {
+			a := v.Field(i).Interface().(frame.StringWithHelp)
+			out = fmt.Sprintf("%s%s = %s\n", out, a.Data, a.Help)
+		}
+	}
+	for k, _ := range ctx.Config.BuiltinCommands {
+		out = fmt.Sprintf("%s%s = %s\n", out, k.Data, k.Help)
+	}
+	return out
 }
 
 func Split(ctx *frame.Context) *frame.Frame {
@@ -81,7 +91,7 @@ func RegisterSplitHooks(ctx *frame.Context) error {
 				go func() {
 					cmd.Wait()
 				}()
-			}).Connect(ctx.X, ctx.X.RootWin(), k, true)
+			}).Connect(ctx.X, ctx.X.RootWin(), k.Data, true)
 		if err != nil {
 			return err
 		}
@@ -142,7 +152,7 @@ func RegisterSplitHooks(ctx *frame.Context) error {
 			Target: fr,
 			Type:   frame.HORIZONTAL,
 		}
-	}).Connect(ctx.X, ctx.X.RootWin(), ctx.Config.SplitHorizontal, true)
+	}).Connect(ctx.X, ctx.X.RootWin(), ctx.Config.SplitHorizontal.Data, true)
 	if err != nil {
 		return err
 	}
@@ -160,7 +170,7 @@ func RegisterSplitHooks(ctx *frame.Context) error {
 			Target: fr,
 			Type:   frame.VERTICAL,
 		}
-	}).Connect(ctx.X, ctx.X.RootWin(), ctx.Config.SplitVertical, true)
+	}).Connect(ctx.X, ctx.X.RootWin(), ctx.Config.SplitVertical.Data, true)
 	if err != nil {
 		return err
 	}
