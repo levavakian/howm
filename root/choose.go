@@ -73,7 +73,7 @@ func RegisterChooseHooks(ctx *frame.Context) {
 		}
 
 		if wrapper.Cycle != nil {
-			if cycleDir == ctx.Config.TabBackward {
+			if cycleDir == ctx.Config.TabBackward.Data {
 				wrapper.Cycle.Prev()
 			} else {
 				wrapper.Cycle.Next()
@@ -124,18 +124,18 @@ func RegisterChooseHooks(ctx *frame.Context) {
 	}
 
 	keybind.KeyPressFun(func(X *xgbutil.XUtil, ev xevent.KeyPressEvent) {
-		register(ctx.Config.TabForward)
-	}).Connect(ctx.X, ctx.X.RootWin(), ctx.Config.TabForward, true)
+		register(ctx.Config.TabForward.Data)
+	}).Connect(ctx.X, ctx.X.RootWin(), ctx.Config.TabForward.Data, true)
 
 	keybind.KeyPressFun(func(X *xgbutil.XUtil, ev xevent.KeyPressEvent) {
-		cycle(ctx.Config.TabForward)
-	}).Connect(ctx.X, ctx.X.Dummy(), ctx.Config.TabForward, true)
+		cycle(ctx.Config.TabForward.Data)
+	}).Connect(ctx.X, ctx.X.Dummy(), ctx.Config.TabForward.Data, true)
 
 	keybind.KeyPressFun(func(X *xgbutil.XUtil, ev xevent.KeyPressEvent) {
-		register(ctx.Config.TabBackward)
-	}).Connect(ctx.X, ctx.X.RootWin(), ctx.Config.TabBackward, true)
+		register(ctx.Config.TabBackward.Data)
+	}).Connect(ctx.X, ctx.X.RootWin(), ctx.Config.TabBackward.Data, true)
 
 	keybind.KeyPressFun(func(X *xgbutil.XUtil, ev xevent.KeyPressEvent) {
-		cycle(ctx.Config.TabBackward)
-	}).Connect(ctx.X, ctx.X.Dummy(), ctx.Config.TabBackward, true)
+		cycle(ctx.Config.TabBackward.Data)
+	}).Connect(ctx.X, ctx.X.Dummy(), ctx.Config.TabBackward.Data, true)
 }

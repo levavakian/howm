@@ -631,7 +631,7 @@ func AddWindowHook(ctx *Context, window xproto.Window) error {
 			if f.IsLeaf() {
 				f.Close(ctx)
 			}
-		}).Connect(ctx.X, window, ctx.Config.CloseFrame, true)
+		}).Connect(ctx.X, window, ctx.Config.CloseFrame.Data, true)
 	ext.Logerr(err)
 
 	err = keybind.KeyReleaseFun(
@@ -724,7 +724,7 @@ func AddWindowHook(ctx *Context, window xproto.Window) error {
 				f.Orphan(ctx)
 				NewWindow(ctx, f.Window.Id)
 			}
-		}).Connect(ctx.X, window, ctx.Config.PopFrame, true)
+		}).Connect(ctx.X, window, ctx.Config.PopFrame.Data, true)
 	ext.Logerr(err)
 
 	err = keybind.KeyReleaseFun(func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent) {
@@ -759,7 +759,7 @@ func AddWindowHook(ctx *Context, window xproto.Window) error {
 			f.Container.UpdateFrameMappings(ctx)
 			f.Focus(ctx)
 			f.Container.MoveResizeShape(ctx, f.Container.Shape)
-		}).Connect(ctx.X, window, ctx.Config.ToggleExpandFrame, true)
+		}).Connect(ctx.X, window, ctx.Config.ToggleExpandFrame.Data, true)
 	ext.Logerr(err)
 
 	err = keybind.KeyReleaseFun(
@@ -815,7 +815,7 @@ func AddWindowHook(ctx *Context, window xproto.Window) error {
 			} else {
 				f.Container.MoveResizeShape(ctx, AnchorShape(ctx, screen, FULL))
 			}
-		}).Connect(ctx.X, window, ctx.Config.WindowUp, true)
+		}).Connect(ctx.X, window, ctx.Config.WindowUp.Data, true)
 	ext.Logerr(err)
 
 	err = keybind.KeyReleaseFun(
@@ -839,7 +839,7 @@ func AddWindowHook(ctx *Context, window xproto.Window) error {
 			} else {
 				f.Container.MoveResizeShape(ctx, AnchorShape(ctx, screen, BOTTOM))
 			}
-		}).Connect(ctx.X, window, ctx.Config.WindowDown, true)
+		}).Connect(ctx.X, window, ctx.Config.WindowDown.Data, true)
 	ext.Logerr(err)
 
 	err = keybind.KeyReleaseFun(
@@ -863,7 +863,7 @@ func AddWindowHook(ctx *Context, window xproto.Window) error {
 			} else {
 				f.Container.MoveResizeShape(ctx, AnchorShape(ctx, screen, LEFT))
 			}
-		}).Connect(ctx.X, window, ctx.Config.WindowLeft, true)
+		}).Connect(ctx.X, window, ctx.Config.WindowLeft.Data, true)
 	ext.Logerr(err)
 
 	err = keybind.KeyReleaseFun(
@@ -887,7 +887,7 @@ func AddWindowHook(ctx *Context, window xproto.Window) error {
 			} else {
 				f.Container.MoveResizeShape(ctx, AnchorShape(ctx, screen, RIGHT))
 			}
-		}).Connect(ctx.X, window, ctx.Config.WindowRight, true)
+		}).Connect(ctx.X, window, ctx.Config.WindowRight.Data, true)
 	ext.Logerr(err)
 
 	for k, v := range ctx.Config.GotoKeys {

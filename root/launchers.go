@@ -16,18 +16,22 @@ import (
 func GenerateHelp(ctx *frame.Context) string {
 	v := reflect.ValueOf(ctx.Config)
 
-	out:=""
+	helpString:=""
+	helpMap := make(map[string]string)
 
 	for i := 0; i < v.NumField(); i++ {
 		if v.Field(i).Type() == reflect.TypeOf((*frame.StringWithHelp)(nil)).Elem() {
 			a := v.Field(i).Interface().(frame.StringWithHelp)
-			out = fmt.Sprintf("%s%s = %s\n", out, a.Data, a.Help)
+			helpMap[a.Data] = a.Help
 		}
 	}
 	for k, _ := range ctx.Config.BuiltinCommands {
-		out = fmt.Sprintf("%s%s = %s\n", out, k.Data, k.Help)
+		helpMap[k.Data] = k.Help
 	}
-	return out
+	for k, v := range helpMap {
+		helpString += fmt.Sprintf("%s = %s\n", k, v)
+	}
+	return helpString
 }
 
 func Split(ctx *frame.Context) *frame.Frame {
@@ -133,7 +137,7 @@ func RegisterSplitHooks(ctx *frame.Context) error {
 
 		inPrompt.Show(ctx.Screens[0].ToXRect(), "Command:", resp, canc)
 
-	}).Connect(ctx.X, ctx.X.RootWin(), ctx.Config.RunCmd, true)
+	}).Connect(ctx.X, ctx.X.RootWin(), ctx.Config.RunCmd.Data, true)
 	if err != nil {
 		return err
 	}
