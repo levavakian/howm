@@ -54,7 +54,7 @@ func Split(ctx *frame.Context) *frame.Frame {
 	if attachF == nil {
 		msgPrompt := prompt.NewMessage(ctx.X, prompt.DefaultMessageTheme, prompt.DefaultMessageConfig)
 		timeout := 1 * time.Second
-		msgPrompt.Show(ctx.Screens[0].ToXRect(), "Help \n Fuck off \t fuck pff", timeout, func(msg *prompt.Message) {})
+		msgPrompt.Show(ctx.Screens[0].ToXRect(), "Cannot split when not focused on a window", timeout, func(msg *prompt.Message) {})
 		return nil
 	}
 
@@ -114,7 +114,7 @@ func RegisterSplitHooks(ctx *frame.Context) error {
 	err = keybind.KeyReleaseFun(
 		func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent) {
 			msgPrompt := prompt.NewMessage(ctx.X, prompt.DefaultMessageTheme, prompt.DefaultMessageConfig)
-		timeout := 1 * time.Second
+		timeout := 4 * time.Second
 		msgPrompt.Show(ctx.Screens[0].ToXRect(), GenerateHelp(ctx), timeout, func(msg *prompt.Message) {})
 
 	}).Connect(ctx.X, ctx.X.RootWin(), ctx.Config.LaunchHelp, true)
