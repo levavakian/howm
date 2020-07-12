@@ -9,37 +9,43 @@ import (
 	"time"
 )
 
+type StringWithHelp struct {
+	Data	string
+	Help	string
+}
+
+
 type Config struct {
 	Shell                     string
 	Lock                      string
 	TabByFrame                bool
-	TabForward                string
-	TabBackward               string
+	TabForward                StringWithHelp
+	TabBackward               StringWithHelp
 	ButtonDrag                string
 	ButtonClick               string
-	SplitVertical             string
-	SplitHorizontal           string
-	RunCmd                    string
+	SplitVertical             StringWithHelp
+	SplitHorizontal           StringWithHelp
+	RunCmd                    StringWithHelp
 	Shutdown                  string
-	CloseFrame                string
-	ToggleExpandFrame         string
+	CloseFrame                StringWithHelp
+	ToggleExpandFrame         StringWithHelp
 	ToggleExternalDecorator   string
 	ToggleTaskbar             string
-	PopFrame                  string
+	PopFrame                  StringWithHelp
 	ResetSize                 string
 	Minimize                  string
-	WindowUp                  string
-	WindowDown                string
-	WindowLeft                string
-	WindowRight               string
+	WindowUp		  StringWithHelp
+	WindowDown                StringWithHelp
+	WindowLeft                StringWithHelp
+	WindowRight               StringWithHelp
 	VolumeUp                  string
 	VolumeDown                string
 	BrightnessUp              string
 	BrightnessDown            string
 	Backlight                 string
 	VolumeMute                string
-	FocusNext                 string
-	FocusPrev                 string
+	FocusNext                 StringWithHelp
+	FocusPrev                 StringWithHelp
 	ElemSize                  int
 	CloseCursor               int
 	DefaultShapeRatio         Rectf
@@ -54,7 +60,7 @@ type Config struct {
 	TaskbarTextColor          uint32
 	InternalPadding           int
 	BackgroundImagePath       string
-	BuiltinCommands           map[string]string
+	BuiltinCommands           map[StringWithHelp]string
 	FocusMarkerTime           time.Duration
 	DoubleClickTime           time.Duration
 	TaskbarHeight             int
@@ -79,6 +85,7 @@ type Config struct {
 	SuspendCommand            string
 	BatteryWarningLevels      []int
 	BatteryWarningDuration    time.Duration
+	LaunchHelp                string
 	GotoKeys                  map[string]string
 }
 
@@ -105,23 +112,23 @@ func DefaultConfig() Config {
 		Shell:                   "/bin/bash",
 		Lock:                    "Mod4-l",
 		TabByFrame:              true,
-		TabForward:              "Mod1-tab",
-		TabBackward:             "Mod1-Shift-tab",
+		TabForward:              StringWithHelp{Data: "Mod1-tab", Help:"Tab Forward"},
+		TabBackward:             StringWithHelp{Data: "Mod1-Shift-tab", Help:"Tab Backward"},
 		ButtonDrag:              "1",
 		ButtonClick:             "1",
-		SplitVertical:           "Mod4-r",
-		SplitHorizontal:         "Mod4-e",
-		RunCmd:                  "Mod4-f",
+		SplitVertical:           StringWithHelp{Data: "Mod4-r", Help:"Split Vertically"},
+		SplitHorizontal:         StringWithHelp{Data: "Mod4-e", Help:"Split Horizontally"},
+		RunCmd:                  StringWithHelp{Data: "Mod4-f", Help:"Run Command"},
 		Shutdown:                "Mod4-BackSpace",
-		CloseFrame:              "Mod4-d",
-		ToggleExpandFrame:       "Mod4-x",
+		CloseFrame:              StringWithHelp{Data: "Mod4-d", Help:"Close Frame"},
+		ToggleExpandFrame:       StringWithHelp{Data: "Mod4-x", Help:"Toggle Expanded Frame"},
 		ToggleExternalDecorator: "Mod4-h",
 		ToggleTaskbar:           "Mod4-s",
-		WindowUp:                "Mod4-up",
-		WindowDown:              "Mod4-down",
-		WindowLeft:              "Mod4-left",
-		WindowRight:             "Mod4-right",
-		PopFrame:                "Mod4-q",
+		WindowUp:                 StringWithHelp{Data: "Mod4-up", Help:"Window up"},
+		WindowDown:               StringWithHelp{Data: "Mod4-down", Help:"Window Down"},
+		WindowLeft:               StringWithHelp{Data: "Mod4-left", Help:"Window Left"},
+		WindowRight:              StringWithHelp{Data: "Mod4-right", Help:"Window Right"},
+		PopFrame:                 StringWithHelp{Data: "Mod4-q", Help:"Pop Frame"},
 		ResetSize:               "Mod4-Shift-up",
 		Minimize:                "Mod4-Shift-down",
 		VolumeUp:                "Mod4-F3",
@@ -129,8 +136,8 @@ func DefaultConfig() Config {
 		VolumeMute:              "Mod4-F1",
 		BrightnessUp:            "Mod4-F12",
 		BrightnessDown:          "Mod4-F11",
-		FocusNext:               "Mod4-Tab",
-		FocusPrev:               "Mod4-asciitilde",
+		FocusNext:               StringWithHelp{Data: "Mod4-Tab", Help:"Focus Next"},
+		FocusPrev:               StringWithHelp{Data: "Mod4-asciitilde", Help:"Focus Previous"},
 		Backlight:               "intel_backlight",
 		ElemSize:                10,
 		CloseCursor:             xcursor.Dot,
@@ -153,15 +160,15 @@ func DefaultConfig() Config {
 		BackgroundImagePath: path.Join(HomeDir(), ".config/rowm/bg.png"),
 		FocusMarkerTime:     time.Millisecond * 350,
 		DoubleClickTime:     time.Millisecond * 500,
-		BuiltinCommands: map[string]string{
-			"Mod4-t":  "x-terminal-emulator",
-			"Mod4-w":  "google-chrome",
-			"Mod4-p":  "XDG_CURRENT_DESKTOP=GNOME gnome-control-center",
-			"Mod4-o":  "xdg-open .",
-			"Mod4-F5": "dbus-send --print-reply --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.PlayPause",
-			"Mod4-F4": "dbus-send --print-reply --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.Previous",
-			"Mod4-F6": "dbus-send --print-reply --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.Next",
-			"Print":   "gnome-screenshot -i",
+		BuiltinCommands: map[StringWithHelp]string{
+			StringWithHelp{Data: "Mod4-t", Help:"Terminal"}:  "x-terminal-emulator",
+			StringWithHelp{Data: "Mod4-w", Help:"Chrome"}:  "google-chrome",
+			StringWithHelp{Data: "Mod4-p", Help: "Gnome"}:  "XDG_CURRENT_DESKTOP=GNOME gnome-control-center",
+			StringWithHelp{Data: "Mod4-o", Help:" XDG"}:"xdg-open .",
+			StringWithHelp{Data: "Mod4-F5", Help:"Pause"}: "dbus-send --print-reply --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.PlayPause",
+			StringWithHelp{Data: "Mod4-F4", Help: "Previous"}: "dbus-send --print-reply --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.Previous",
+			StringWithHelp{Data: "Mod4-F6", Help: "Next"}: "dbus-send --print-reply --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.Next",
+			StringWithHelp{Data: "Print", Help: "Screenshot"}:"gnome-screenshot -i",
 		},
 		TaskbarHeight:        20,
 		TaskbarFontSize:      12,
@@ -190,6 +197,7 @@ func DefaultConfig() Config {
 		SuspendCommand:            "systemctl suspend",
 		BatteryWarningLevels:      []int{20, 10, 5, 1},
 		BatteryWarningDuration:    time.Second * 2,
+		LaunchHelp:                "Mod4-Shift-h",
 		GotoKeys: map[string]string{
 			"Mod4-Shift-0": "Mod4-0",
 			"Mod4-Shift-1": "Mod4-1",

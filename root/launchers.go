@@ -6,10 +6,42 @@ import (
 	"github.com/BurntSushi/xgbutil/keybind"
 	"github.com/BurntSushi/xgbutil/xevent"
 	"github.com/levavakian/rowm/frame"
+	"fmt"
+	"sort"
 	"log"
 	"os/exec"
 	"time"
+	"reflect"
 )
+
+func GenerateHelp(ctx *frame.Context) string {
+	v := reflect.ValueOf(ctx.Config)
+
+	helpString:=""
+	helpMap := make(map[string]string)
+
+	// Add all the fields in Config with help
+	for i := 0; i < v.NumField(); i++ {
+		if v.Field(i).Type() == reflect.TypeOf((*frame.StringWithHelp)(nil)).Elem() {
+			a := v.Field(i).Interface().(frame.StringWithHelp)
+			helpMap[a.Data] = a.Help
+		}
+	}
+
+	// Add all the Builtin Commands
+	for k, _ := range ctx.Config.BuiltinCommands {
+		helpMap[k.Data] = k.Help
+	}
+	keys := make([]string, 0, len(helpMap))
+	for k := range helpMap {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	for _, k := range keys {
+		helpString += fmt.Sprintf("%s = %s\n", k, helpMap[k])
+	}
+	return helpString
+}
 
 func Split(ctx *frame.Context) *frame.Frame {
 	if ctx.SplitPrompt != nil {
@@ -54,6 +86,7 @@ func Split(ctx *frame.Context) *frame.Frame {
 }
 
 func RegisterSplitHooks(ctx *frame.Context) error {
+
 	var err error
 	// Builting shortcuts
 	for k, v := range ctx.Config.BuiltinCommands {
@@ -63,7 +96,6 @@ func RegisterSplitHooks(ctx *frame.Context) error {
 				if ctx.Locked {
 					return
 				}
-
 				cmd := exec.Command("bash", "-c", ncmd)
 				err := cmd.Start()
 				if err != nil {
@@ -72,11 +104,21 @@ func RegisterSplitHooks(ctx *frame.Context) error {
 				go func() {
 					cmd.Wait()
 				}()
-			}).Connect(ctx.X, ctx.X.RootWin(), k, true)
+			}).Connect(ctx.X, ctx.X.RootWin(), k.Data, true)
 		if err != nil {
 			return err
 		}
 	}
+
+	// Launch help
+	err = keybind.KeyReleaseFun(
+		func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent) {
+			msgPrompt := prompt.NewMessage(ctx.X, prompt.DefaultMessageTheme, prompt.DefaultMessageConfig)
+		timeout := 4 * time.Second
+		msgPrompt.Show(ctx.Screens[0].ToXRect(), GenerateHelp(ctx), timeout, func(msg *prompt.Message) {})
+
+	}).Connect(ctx.X, ctx.X.RootWin(), ctx.Config.LaunchHelp, true)
+
 
 	// Standalone launchers, not great not terrible
 	err = keybind.KeyReleaseFun(func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent) {
@@ -104,7 +146,7 @@ func RegisterSplitHooks(ctx *frame.Context) error {
 
 		inPrompt.Show(ctx.Screens[0].ToXRect(), "Command:", resp, canc)
 
-	}).Connect(ctx.X, ctx.X.RootWin(), ctx.Config.RunCmd, true)
+	}).Connect(ctx.X, ctx.X.RootWin(), ctx.Config.RunCmd.Data, true)
 	if err != nil {
 		return err
 	}
@@ -123,7 +165,7 @@ func RegisterSplitHooks(ctx *frame.Context) error {
 			Target: fr,
 			Type:   frame.HORIZONTAL,
 		}
-	}).Connect(ctx.X, ctx.X.RootWin(), ctx.Config.SplitHorizontal, true)
+	}).Connect(ctx.X, ctx.X.RootWin(), ctx.Config.SplitHorizontal.Data, true)
 	if err != nil {
 		return err
 	}
@@ -141,7 +183,7 @@ func RegisterSplitHooks(ctx *frame.Context) error {
 			Target: fr,
 			Type:   frame.VERTICAL,
 		}
-	}).Connect(ctx.X, ctx.X.RootWin(), ctx.Config.SplitVertical, true)
+	}).Connect(ctx.X, ctx.X.RootWin(), ctx.Config.SplitVertical.Data, true)
 	if err != nil {
 		return err
 	}

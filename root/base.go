@@ -89,13 +89,13 @@ func RegisterBaseHooks(ctx *frame.Context) error {
 	}
 	err = keybind.KeyReleaseFun(func(X *xgbutil.XUtil, ev xevent.KeyReleaseEvent) {
 		focusNext(X, ev, false)
-	}).Connect(ctx.X, ctx.X.RootWin(), ctx.Config.FocusNext, true)
+	}).Connect(ctx.X, ctx.X.RootWin(), ctx.Config.FocusNext.Data, true)
 	if err != nil {
 		return err
 	}
 	err = keybind.KeyReleaseFun(func(X *xgbutil.XUtil, ev xevent.KeyReleaseEvent) {
 		focusNext(X, ev, true)
-	}).Connect(ctx.X, ctx.X.RootWin(), ctx.Config.FocusPrev, true)
+	}).Connect(ctx.X, ctx.X.RootWin(), ctx.Config.FocusPrev.Data, true)
 	if err != nil {
 		return err
 	}
