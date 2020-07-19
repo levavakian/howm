@@ -704,13 +704,13 @@ func AddWindowHook(ctx *Context, window xproto.Window) error {
 	err = keybind.KeyReleaseFun(
 		func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent) {
 			yankAttach(window, HORIZONTAL)
-		}).Connect(ctx.X, window, ctx.Config.CopySelectHorizontal, true)
+		}).Connect(ctx.X, window, ctx.Config.CopySelectHorizontal.Data, true)
 	ext.Logerr(err)
 
 	err = keybind.KeyReleaseFun(
 		func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent) {
 			yankAttach(window, VERTICAL)
-		}).Connect(ctx.X, window, ctx.Config.CopySelectVertical, true)
+		}).Connect(ctx.X, window, ctx.Config.CopySelectVertical.Data, true)
 	ext.Logerr(err)
 
 	err = keybind.KeyReleaseFun(
