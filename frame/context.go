@@ -52,7 +52,7 @@ type Context struct {
 	Screens                []Rect                            // All heads (aka monitors) and their shapes
 	LastKnownFocused       xproto.Window                     // Last window we knew of that had input focus
 	LastKnownFocusedScreen int                               // Last screen/head/monitor that had a focused window that we know of
-	SplitPrompt            *prompt.Input                     // Prompt for splitting windows (if any active)
+	SplitPrompt            *InputWithSuggestion              // Prompt for splitting windows (if any active)
 	Locked                 bool                              // Whether we should be in a lock screen
 	LockPrompt             *prompt.Input                     // Prompt for unlocking screen (if any)
 	Taskbar                *Taskbar                          // The taskbar, doesn't need a comment but it felt lonely

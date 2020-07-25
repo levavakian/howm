@@ -18,13 +18,15 @@ fi
 echo "Compiling..."
 $DIR/compile.sh
 echo "Installing to global directories"
-rm /usr/bin/rowm | true
+rm /usr/bin/rowmbinaryfinder | true
 rm /usr/bin/rowmbright | true
+rm /usr/bin/rowm | true
 rm /usr/share/xsessions/rowm.desktop | true
 mkdir -p /usr/local/share/wingo/
 mkdir -p /usr/share/xsessions
 cp $DIR/rowm /usr/bin/rowm
 cp $DIR/cmd/rowmbright/rowmbright /usr/bin/rowmbright
+cp $DIR/cmd/rowmbinaryfinder /usr/bin/rowmbinaryfinder
 cp $DIR/resources/dejavu/DejaVuSans.ttf /usr/local/share/wingo/DejaVuSans.ttf
 cp $DIR/resources/nofont/write-your-password-with-this-font.ttf  /usr/local/share/wingo/write-your-password-with-this-font.ttf
 cp $DIR/resources/rowm.desktop /usr/share/xsessions/rowm.desktop
