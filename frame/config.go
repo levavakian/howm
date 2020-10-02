@@ -80,8 +80,8 @@ type Config struct {
 	TaskbarSlideRight         string
 	CutSelectFrame            string
 	CutSelectContainer        string
-	CopySelectHorizontal      string
-	CopySelectVertical        string
+	CopySelectHorizontal      StringWithHelp
+	CopySelectVertical        StringWithHelp
 	SuspendCommand            string
 	BatteryWarningLevels      []int
 	BatteryWarningDuration    time.Duration
@@ -107,6 +107,8 @@ func (c *Config) MinShape() Rect {
 	}
 }
 
+// DefaultConfig reference for key strings
+// https://github.com/BurntSushi/xgbutil/blob/master/keybind/keysymdef.go
 func DefaultConfig() Config {
 	return Config{
 		Shell:                   "/bin/bash",
@@ -131,11 +133,11 @@ func DefaultConfig() Config {
 		PopFrame:                 StringWithHelp{Data: "Mod4-q", Help:"Pop Frame"},
 		ResetSize:               "Mod4-Shift-up",
 		Minimize:                "Mod4-Shift-down",
-		VolumeUp:                "Mod4-F3",
-		VolumeDown:              "Mod4-F2",
-		VolumeMute:              "Mod4-F1",
-		BrightnessUp:            "Mod4-F12",
-		BrightnessDown:          "Mod4-F11",
+		VolumeUp:                "XF86AudioRaiseVolume",
+		VolumeDown:              "XF86AudioLowerVolume",
+		VolumeMute:              "XF86AudioMute",
+		BrightnessUp:            "XF86MonBrightnessUp",
+		BrightnessDown:          "XF86MonBrightnessDown",
 		FocusNext:               StringWithHelp{Data: "Mod4-Tab", Help:"Focus Next"},
 		FocusPrev:               StringWithHelp{Data: "Mod4-asciitilde", Help:"Focus Previous"},
 		Backlight:               "intel_backlight",
@@ -165,9 +167,9 @@ func DefaultConfig() Config {
 			StringWithHelp{Data: "Mod4-w", Help:"Chrome"}:  "google-chrome",
 			StringWithHelp{Data: "Mod4-p", Help: "Gnome"}:  "XDG_CURRENT_DESKTOP=GNOME gnome-control-center",
 			StringWithHelp{Data: "Mod4-o", Help:" XDG"}:"xdg-open .",
-			StringWithHelp{Data: "Mod4-F5", Help:"Pause"}: "dbus-send --print-reply --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.PlayPause",
-			StringWithHelp{Data: "Mod4-F4", Help: "Previous"}: "dbus-send --print-reply --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.Previous",
-			StringWithHelp{Data: "Mod4-F6", Help: "Next"}: "dbus-send --print-reply --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.Next",
+			StringWithHelp{Data: "XF86AudioPlay", Help:"Pause"}: "dbus-send --print-reply --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.PlayPause",
+			StringWithHelp{Data: "XF86AudioPrev", Help: "Previous"}: "dbus-send --print-reply --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.Previous",
+			StringWithHelp{Data: "XF86AudioNext", Help: "Next"}: "dbus-send --print-reply --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.Next",
 			StringWithHelp{Data: "Print", Help: "Screenshot"}:"gnome-screenshot -i",
 		},
 		TaskbarHeight:        20,
@@ -192,8 +194,8 @@ func DefaultConfig() Config {
 		TaskbarSlideRight:         "Mod4-Shift-right",
 		CutSelectFrame:            "Mod4-c",
 		CutSelectContainer:        "Mod4-Shift-c",
-		CopySelectHorizontal:      "Mod4-v",
-		CopySelectVertical:        "Mod4-b",
+		CopySelectHorizontal:      StringWithHelp{Data: "Mod4-v", Help: "Paste Horizontally"},
+		CopySelectVertical:        StringWithHelp{Data: "Mod4-b", Help: "Paste Vertically"},
 		SuspendCommand:            "systemctl suspend",
 		BatteryWarningLevels:      []int{20, 10, 5, 1},
 		BatteryWarningDuration:    time.Second * 2,
