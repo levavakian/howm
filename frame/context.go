@@ -64,7 +64,7 @@ type Context struct {
 
 // NewContext will create a new context but also populate screen backgrounds, create the taskbar, and generate the cursor cache
 func NewContext(x *xgbutil.XUtil, inj *sideloop.Injector) (*Context, error) {
-	conf := DefaultConfig()
+	conf := LoadConfig()
 
 	var err error
 	c := &Context{

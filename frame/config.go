@@ -3,6 +3,7 @@ package frame
 import (
 	"fmt"
 	"github.com/BurntSushi/xgbutil/xcursor"
+	"github.com/spf13/viper"
 	"log"
 	"os/user"
 	"path"
@@ -10,82 +11,82 @@ import (
 )
 
 type StringWithHelp struct {
-	Data	string
-	Help	string
+	Data	string	`json:"data,omitempty"`
+	Help	string	`json:"help,omitempty"`
 }
 
 
 type Config struct {
-	Shell                     string
-	Lock                      string
-	TabByFrame                bool
-	TabForward                StringWithHelp
-	TabBackward               StringWithHelp
-	ButtonDrag                string
-	ButtonClick               string
-	SplitVertical             StringWithHelp
-	SplitHorizontal           StringWithHelp
-	RunCmd                    StringWithHelp
-	Shutdown                  string
-	CloseFrame                StringWithHelp
-	ToggleExpandFrame         StringWithHelp
-	ToggleExternalDecorator   string
-	ToggleTaskbar             string
-	PopFrame                  StringWithHelp
-	ResetSize                 string
-	Minimize                  string
-	WindowUp		  StringWithHelp
-	WindowDown                StringWithHelp
-	WindowLeft                StringWithHelp
-	WindowRight               StringWithHelp
-	VolumeUp                  string
-	VolumeDown                string
-	BrightnessUp              string
-	BrightnessDown            string
-	Backlight                 string
-	VolumeMute                string
-	FocusNext                 StringWithHelp
-	FocusPrev                 StringWithHelp
-	ElemSize                  int
-	CloseCursor               int
+	Shell                     string `json:"shell,omitempty"`
+	Lock                      string `json:"lock,omitempty"`
+	TabByFrame                bool `json:"tab_frame,omitempty"`
+	TabForward                StringWithHelp `json:"tab_forward,omitempty"`
+	TabBackward               StringWithHelp `json:"tab_backward,omitempty"`
+	ButtonDrag                string `json:"button_drag,omitempty"`
+	ButtonClick               string `json:"button_click,omitempty"`
+	SplitVertical             StringWithHelp `json:"split_vertical,omitempty"`
+	SplitHorizontal           StringWithHelp `json:"split_horizontal,omitempty"`
+	RunCmd                    StringWithHelp `json:"run_cmd,omitempty"`
+	Shutdown                  string `json:"shutdown,omitempty"`
+	CloseFrame                StringWithHelp `json:"close_frame,omitempty"`
+	ToggleExpandFrame         StringWithHelp `json:"toggle_expand_frame,omitempty"`
+	ToggleExternalDecorator   string `json:"toggle_external_decorator,omitempty"`
+	ToggleTaskbar             string `json:"toggle_taskbar,omitempty"`
+	PopFrame                  StringWithHelp `json:"pop_frame,omitempty"`
+	ResetSize                 string `json:"reset_size,omitempty"`
+	Minimize                  string `json:"minimize,omitempty"`
+	WindowUp		  StringWithHelp `json:"window_up,omitempty"`
+	WindowDown                StringWithHelp `json:"window_down,omitempty"`
+	WindowLeft                StringWithHelp `json:"window_left,omitempty"`
+	WindowRight               StringWithHelp `json:"window_right,omitempty"`
+	VolumeUp                  string `json:"volume_up,omitempty"`
+	VolumeDown                string `json:"volume_down,omitempty"`
+	BrightnessUp              string `json:"brightness_up,omitempty"`
+	BrightnessDown            string `json:"brightness_down,omitempty"`
+	Backlight                 string `json:"backlight,omitempty"`
+	VolumeMute                string `json:"volume_mute,omitempty"`
+	FocusNext                 StringWithHelp `json:"focus_next,omitempty"`
+	FocusPrev                 StringWithHelp `json:"focus_prev,omitempty"`
+	ElemSize                  int `json:"elem_size,omitempty"`
+	CloseCursor               int `json:"close_cursor,omitempty"`
 	DefaultShapeRatio         Rectf
-	SeparatorColor            uint32
-	GrabColor                 uint32
-	FocusColor                uint32
-	CloseColor                uint32
-	MaximizeColor             uint32
-	MinimizeColor             uint32
-	ResizeColor               uint32
-	TaskbarBaseColor          uint32
-	TaskbarTextColor          uint32
-	InternalPadding           int
-	BackgroundImagePath       string
-	BuiltinCommands           map[StringWithHelp]string
+	SeparatorColor            uint32 `json:"seperator_color,omitempty"`
+	GrabColor                 uint32 `json:"grab_color,omitempty"`
+	FocusColor                uint32 `json:"focus_color,omitempty"`
+	CloseColor                uint32 `json:"close_clor,omitempty"`
+	MaximizeColor             uint32 `json:"maximize_color,omitempty"`
+	MinimizeColor             uint32 `json:"minimize_color,omitempty"`
+	ResizeColor               uint32 `json:"resize_color,omitempty"`
+	TaskbarBaseColor          uint32 `json:"taskbar_base_color,omitempty"`
+	TaskbarTextColor          uint32 `json:"taskbar_text_color,omitempty"`
+	InternalPadding           int `json:"internal_padding,omitempty"`
+	BackgroundImagePath       string `json:"background_image_path,omitempty"`
+	BuiltinCommands           map[StringWithHelp]string `json:"builtin_commands,omitempty"`
 	FocusMarkerTime           time.Duration
 	DoubleClickTime           time.Duration
-	TaskbarHeight             int
-	TaskbarSlideWidth         int
-	TaskbarSlideActiveColor   uint32
-	TaskbarSlideInactiveColor uint32
-	TaskbarFontSize           float64
-	TaskbarTimeBaseColor      uint32
-	TaskbarXPad               int
-	TaskbarYPad               int
-	TaskbarTimeFormat         string
-	TaskbarBatFormat          string
+	TaskbarHeight             int `json:"taskbar_height,omitempty"`
+	TaskbarSlideWidth         int `json:"taskbar_slide_width,omitempty"`
+	TaskbarSlideActiveColor   uint32 `json:"taskbar_slide_active_color,omitempty"`
+	TaskbarSlideInactiveColor uint32 `json:"taskbar_slide_inactive_color,omitempty"`
+	TaskbarFontSize           float64 `json:"taskbar_font_size,omitempty"`
+	TaskbarTimeBaseColor      uint32 `json:"taskbar_time_base_color,omitempty"`
+	TaskbarXPad               int `json:"taskbar_x_pad,omitempty"`
+	TaskbarYPad               int `json:"taskbar_y_pad,omitempty"`
+	TaskbarTimeFormat         string `json:"taskbar_time_format,omitempty"`
+	TaskbarBatFormat          string `json:"taskbar_bat_format,omitempty"`
 	TaskbarElementShape       Rect
-	TaskbarMinMaxHeight       int
-	TaskbarMinMaxColor        uint32
-	TaskbarSlideLeft          string
-	TaskbarSlideRight         string
-	CutSelectFrame            string
-	CutSelectContainer        string
-	CopySelectHorizontal      StringWithHelp
-	CopySelectVertical        StringWithHelp
-	SuspendCommand            string
+	TaskbarMinMaxHeight       int `json:"taskbar_min_max_height,omitempty"`
+	TaskbarMinMaxColor        uint32 `json:"taskbar_min_max_color,omitempty"`
+	TaskbarSlideLeft          string `json:"taskbar_slide_left,omitempty"`
+	TaskbarSlideRight         string `json:"taskbar_slide_right,omitempty"`
+	CutSelectFrame            string `json:"cut_select_frame,omitempty"`
+	CutSelectContainer        string `json:"cut_select_container,omitempty"`
+	CopySelectHorizontal      StringWithHelp `json:"copy_select_horizontal,omitempty"`
+	CopySelectVertical        StringWithHelp `json:"copy_select_vertical,omitempty"`
+	SuspendCommand            string `json:"suspend_command,omitempty"`
 	BatteryWarningLevels      []int
 	BatteryWarningDuration    time.Duration
-	LaunchHelp                string
+	LaunchHelp                string `json:"launch_help,omitempty"`
 	GotoKeys                  map[string]string
 }
 
@@ -106,6 +107,25 @@ func (c *Config) MinShape() Rect {
 		H: 5 * c.ElemSize,
 	}
 }
+
+func LoadConfig() Config {
+	conf := DefaultConfig()
+	viper.SetConfigName("rowm") // name of config file (without extension)
+	viper.SetConfigType("json") // REQUIRED if the config file does not have the extension in the name
+	viper.AddConfigPath("/etc/rowm/")   // path to look for the config file in
+	err := viper.ReadInConfig() // Find and read the config file
+	if err != nil { // Handle errors reading the config file
+		log.Println("Didn't load config file:", err)
+	}
+
+	err = viper.Unmarshal(&conf)
+	if err != nil {
+		log.Println("Unable to decode into config struct:", err)
+	}
+	log.Println(conf.Shell)
+	return conf
+}
+
 
 // DefaultConfig reference for key strings
 // https://github.com/BurntSushi/xgbutil/blob/master/keybind/keysymdef.go
