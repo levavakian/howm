@@ -520,7 +520,9 @@ func (t *Taskbar) Update(ctx *Context) {
 		for _, lvl := range ctx.Config.BatteryWarningLevels {
 			if t.History.LastBattery > lvl && lowest_bat <= lvl {
 				msgPrompt := prompt.NewMessage(ctx.X, prompt.DefaultMessageTheme, prompt.DefaultMessageConfig)
-				msgPrompt.Show(ctx.Screens[0].ToXRect(), fmt.Sprintf("Warning: battery at %d%%", lowest_bat), ctx.Config.BatteryWarningDuration, func(msg *prompt.Message) {})
+				for _, screen:= range ctx.Screens {
+				  msgPrompt.Show(screen.ToXRect(), fmt.Sprintf("Warning: battery at %d%%", lowest_bat), ctx.Config.BatteryWarningDuration, func(msg *prompt.Message) {})
+				}
 				break
 			}
 		}

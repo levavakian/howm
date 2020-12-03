@@ -259,6 +259,13 @@ func (inp *InputWithSuggestion) keyResponse() xevent.KeyPressFun {
 		case keybind.KeyMatch(X, inp.config.CompleteKey, mods, kc):
 			inp.input.SetString(suggestionSlice[inp.suggestionIndex])
                         inp.suggestionIndex = 0
+		case keybind.KeyMatch(X, inp.config.PrevSuggestionKey, mods, kc):
+			inp.suggestionIndex--
+			if inp.suggestionIndex < 0 {
+                          inp.suggestionIndex = len(suggestionSlice) - 1
+			}
+			text.DrawText(inp.suggestion, inp.theme.Font, inp.theme.FontSize,
+				      inp.theme.FontColor, inp.theme.BgColor, suggestionSlice[inp.suggestionIndex])
 		case keybind.KeyMatch(X, inp.config.NextSuggestionKey, mods, kc):
 			inp.suggestionIndex++
 			if inp.suggestionIndex >= len(suggestionSlice) {
@@ -317,6 +324,7 @@ type InputWithSuggestionConfig struct {
 	ConfirmKey   string
 	CompleteKey  string
 	NextSuggestionKey   string
+	PrevSuggestionKey   string
 }
 
 var DefaultInputWithSuggestionConfig = InputWithSuggestionConfig{
@@ -325,4 +333,5 @@ var DefaultInputWithSuggestionConfig = InputWithSuggestionConfig{
 	ConfirmKey:   "Return",
 	CompleteKey  : "Tab",
 	NextSuggestionKey   :"Right",
+	PrevSuggestionKey   :"Left",
 }
