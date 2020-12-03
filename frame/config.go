@@ -139,7 +139,7 @@ func DefaultConfig() Config {
 		ButtonClick:             "1",
 		SplitVertical:           StringWithHelp{Data: "Mod4-r", Help:"Split Vertically"},
 		SplitHorizontal:         StringWithHelp{Data: "Mod4-e", Help:"Split Horizontally"},
-		RunCmd:                  StringWithHelp{Data: "Mod4-Space", Help:"Run Command"},
+		RunCmd:                  StringWithHelp{Data: "Mod4-f", Help:"Run Command"},
 		Shutdown:                "Mod4-BackSpace",
 		CloseFrame:              StringWithHelp{Data: "Mod4-d", Help:"Close Frame"},
 		ToggleExpandFrame:       StringWithHelp{Data: "Mod4-x", Help:"Toggle Expanded Frame"},
