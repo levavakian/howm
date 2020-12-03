@@ -11,82 +11,82 @@ import (
 )
 
 type StringWithHelp struct {
-	Data	string	`json:"data,omitempty"`
-	Help	string	`json:"help,omitempty"`
+	Data	string	`mapstructure:"data"`
+	Help	string	`mapstructure:"help"`
 }
 
 
 type Config struct {
-	Shell                     string `json:"shell,omitempty"`
-	Lock                      string `json:"lock,omitempty"`
-	TabByFrame                bool `json:"tab_frame,omitempty"`
-	TabForward                StringWithHelp `json:"tab_forward,omitempty"`
-	TabBackward               StringWithHelp `json:"tab_backward,omitempty"`
-	ButtonDrag                string `json:"button_drag,omitempty"`
-	ButtonClick               string `json:"button_click,omitempty"`
-	SplitVertical             StringWithHelp `json:"split_vertical,omitempty"`
-	SplitHorizontal           StringWithHelp `json:"split_horizontal,omitempty"`
-	RunCmd                    StringWithHelp `json:"run_cmd,omitempty"`
-	Shutdown                  string `json:"shutdown,omitempty"`
-	CloseFrame                StringWithHelp `json:"close_frame,omitempty"`
-	ToggleExpandFrame         StringWithHelp `json:"toggle_expand_frame,omitempty"`
-	ToggleExternalDecorator   string `json:"toggle_external_decorator,omitempty"`
-	ToggleTaskbar             string `json:"toggle_taskbar,omitempty"`
-	PopFrame                  StringWithHelp `json:"pop_frame,omitempty"`
-	ResetSize                 string `json:"reset_size,omitempty"`
-	Minimize                  string `json:"minimize,omitempty"`
-	WindowUp		  StringWithHelp `json:"window_up,omitempty"`
-	WindowDown                StringWithHelp `json:"window_down,omitempty"`
-	WindowLeft                StringWithHelp `json:"window_left,omitempty"`
-	WindowRight               StringWithHelp `json:"window_right,omitempty"`
-	VolumeUp                  string `json:"volume_up,omitempty"`
-	VolumeDown                string `json:"volume_down,omitempty"`
-	BrightnessUp              string `json:"brightness_up,omitempty"`
-	BrightnessDown            string `json:"brightness_down,omitempty"`
-	Backlight                 string `json:"backlight,omitempty"`
-	VolumeMute                string `json:"volume_mute,omitempty"`
-	FocusNext                 StringWithHelp `json:"focus_next,omitempty"`
-	FocusPrev                 StringWithHelp `json:"focus_prev,omitempty"`
-	ElemSize                  int `json:"elem_size,omitempty"`
-	CloseCursor               int `json:"close_cursor,omitempty"`
+	Lock                      string `mapstructure:"lock"`
+	Shell                     string `mapstructure:"shell"`
+	TabByFrame                bool `mapstructure:"tab_frame"`
+	TabForward                StringWithHelp `mapstructure:"tab_forward"`
+	TabBackward               StringWithHelp `mapstructure:"tab_backward"`
+	ButtonDrag                string `mapstructure:"button_drag"`
+	ButtonClick               string `mapstructure:"button_click"`
+	SplitVertical             StringWithHelp `mapstructure:"split_vertical"`
+	SplitHorizontal           StringWithHelp `mapstructure:"split_horizontal"`
+	RunCmd                    StringWithHelp `mapstructure:"run_cmd"`
+	Shutdown                  string `mapstructure:"shutdown"`
+	CloseFrame                StringWithHelp `mapstructure:"close_frame"`
+	ToggleExpandFrame         StringWithHelp `mapstructure:"toggle_expand_frame"`
+	ToggleExternalDecorator   string `mapstructure:"toggle_external_decorator"`
+	ToggleTaskbar             string `mapstructure:"toggle_taskbar"`
+	PopFrame                  StringWithHelp `mapstructure:"pop_frame"`
+	ResetSize                 string `mapstructure:"reset_size"`
+	Minimize                  string `mapstructure:"minimize"`
+	WindowUp		  StringWithHelp `mapstructure:"window_up"`
+	WindowDown                StringWithHelp `mapstructure:"window_down"`
+	WindowLeft                StringWithHelp `mapstructure:"window_left"`
+	WindowRight               StringWithHelp `mapstructure:"window_right"`
+	VolumeUp                  string `mapstructure:"volume_up"`
+	VolumeDown                string `mapstructure:"volume_down"`
+	BrightnessUp              string `mapstructure:"brightness_up"`
+	BrightnessDown            string `mapstructure:"brightness_down"`
+	Backlight                 string `mapstructure:"backlight"`
+	VolumeMute                string `mapstructure:"volume_mute"`
+	FocusNext                 StringWithHelp `mapstructure:"focus_next"`
+	FocusPrev                 StringWithHelp `mapstructure:"focus_prev"`
+	ElemSize                  int `mapstructure:"elem_size"`
+	CloseCursor               int `mapstructure:"close_cursor"`
 	DefaultShapeRatio         Rectf
-	SeparatorColor            uint32 `json:"seperator_color,omitempty"`
-	GrabColor                 uint32 `json:"grab_color,omitempty"`
-	FocusColor                uint32 `json:"focus_color,omitempty"`
-	CloseColor                uint32 `json:"close_clor,omitempty"`
-	MaximizeColor             uint32 `json:"maximize_color,omitempty"`
-	MinimizeColor             uint32 `json:"minimize_color,omitempty"`
-	ResizeColor               uint32 `json:"resize_color,omitempty"`
-	TaskbarBaseColor          uint32 `json:"taskbar_base_color,omitempty"`
-	TaskbarTextColor          uint32 `json:"taskbar_text_color,omitempty"`
-	InternalPadding           int `json:"internal_padding,omitempty"`
-	BackgroundImagePath       string `json:"background_image_path,omitempty"`
-	BuiltinCommands           map[StringWithHelp]string `json:"builtin_commands,omitempty"`
+	SeparatorColor            uint32 `mapstructure:"seperator_color"`
+	GrabColor                 uint32 `mapstructure:"grab_color"`
+	FocusColor                uint32 `mapstructure:"focus_color"`
+	CloseColor                uint32 `mapstructure:"close_clor"`
+	MaximizeColor             uint32 `mapstructure:"maximize_color"`
+	MinimizeColor             uint32 `mapstructure:"minimize_color"`
+	ResizeColor               uint32 `mapstructure:"resize_color"`
+	TaskbarBaseColor          uint32 `mapstructure:"taskbar_base_color"`
+	TaskbarTextColor          uint32 `mapstructure:"taskbar_text_color"`
+	InternalPadding           int `mapstructure:"internal_padding"`
+	BackgroundImagePath       string `mapstructure:"background_image_path"`
+	BuiltinCommands           map[StringWithHelp]string `mapstructure:"builtin_commands"`
 	FocusMarkerTime           time.Duration
 	DoubleClickTime           time.Duration
-	TaskbarHeight             int `json:"taskbar_height,omitempty"`
-	TaskbarSlideWidth         int `json:"taskbar_slide_width,omitempty"`
-	TaskbarSlideActiveColor   uint32 `json:"taskbar_slide_active_color,omitempty"`
-	TaskbarSlideInactiveColor uint32 `json:"taskbar_slide_inactive_color,omitempty"`
-	TaskbarFontSize           float64 `json:"taskbar_font_size,omitempty"`
-	TaskbarTimeBaseColor      uint32 `json:"taskbar_time_base_color,omitempty"`
-	TaskbarXPad               int `json:"taskbar_x_pad,omitempty"`
-	TaskbarYPad               int `json:"taskbar_y_pad,omitempty"`
-	TaskbarTimeFormat         string `json:"taskbar_time_format,omitempty"`
-	TaskbarBatFormat          string `json:"taskbar_bat_format,omitempty"`
+	TaskbarHeight             int `mapstructure:"taskbar_height"`
+	TaskbarSlideWidth         int `mapstructure:"taskbar_slide_width"`
+	TaskbarSlideActiveColor   uint32 `mapstructure:"taskbar_slide_active_color"`
+	TaskbarSlideInactiveColor uint32 `mapstructure:"taskbar_slide_inactive_color"`
+	TaskbarFontSize           float64 `mapstructure:"taskbar_font_size"`
+	TaskbarTimeBaseColor      uint32 `mapstructure:"taskbar_time_base_color"`
+	TaskbarXPad               int `mapstructure:"taskbar_x_pad"`
+	TaskbarYPad               int `mapstructure:"taskbar_y_pad"`
+	TaskbarTimeFormat         string `mapstructure:"taskbar_time_format"`
+	TaskbarBatFormat          string `mapstructure:"taskbar_bat_format"`
 	TaskbarElementShape       Rect
-	TaskbarMinMaxHeight       int `json:"taskbar_min_max_height,omitempty"`
-	TaskbarMinMaxColor        uint32 `json:"taskbar_min_max_color,omitempty"`
-	TaskbarSlideLeft          string `json:"taskbar_slide_left,omitempty"`
-	TaskbarSlideRight         string `json:"taskbar_slide_right,omitempty"`
-	CutSelectFrame            string `json:"cut_select_frame,omitempty"`
-	CutSelectContainer        string `json:"cut_select_container,omitempty"`
-	CopySelectHorizontal      StringWithHelp `json:"copy_select_horizontal,omitempty"`
-	CopySelectVertical        StringWithHelp `json:"copy_select_vertical,omitempty"`
-	SuspendCommand            string `json:"suspend_command,omitempty"`
+	TaskbarMinMaxHeight       int `mapstructure:"taskbar_min_max_height"`
+	TaskbarMinMaxColor        uint32 `mapstructure:"taskbar_min_max_color"`
+	TaskbarSlideLeft          string `mapstructure:"taskbar_slide_left"`
+	TaskbarSlideRight         string `mapstructure:"taskbar_slide_right"`
+	CutSelectFrame            string `mapstructure:"cut_select_frame"`
+	CutSelectContainer        string `mapstructure:"cut_select_container"`
+	CopySelectHorizontal      StringWithHelp `mapstructure:"copy_select_horizontal"`
+	CopySelectVertical        StringWithHelp `mapstructure:"copy_select_vertical"`
+	SuspendCommand            string `mapstructure:"suspend_command"`
 	BatteryWarningLevels      []int
 	BatteryWarningDuration    time.Duration
-	LaunchHelp                string `json:"launch_help,omitempty"`
+	LaunchHelp                string `mapstructure:"launch_help"`
 	GotoKeys                  map[string]string
 }
 
@@ -112,9 +112,9 @@ func LoadConfig() Config {
 	conf := DefaultConfig()
 	viper.SetConfigName("rowm") // name of config file (without extension)
 	viper.SetConfigType("json") // REQUIRED if the config file does not have the extension in the name
-	viper.AddConfigPath("/etc/rowm/")   // path to look for the config file in
-	err := viper.ReadInConfig() // Find and read the config file
-	if err != nil { // Handle errors reading the config file
+	viper.AddConfigPath("/etc/rowm/")
+	err := viper.ReadInConfig()
+	if err != nil {
 		log.Println("Didn't load config file:", err)
 	}
 
