@@ -122,7 +122,6 @@ func LoadConfig() Config {
 	if err != nil {
 		log.Println("Unable to decode into config struct:", err)
 	}
-	log.Println(conf.Shell)
 	return conf
 }
 
