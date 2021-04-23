@@ -81,7 +81,6 @@ func RegisterVolumeHooks(ctx *frame.Context) error {
 	}).Connect(ctx.X, ctx.X.RootWin(), ctx.Config.VolumeUp, true)
 	if err != nil {
 		log.Println(err)
-		return err
 	}
 
 	err = keybind.KeyReleaseFun(func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent) {
@@ -89,7 +88,6 @@ func RegisterVolumeHooks(ctx *frame.Context) error {
 	}).Connect(ctx.X, ctx.X.RootWin(), ctx.Config.VolumeDown, true)
 	if err != nil {
 		log.Println(err)
-		return err
 	}
 
 	err = keybind.KeyReleaseFun(func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent) {
@@ -97,7 +95,6 @@ func RegisterVolumeHooks(ctx *frame.Context) error {
 	}).Connect(ctx.X, ctx.X.RootWin(), ctx.Config.VolumeMute, true)
 	if err != nil {
 		log.Println(err)
-		return err
 	}
 
 	return nil
