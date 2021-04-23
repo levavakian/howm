@@ -76,7 +76,6 @@ func RegisterBrightnessHooks(ctx *frame.Context) error {
 	}).Connect(ctx.X, ctx.X.RootWin(), ctx.Config.BrightnessUp, true)
 	if err != nil {
 		log.Println(err)
-		return err
 	}
 
 	err = keybind.KeyReleaseFun(func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent) {
@@ -84,7 +83,6 @@ func RegisterBrightnessHooks(ctx *frame.Context) error {
 	}).Connect(ctx.X, ctx.X.RootWin(), ctx.Config.BrightnessDown, true)
 	if err != nil {
 		log.Println(err)
-		return err
 	}
 
 	return nil
