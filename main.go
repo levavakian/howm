@@ -12,11 +12,19 @@ import (
 	"github.com/levavakian/rowm/root"
 	"github.com/levavakian/rowm/sideloop"
 	"log"
+	"os"
+	"io"
 	"os/exec"
 	"time"
 )
 
 func main() {
+	logFile, err := os.OpenFile("/var/log/rowm.log", os.O_CREATE | os.O_APPEND | os.O_RDWR, 0666)
+	if err != nil {
+	    panic(err)
+	}
+	mw := io.MultiWriter(os.Stdout, logFile)
+	log.SetOutput(mw)
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 	log.Println("RoWM Window Manager")
 	log.Println("Hybrid Floating and Tiling Window Manager")
