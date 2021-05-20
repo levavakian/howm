@@ -240,6 +240,12 @@ func (f *Frame) Unmap(ctx *Context) {
 }
 
 func (f *Frame) Close(ctx *Context) {
+	if f.Window != nil {
+		_, present := ctx.AlwaysOnTop[f.Window.Id]
+		if present{
+			delete(ctx.AlwaysOnTop, f.Window.Id )
+		}
+	}
 	wm_protocols, err := xprop.Atm(ctx.X, "WM_PROTOCOLS")
 	if err != nil {
 		log.Println("xprop wm protocols failed:", err)

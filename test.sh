@@ -1,6 +1,7 @@
 #!/bin/sh
 set -e
-$(pwd)/compile.sh
+SCRIPTPATH="$( cd "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
+$SCRIPTPATH/compile.sh
 
 # 2. Run.
 #
@@ -8,7 +9,8 @@ $(pwd)/compile.sh
 # interpret it as an argument specifying the X server to launch and will launch
 # the default X server instead.
 XEPHYR=$(whereis -b Xephyr | cut -f2 -d' ')
-xinit ./xinitrc -- \
+cd $SCRIPTPATH
+xinit $SCRIPTPATH/xinitrc -- \
     "$XEPHYR" \
         :100 \
         -ac \
@@ -16,3 +18,4 @@ xinit ./xinitrc -- \
         -screen 1500x800 \
         +xinerama \
         +extension RANDR
+cd -

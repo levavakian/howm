@@ -3,6 +3,7 @@ package frame
 import (
 	"fmt"
 	"github.com/BurntSushi/xgbutil/xcursor"
+	"github.com/spf13/viper"
 	"log"
 	"os/user"
 	"path"
@@ -10,82 +11,82 @@ import (
 )
 
 type StringWithHelp struct {
-	Data	string
-	Help	string
+	Data	string	`mapstructure:"data"`
+	Help	string	`mapstructure:"help"`
 }
 
-
 type Config struct {
-	Shell                     string
-	Lock                      string
-	TabByFrame                bool
-	TabForward                StringWithHelp
-	TabBackward               StringWithHelp
-	ButtonDrag                string
-	ButtonClick               string
-	SplitVertical             StringWithHelp
-	SplitHorizontal           StringWithHelp
-	RunCmd                    StringWithHelp
-	Shutdown                  string
-	CloseFrame                StringWithHelp
-	ToggleExpandFrame         StringWithHelp
-	ToggleExternalDecorator   string
-	ToggleTaskbar             string
-	PopFrame                  StringWithHelp
-	ResetSize                 string
-	Minimize                  string
-	WindowUp		  StringWithHelp
-	WindowDown                StringWithHelp
-	WindowLeft                StringWithHelp
-	WindowRight               StringWithHelp
-	VolumeUp                  string
-	VolumeDown                string
-	BrightnessUp              string
-	BrightnessDown            string
-	Backlight                 string
-	VolumeMute                string
-	FocusNext                 StringWithHelp
-	FocusPrev                 StringWithHelp
-	ElemSize                  int
-	CloseCursor               int
+	Lock                      string `mapstructure:"lock"`
+	Shell                     string `mapstructure:"shell"`
+	TabByFrame                bool `mapstructure:"tab_frame"`
+	TabForward                StringWithHelp `mapstructure:"tab_forward"`
+	TabBackward               StringWithHelp `mapstructure:"tab_backward"`
+	ButtonDrag                string `mapstructure:"button_drag"`
+	ButtonClick               string `mapstructure:"button_click"`
+	ButtonRightClick          string `mapstructure:"button_right_click"`
+	SplitVertical             StringWithHelp `mapstructure:"split_vertical"`
+	SplitHorizontal           StringWithHelp `mapstructure:"split_horizontal"`
+	RunCmd                    StringWithHelp `mapstructure:"run_cmd"`
+	Shutdown                  string `mapstructure:"shutdown"`
+	CloseFrame                StringWithHelp `mapstructure:"close_frame"`
+	ToggleExpandFrame         StringWithHelp `mapstructure:"toggle_expand_frame"`
+	ToggleExternalDecorator   string `mapstructure:"toggle_external_decorator"`
+	ToggleTaskbar             string `mapstructure:"toggle_taskbar"`
+	PopFrame                  StringWithHelp `mapstructure:"pop_frame"`
+	ResetSize                 string `mapstructure:"reset_size"`
+	Minimize                  string `mapstructure:"minimize"`
+	WindowUp		  StringWithHelp `mapstructure:"window_up"`
+	WindowDown                StringWithHelp `mapstructure:"window_down"`
+	WindowLeft                StringWithHelp `mapstructure:"window_left"`
+	WindowRight               StringWithHelp `mapstructure:"window_right"`
+	VolumeUp                  string `mapstructure:"volume_up"`
+	VolumeDown                string `mapstructure:"volume_down"`
+	BrightnessUp              string `mapstructure:"brightness_up"`
+	BrightnessDown            string `mapstructure:"brightness_down"`
+	Backlight                 string `mapstructure:"backlight"`
+	VolumeMute                string `mapstructure:"volume_mute"`
+	FocusNext                 StringWithHelp `mapstructure:"focus_next"`
+	FocusPrev                 StringWithHelp `mapstructure:"focus_prev"`
+	ElemSize                  int `mapstructure:"elem_size"`
+	CloseCursor               int `mapstructure:"close_cursor"`
 	DefaultShapeRatio         Rectf
-	SeparatorColor            uint32
-	GrabColor                 uint32
-	FocusColor                uint32
-	CloseColor                uint32
-	MaximizeColor             uint32
-	MinimizeColor             uint32
-	ResizeColor               uint32
-	TaskbarBaseColor          uint32
-	TaskbarTextColor          uint32
-	InternalPadding           int
-	BackgroundImagePath       string
-	BuiltinCommands           map[StringWithHelp]string
+	SeparatorColor            uint32 `mapstructure:"seperator_color"`
+	GrabColor                 uint32 `mapstructure:"grab_color"`
+	FocusColor                uint32 `mapstructure:"focus_color"`
+	CloseColor                uint32 `mapstructure:"close_clor"`
+	MaximizeColor             uint32 `mapstructure:"maximize_color"`
+	MinimizeColor             uint32 `mapstructure:"minimize_color"`
+	ResizeColor               uint32 `mapstructure:"resize_color"`
+	TaskbarBaseColor          uint32 `mapstructure:"taskbar_base_color"`
+	TaskbarTextColor          uint32 `mapstructure:"taskbar_text_color"`
+	InternalPadding           int `mapstructure:"internal_padding"`
+	BackgroundImagePath       string `mapstructure:"background_image_path"`
+	BuiltinCommands           map[StringWithHelp]string `mapstructure:"builtin_commands"`
 	FocusMarkerTime           time.Duration
 	DoubleClickTime           time.Duration
-	TaskbarHeight             int
-	TaskbarSlideWidth         int
-	TaskbarSlideActiveColor   uint32
-	TaskbarSlideInactiveColor uint32
-	TaskbarFontSize           float64
-	TaskbarTimeBaseColor      uint32
-	TaskbarXPad               int
-	TaskbarYPad               int
-	TaskbarTimeFormat         string
-	TaskbarBatFormat          string
+	TaskbarHeight             int `mapstructure:"taskbar_height"`
+	TaskbarSlideWidth         int `mapstructure:"taskbar_slide_width"`
+	TaskbarSlideActiveColor   uint32 `mapstructure:"taskbar_slide_active_color"`
+	TaskbarSlideInactiveColor uint32 `mapstructure:"taskbar_slide_inactive_color"`
+	TaskbarFontSize           float64 `mapstructure:"taskbar_font_size"`
+	TaskbarTimeBaseColor      uint32 `mapstructure:"taskbar_time_base_color"`
+	TaskbarXPad               int `mapstructure:"taskbar_x_pad"`
+	TaskbarYPad               int `mapstructure:"taskbar_y_pad"`
+	TaskbarTimeFormat         string `mapstructure:"taskbar_time_format"`
+	TaskbarBatFormat          string `mapstructure:"taskbar_bat_format"`
 	TaskbarElementShape       Rect
-	TaskbarMinMaxHeight       int
-	TaskbarMinMaxColor        uint32
-	TaskbarSlideLeft          string
-	TaskbarSlideRight         string
-	CutSelectFrame            string
-	CutSelectContainer        string
-	CopySelectHorizontal      StringWithHelp
-	CopySelectVertical        StringWithHelp
-	SuspendCommand            string
+	TaskbarMinMaxHeight       int `mapstructure:"taskbar_min_max_height"`
+	TaskbarMinMaxColor        uint32 `mapstructure:"taskbar_min_max_color"`
+	TaskbarSlideLeft          string `mapstructure:"taskbar_slide_left"`
+	TaskbarSlideRight         string `mapstructure:"taskbar_slide_right"`
+	CutSelectFrame            string `mapstructure:"cut_select_frame"`
+	CutSelectContainer        string `mapstructure:"cut_select_container"`
+	CopySelectHorizontal      StringWithHelp `mapstructure:"copy_select_horizontal"`
+	CopySelectVertical        StringWithHelp `mapstructure:"copy_select_vertical"`
+	SuspendCommand            string `mapstructure:"suspend_command"`
 	BatteryWarningLevels      []int
 	BatteryWarningDuration    time.Duration
-	LaunchHelp                string
+	LaunchHelp                string `mapstructure:"launch_help"`
 	GotoKeys                  map[string]string
 }
 
@@ -107,6 +108,24 @@ func (c *Config) MinShape() Rect {
 	}
 }
 
+func LoadConfig() Config {
+	conf := DefaultConfig()
+	viper.SetConfigName("rowm") // name of config file (without extension)
+	viper.SetConfigType("json") // REQUIRED if the config file does not have the extension in the name
+	viper.AddConfigPath("/etc/rowm/")
+	err := viper.ReadInConfig()
+	if err != nil {
+		log.Println("Didn't load config file ", viper.ConfigFileUsed(), ": ", err)
+	}
+
+	err = viper.Unmarshal(&conf)
+	if err != nil {
+		log.Println("Unable to decode into config struct ", viper.ConfigFileUsed(), " :", err)
+	}
+	return conf
+}
+
+
 // DefaultConfig reference for key strings
 // https://github.com/BurntSushi/xgbutil/blob/master/keybind/keysymdef.go
 func DefaultConfig() Config {
@@ -114,23 +133,24 @@ func DefaultConfig() Config {
 		Shell:                   "/bin/bash",
 		Lock:                    "Mod4-l",
 		TabByFrame:              true,
-		TabForward:              StringWithHelp{Data: "Mod1-tab", Help:"Tab Forward"},
-		TabBackward:             StringWithHelp{Data: "Mod1-Shift-tab", Help:"Tab Backward"},
+		TabForward:              StringWithHelp{Data: "Mod1-tab", Help: "Tab Forward"},
+		TabBackward:             StringWithHelp{Data: "Mod1-Shift-tab", Help: "Tab Backward"},
 		ButtonDrag:              "1",
 		ButtonClick:             "1",
-		SplitVertical:           StringWithHelp{Data: "Mod4-r", Help:"Split Vertically"},
-		SplitHorizontal:         StringWithHelp{Data: "Mod4-e", Help:"Split Horizontally"},
-		RunCmd:                  StringWithHelp{Data: "Mod4-f", Help:"Run Command"},
+		ButtonRightClick:        "3",
+		SplitVertical:           StringWithHelp{Data: "Mod4-r", Help: "Split Vertically"},
+		SplitHorizontal:         StringWithHelp{Data: "Mod4-e", Help: "Split Horizontally"},
+		RunCmd:                  StringWithHelp{Data: "Mod4-f", Help: "Run Command"},
 		Shutdown:                "Mod4-BackSpace",
-		CloseFrame:              StringWithHelp{Data: "Mod4-d", Help:"Close Frame"},
-		ToggleExpandFrame:       StringWithHelp{Data: "Mod4-x", Help:"Toggle Expanded Frame"},
+		CloseFrame:              StringWithHelp{Data: "Mod4-d", Help: "Close Frame"},
+		ToggleExpandFrame:       StringWithHelp{Data: "Mod4-x", Help: "Toggle Expanded Frame"},
 		ToggleExternalDecorator: "Mod4-h",
 		ToggleTaskbar:           "Mod4-s",
-		WindowUp:                 StringWithHelp{Data: "Mod4-up", Help:"Window up"},
-		WindowDown:               StringWithHelp{Data: "Mod4-down", Help:"Window Down"},
-		WindowLeft:               StringWithHelp{Data: "Mod4-left", Help:"Window Left"},
-		WindowRight:              StringWithHelp{Data: "Mod4-right", Help:"Window Right"},
-		PopFrame:                 StringWithHelp{Data: "Mod4-q", Help:"Pop Frame"},
+		WindowUp:                StringWithHelp{Data: "Mod4-up", Help: "Window up"},
+		WindowDown:              StringWithHelp{Data: "Mod4-down", Help: "Window Down"},
+		WindowLeft:              StringWithHelp{Data: "Mod4-left", Help: "Window Left"},
+		WindowRight:             StringWithHelp{Data: "Mod4-right", Help: "Window Right"},
+		PopFrame:                StringWithHelp{Data: "Mod4-q", Help: "Pop Frame"},
 		ResetSize:               "Mod4-Shift-up",
 		Minimize:                "Mod4-Shift-down",
 		VolumeUp:                "XF86AudioRaiseVolume",

@@ -7,6 +7,7 @@ import (
 	"github.com/BurntSushi/xgbutil/xevent"
 	"github.com/levavakian/rowm/frame"
 	"fmt"
+	"strings"
 	"sort"
 	"log"
 	"os/exec"
@@ -54,21 +55,23 @@ func Split(ctx *frame.Context) *frame.Frame {
 	if attachF == nil {
 		msgPrompt := prompt.NewMessage(ctx.X, prompt.DefaultMessageTheme, prompt.DefaultMessageConfig)
 		timeout := 1 * time.Second
-		msgPrompt.Show(ctx.Screens[0].ToXRect(), "Cannot split when not focused on a window", timeout, func(msg *prompt.Message) {})
+		for _, screen := range ctx.Screens {
+			msgPrompt.Show(screen.ToXRect(), "Cannot split when not focused on a window", timeout, func(msg *prompt.Message) {})
+		}
 		return nil
 	}
 
-	nprompt := prompt.NewInput(ctx.X, prompt.DefaultInputTheme, prompt.DefaultInputConfig)
+	nprompt := frame.NewInputWithSuggestion(ctx.X, frame.DefaultInputWithSuggestionTheme, frame.DefaultInputWithSuggestionConfig)
 	ctx.SplitPrompt = nprompt
 
-	canc := func(inp *prompt.Input) {
+	canc := func(inp *frame.InputWithSuggestion) {
 		if ctx.SplitPrompt == nprompt {
 			ctx.SplitPrompt.Destroy()
 			ctx.SplitPrompt = nil
 		}
 	}
 
-	resp := func(inp *prompt.Input, text string) {
+	resp := func(inp *frame.InputWithSuggestion, text string) {
 		cmd := exec.Command("bash", "-c", text)
 		err := cmd.Start()
 		if err != nil {
@@ -81,7 +84,24 @@ func Split(ctx *frame.Context) *frame.Frame {
 		ctx.SplitPrompt = nil
 	}
 
-	ctx.SplitPrompt.Show(ctx.Screens[0].ToXRect(), "Command:", resp, canc)
+	suggestion := func(inp string) []string {
+		cmd := exec.Command("bash", "-c", "rowmbinaryfinder")
+		out, err := cmd.CombinedOutput()
+		if err != nil {
+			log.Fatalf("cmd.Run() failed with %s\n", err)
+		}
+		var suggestions []string
+		for _, option := range strings.Split(string(out), " ") {
+			if strings.HasPrefix(option, inp) {
+				suggestions = append(suggestions, option)
+			}
+		}
+		return suggestions
+	}
+
+	for _, screen := range ctx.Screens {
+	  ctx.SplitPrompt.Show(screen.ToXRect(), "Command:", resp, canc, suggestion)
+        }
 	return attachF
 }
 
@@ -115,7 +135,9 @@ func RegisterSplitHooks(ctx *frame.Context) error {
 		func(X *xgbutil.XUtil, e xevent.KeyReleaseEvent) {
 			msgPrompt := prompt.NewMessage(ctx.X, prompt.DefaultMessageTheme, prompt.DefaultMessageConfig)
 		timeout := 4 * time.Second
-		msgPrompt.Show(ctx.Screens[0].ToXRect(), GenerateHelp(ctx), timeout, func(msg *prompt.Message) {})
+		for _, screen := range ctx.Screens{
+		msgPrompt.Show(screen.ToXRect(), GenerateHelp(ctx), timeout, func(msg *prompt.Message) {})
+	}
 
 	}).Connect(ctx.X, ctx.X.RootWin(), ctx.Config.LaunchHelp, true)
 
@@ -126,13 +148,13 @@ func RegisterSplitHooks(ctx *frame.Context) error {
 			return
 		}
 
-		inPrompt := prompt.NewInput(X, prompt.DefaultInputTheme, prompt.DefaultInputConfig)
+		inPrompt := frame.NewInputWithSuggestion(X, frame.DefaultInputWithSuggestionTheme, frame.DefaultInputWithSuggestionConfig)
 
-		canc := func(inp *prompt.Input) {
+		canc := func(inp *frame.InputWithSuggestion) {
 			// Chill
 		}
 
-		resp := func(inp *prompt.Input, text string) {
+		resp := func(inp *frame.InputWithSuggestion, text string) {
 			cmd := exec.Command("bash", "-c", text)
 			err = cmd.Start()
 			if err != nil {
@@ -144,7 +166,24 @@ func RegisterSplitHooks(ctx *frame.Context) error {
 			inPrompt.Destroy()
 		}
 
-		inPrompt.Show(ctx.Screens[0].ToXRect(), "Command:", resp, canc)
+		suggestion := func(inp string) []string {
+		cmd := exec.Command("bash", "-c", "rowmbinaryfinder")
+		out, err := cmd.CombinedOutput()
+		if err != nil {
+			log.Fatalf("cmd.Run() failed with %s\n", err)
+		}
+		var suggestions []string
+		for _, option := range strings.Split(string(out), " ") {
+			if strings.HasPrefix(option, inp) {
+			suggestions = append(suggestions, option)
+		}
+		}
+		return suggestions
+		}
+
+		for _, screen := range ctx.Screens{
+		  inPrompt.Show(screen.ToXRect(), "Command:", resp, canc, suggestion)
+		}
 
 	}).Connect(ctx.X, ctx.X.RootWin(), ctx.Config.RunCmd.Data, true)
 	if err != nil {
